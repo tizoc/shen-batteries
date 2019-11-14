@@ -52,26 +52,26 @@
   { number --> (number --> A) --> (seq A) }
   N F -> (freeze [(F N) | (init-h (+ N 1) F)]))
 
-(define seq.range-step
+(define range-step
   { number --> number --> number --> (seq number) }
-  Step Start End -> (seq.range-step-increasing-h Step Start End) where (> Step 0)
-  Step Start End -> (seq.range-step-decreasing-h (- 0 Step) Start End) where (< Step 0)
+  Step Start End -> (range-step-increasing-h Step Start End) where (> Step 0)
+  Step Start End -> (range-step-decreasing-h (- 0 Step) Start End) where (< Step 0)
   _ _ _ -> (error "seq.range-step called with Step=0"))
 
-(define seq.range-step-increasing-h
+(define range-step-increasing-h
   { number --> number --> number --> (seq number) }
-  Step Start End -> (seq.empty) where (> Start End)
-  Step Start End -> (freeze [Start | (seq.range-step-increasing-h Step (+ Start Step) End)]))
+  Step Start End -> (empty) where (> Start End)
+  Step Start End -> (freeze [Start | (range-step-increasing-h Step (+ Start Step) End)]))
 
 (define seq.range-step-decreasing-h
   { number --> number --> number --> (seq number) }
-  Step Start End -> (seq.empty) where (< Start End)
-  Step Start End -> (freeze [Start | (seq.range-step-decreasing-h Step (- Start Step) End)]))
+  Step Start End -> (empty) where (< Start End)
+  Step Start End -> (freeze [Start | (range-step-decreasing-h Step (- Start Step) End)]))
 
 (define seq.range
   { number --> number --> (seq number) }
-  Start End -> (seq.range-step 1 Start End) where (>= End Start)
-  Start End -> (seq.range-step -1 Start End))
+  Start End -> (range-step 1 Start End) where (>= End Start)
+  Start End -> (range-step -1 Start End))
 
 \\ TODO: of-vector/string/dict
 
@@ -289,7 +289,7 @@
 (define flatten-h
   { (node (seq A)) --> (seq A)}
   [] -> (empty)
-  [S | Ss] -> (seq.append S (seq.flatten-h (thaw Ss))))
+  [S | Ss] -> (seq.append S (flatten-h (thaw Ss))))
 
 (define cycle
   { (seq A) --> (seq A) }
