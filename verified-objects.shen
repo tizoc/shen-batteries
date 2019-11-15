@@ -7,7 +7,7 @@
 (destroy if)
 
 (datatype verified-if
-
+  !;
   T : boolean;
   T : verified >> True : A;
   False : A;
