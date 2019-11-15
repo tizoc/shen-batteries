@@ -12,9 +12,9 @@
   ________________
   X : (mode (maybe A) -);
 
-  X : A >> P;
+  X : (maybe A);
   ________________
-  X : (maybe A), (some? X) : verified >> P;)
+  (some? X) : verified >> X : A;)
 
 (define nothing
   { --> (maybe A) }
