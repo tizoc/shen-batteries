@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package seq [seq maybe maybe.some? maybe.nothing]
+(package seq [seq unit maybe maybe.some? @none]
 
 (datatype seq-internal
 
@@ -200,7 +200,7 @@
 
 (define find-h
   { (A --> boolean) --> (node A) --> (maybe A) }
-  _ [] -> (maybe.nothing)
+  _ [] -> (@none)
   F [X | Seq] -> (if (F X) X (find-h F (thaw Seq))))
 
 (define find-map
@@ -209,7 +209,7 @@
 
 (define find-map-h
   { (A --> (maybe B)) --> (node A) --> (maybe B) }
-  _ [] -> (maybe.nothing)
+  _ [] -> (@none)
   F [X | Seq] -> (let Result (F X)
                    (if (maybe.some? Result)
                        Result
