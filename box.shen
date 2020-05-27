@@ -3,7 +3,7 @@
 
 (package box [box]
 
-(datatype box-internal
+(datatype internal-type
   ______________
   (absvector 2) : (mode (box A) -);
 
@@ -46,6 +46,6 @@
   { (box A) --> A --> (box A) }
   Box X -> (address-> Box 1 X))
 
-(preclude [box-internal])
+(preclude [internal-type])
 
 )
