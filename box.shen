@@ -46,6 +46,10 @@
   { (box A) --> A --> (box A) }
   Box X -> (address-> Box 1 X))
 
+(define modify
+  { (A --> A) --> (box A) --> (box A) }
+  F Box -> (box.put Box (F (unbox Box))))
+
 (preclude [internal-type])
 
 )
