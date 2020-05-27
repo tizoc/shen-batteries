@@ -1,77 +1,81 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package maybe [maybe @some @none unit]
+(package maybe [@some @none unit]
 
 (datatype internal-type
   ________________
-  @none_value_ : (mode (maybe A) -);
+  @none_value_ : (mode (t A) -);
 
   ______________
-  (absvector 2) : (mode (maybe A) -);
+  (absvector 2) : (mode (t A) -);
 
-  MaybeX : (maybe A);
+  MaybeX : (t A);
   ______________
-  (address-> MaybeX 0 @some-tag) : (maybe A);
+  (address-> MaybeX 0 #tag#some) : (t A);
 
-  MaybeX : (maybe A);
+  MaybeX : (t A);
   X : A;
   ______________
-  (address-> MaybeX 1 X) : (maybe A);
+  (address-> MaybeX 1 X) : (t A);
 
   (absvector? X) : verified;
   ______________
-  (= (<-address X 0) @some-tag) : boolean;
+  (= (<-address X 0) #tag#some) : boolean;
 
-  MaybeX : (maybe A);
+  MaybeX : (t A);
   ______________
   (<-address MaybeX 1) : A;)
 
 (define @none
-  { --> (maybe A) }
+  { --> (t A) }
   -> @none_value_)
 
 (define init-@some
-  { (maybe A) --> A --> (maybe A) }
-  M X -> (address-> (address-> M 0 @some-tag) 1 X))
+  { (t A) --> A --> (t A) }
+  M X -> (address-> (address-> M 0 #tag#some) 1 X))
 
 (define @some
-  { A --> (maybe A) }
+  { A --> (t A) }
   X -> (init-@some (absvector 2) X))
 
 (define none?
-  { (maybe A) --> boolean }
+  { (t A) --> boolean }
   X -> (= X @none_value_))
 
 (define some?
-  { (maybe A) --> boolean }
+  { (t A) --> boolean }
   X -> (not (none? X)))
 
 (define maybe.get
-  { (maybe A) --> A }
+  { (t A) --> A }
   X -> (<-address X 1) where (some? X)
   _ -> (error "Not a @some value"))
 
-(define maybe.get-unsafe
-  { (maybe A) --> A }
+(define get-unsafe
+  { (t A) --> A }
   X -> (<-address X 1))
 
-(define maybe.get/or
-  { (maybe A) --> (lazy A) --> A }
+(define get/or
+  { (t A) --> (lazy A) --> A }
   X _ -> (<-address X 1) where (some? X)
   _ F -> (thaw F))
 
 (define maybe.map
-  { (A --> B) --> (maybe A) --> (maybe B) }
+  { (A --> B) --> (t A) --> (t B) }
   F X -> (@some (F (maybe.get X))) where (some? X)
   _ X -> (@none))
 
-(define maybe.for-each
-  { (A --> B) --> (maybe A) --> unit }
+(define for-each
+  { (A --> B) --> (t A) --> unit }
   F X -> (do (F (maybe.get X))
              unit)
       where (some? X)
   _ X -> unit)
+
+(define #tag#some
+  { (t A) --> string }
+  X -> (make-string "(@some ~S)" (get-unsafe X)))
 
 (preclude [internal-type])
 

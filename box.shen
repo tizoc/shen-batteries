@@ -1,54 +1,58 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package box [box]
+(package box []
 
 (datatype internal-type
   ______________
-  (absvector 2) : (mode (box A) -);
+  (absvector 2) : (mode (t A) -);
 
-  Box : (box A);
+  Box : (t A);
   ______________
-  (address-> Box 0 @box) : (box A);
+  (address-> Box 0 #tag) : (t A);
 
-  Box : (box A);
+  Box : (t A);
   X : A;
   ______________
-  (address-> Box 1 X) : (box A);
+  (address-> Box 1 X) : (t A);
 
   (absvector? X) : verified;
   ______________
-  (= (<-address X 0) @box) : boolean;
+  (= (<-address X 0) #tag) : boolean;
 
-  Box : (box A);
+  Box : (t A);
   ______________
   (<-address Box 1) : A;)
 
 (define make
-  { A --> (box A) }
+  { A --> (t A) }
   X -> (init-box (absvector 2) X))
 
 (define init-box
-  { (box A) --> A --> (box A) }
-  Box X -> (box.put (address-> Box 0 @box) X))
+  { (t A) --> A --> (t A) }
+  Box X -> (box.put (address-> Box 0 #tag) X))
 
 (define box?
   { A --> boolean}
-  X -> (trap-error (= (<-address X 0) @box) (/. _ false))
+  X -> (trap-error (= (<-address X 0) #tag) (/. _ false))
     where (absvector? X)
   _ -> false)
 
 (define unbox
-  { (box A) --> A }
+  { (t A) --> A }
   Box -> (<-address Box 1))
 
 (define box.put
-  { (box A) --> A --> (box A) }
+  { (t A) --> A --> (t A) }
   Box X -> (address-> Box 1 X))
 
 (define modify
-  { (A --> A) --> (box A) --> (box A) }
+  { (A --> A) --> (t A) --> (t A) }
   F Box -> (box.put Box (F (unbox Box))))
+
+(define #tag
+  { (t A) --> string }
+  B -> (make-string "(box ~S)" (unbox B)))
 
 (preclude [internal-type])
 
