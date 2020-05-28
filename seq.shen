@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package seq [seq unit maybe maybe.some? @none]
+(package seq [unit maybe.t maybe.some? maybe.get @none @some mfreeze]
 
 (datatype seq-internal
 
@@ -9,81 +9,85 @@
   [] : (mode (node A) -);
 
   X : A;
-  Seq : (seq A);
+  Seq : (t A);
   ===================
   (cons X Seq) : (mode (node A) -);
 
   Node : (node A);
   __________________
-  (freeze Node) : (mode (seq A) -);
+  (freeze Node) : (mode (t A) -);
 
-  Seq : (seq A);
+  Node : (node A);
+  __________________
+  (mfreeze Node) : (mode (t A) -);
+
+  Seq : (t A);
   __________________
   (thaw Seq) : (node A);)
 
 \\ Creation
 
 (define empty
-  { --> (seq A) }
+  { --> (t A) }
   -> (freeze []))
 
 (define singleton
-  { A --> (seq A) }
-  X -> (freeze [X | (empty)]))
+  { A --> (t A) }
+  X -> (mfreeze [X | (empty)]))
 
 (define seq.cons
-  { A --> (seq A) --> (seq A) }
-  V S -> (freeze [V | S]))
+  { A --> (t A) --> (t A) }
+  V S -> (mfreeze [V | S]))
 
 (define snoc
-  { (seq A) --> A --> (seq A) }
+  { (t A) --> A --> (t A) }
   S V -> (seq.append S (singleton V)))
 
 (define make
-  { number --> A --> (seq A) }
+  { number --> A --> (t A) }
   0 _ -> (empty)
-  N Elt -> (freeze [Elt | (make (- N 1) Elt)]))
+  N Elt -> (mfreeze [Elt | (make (- N 1) Elt)]))
 
 (define init
-  { (number --> A) --> (seq A) }
+  { (number --> A) --> (t A) }
   F -> (init-h 0 F))
 
 (define init-h
-  { number --> (number --> A) --> (seq A) }
-  N F -> (freeze [(F N) | (init-h (+ N 1) F)]))
+  { number --> (number --> A) --> (t A) }
+  N F -> (mfreeze [(F N) | (init-h (+ N 1) F)]))
 
 (define range-step
-  { number --> number --> number --> (seq number) }
+  { number --> number --> number --> (t number) }
   Step Start End -> (range-step-increasing-h Step Start End) where (> Step 0)
   Step Start End -> (range-step-decreasing-h (- 0 Step) Start End) where (< Step 0)
   _ _ _ -> (error "seq.range-step called with Step=0"))
 
 (define range-step-increasing-h
-  { number --> number --> number --> (seq number) }
+  { number --> number --> number --> (t number) }
   Step Start End -> (empty) where (> Start End)
-  Step Start End -> (freeze [Start | (range-step-increasing-h Step (+ Start Step) End)]))
+  Step Start End -> (mfreeze [Start | (range-step-increasing-h Step (+ Start Step) End)]))
 
 (define seq.range-step-decreasing-h
-  { number --> number --> number --> (seq number) }
+  { number --> number --> number --> (t number) }
   Step Start End -> (empty) where (< Start End)
-  Step Start End -> (freeze [Start | (range-step-decreasing-h Step (- Start Step) End)]))
+  Step Start End -> (mfreeze [Start | (range-step-decreasing-h Step (- Start Step) End)]))
 
 (define seq.range
-  { number --> number --> (seq number) }
+  { number --> number --> (t number) }
   Start End -> (range-step 1 Start End) where (>= End Start)
   Start End -> (range-step -1 Start End))
 
 \\ TODO: of-vector/string/dict
 
 (define of-list
-  { (list A) --> (seq A) }
+  { (list A) --> (t A) }
   [] -> (empty)
   [X | Xs] -> (seq.cons X (of-list Xs)))
 
 \\ TODO: to-vector/string/dict
 
 (define to-list
-  { (seq A) --> (list A) }
+  { (t A) --> (list A) }
   S -> (to-list-h (thaw S)))
 
 (define to-list-h
@@ -92,13 +96,13 @@
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
 
 (define forever
-  { (lazy A) --> (seq A) }
-  L -> (freeze [(thaw L) | (forever L)]))
+  { (lazy A) --> (t A) }
+  L -> (mfreeze [(thaw L) | (forever L)]))
 
 \\ Predicates
 
 (define seq.empty?
-  { (seq A) --> boolean}
+  { (t A) --> boolean}
   S -> (empty-node? (thaw S)))
 
 (define empty-node?
@@ -114,22 +118,22 @@
   [H | _] -> H)
 
 (define node-tail
-  { (node A) --> (seq A) }
+  { (node A) --> (t A) }
   [] -> (error "seq.tail called on empty seq")
   [_ | T] -> T)
 
 (define seq.head
-  { (seq A) --> A }
+  { (t A) --> A }
   S -> (node-head (thaw S)))
 
 (define seq.tail
-  { (seq A) --> (seq A) }
+  { (t A) --> (t A) }
   S -> (node-tail (thaw S)))
 
 \\ Consumption
 
 (define fold-left
-  { (A --> B --> A) --> A --> (seq B) --> A }
+  { (A --> B --> A) --> A --> (t B) --> A }
   F Init S -> (fold-left-h F Init (thaw S)))
 
 (define fold-left-h
@@ -138,7 +142,7 @@
   F Acc [H | T] -> (fold-left-h F (F Acc H) (thaw T)))
 
 (define for-each
-  { (A --> Any) --> (seq A) --> (list unit) }
+  { (A --> Any) --> (t A) --> (list unit) }
   F S -> (for-each-h F (thaw S)))
 
 (define for-each-h
@@ -147,7 +151,7 @@
   F [H | T] -> (do (F H) (for-each-h F (thaw T))))
 
 (define equal?
-  { (seq A) --> (seq A) --> boolean }
+  { (t A) --> (t A) --> boolean }
   S1 S2 -> (equal?-h (thaw S1) (thaw S2)))
 
 (define equal?-h
@@ -157,7 +161,7 @@
   _ _ -> false)
 
 (define equal-cmp?
-  { (A --> B --> boolean) --> (seq A) --> (seq B) --> boolean }
+  { (A --> B --> boolean) --> (t A) --> (t B) --> boolean }
   Cmp S1 S2 -> (equal-cmp?-h Cmp (thaw S1) (thaw S2)))
 
 (define equal-cmp?-h
@@ -167,7 +171,7 @@
   _ _ _ -> false)
 
 (define for-all?
-  { (A --> boolean) --> (seq A) --> boolean }
+  { (A --> boolean) --> (t A) --> boolean }
   F S -> (for-all?-h F (thaw S)))
 
 (define for-all?-h
@@ -177,7 +181,7 @@
   _ _ -> false)
 
 (define exists?
-  { (A --> boolean) --> (seq A) --> boolean }
+  { (A --> boolean) --> (t A) --> boolean }
   F S -> (exists?-h F (thaw S)))
 
 (define exists?-h
@@ -187,28 +191,30 @@
   F [X | Seq] -> (exists?-h F (thaw Seq)))
 
 (define seq.element?
-  { A --> (seq A) --> boolean }
+  { A --> (t A) --> boolean }
   X S -> (exists? (= X) S))
 
 (define element-cmp?
-  { (A --> B --> boolean) --> A --> (seq B) --> boolean }
+  { (A --> B --> boolean) --> A --> (t B) --> boolean }
   Cmp X S -> (exists? (Cmp X) S))
 
 (define find
-  { (A --> boolean) --> (seq A) --> (maybe A) }
+  { (A --> boolean) --> (t A) --> (maybe.t A) }
   F S -> (find-h F (thaw S)))
 
 (define find-h
-  { (A --> boolean) --> (node A) --> (maybe A) }
+  { (A --> boolean) --> (node A) --> (maybe.t A) }
   _ [] -> (@none)
-  F [X | Seq] -> (if (F X) X (find-h F (thaw Seq))))
+  F [X | Seq] -> (if (F X)
+                     (@some X)
+                     (find-h F (thaw Seq))))
 
 (define find-map
-  { (A --> (maybe B)) --> (seq A) --> (maybe B) }
+  { (A --> (maybe.t B)) --> (t A) --> (maybe.t B) }
   F S -> (find-map-h F (thaw S)))
 
 (define find-map-h
-  { (A --> (maybe B)) --> (node A) --> (maybe B) }
+  { (A --> (maybe.t B)) --> (node A) --> (maybe.t B) }
   _ [] -> (@none)
   F [X | Seq] -> (let Result (F X)
                    (if (maybe.some? Result)
@@ -218,133 +224,133 @@
 \\ Transformation
 
 (define seq.map
-  { (A --> B) --> (seq A) --> (seq B) }
-  F S -> (freeze (map-h F (thaw S))))
+  { (A --> B) --> (t A) --> (t B) }
+  F S -> (mfreeze (map-h F (thaw S))))
 
 (define map-h
   { (A --> B) --> (node A) --> (node B)}
   _ [] -> []
-  F [H | T] -> [(F H) | (freeze (map-h F (thaw T)))])
+  F [H | T] -> [(F H) | (mfreeze (map-h F (thaw T)))])
 
 (define filter
-  { (A --> boolean) --> (seq A) --> (seq A) }
-  F S -> (freeze (filter-h F (thaw S))))
+  { (A --> boolean) --> (t A) --> (t A) }
+  F S -> (mfreeze (filter-h F (thaw S))))
 
 (define filter-h
   { (A --> boolean) --> (node A) --> (node A)}
   _ [] -> []
-  F [H | T] -> [H | (freeze (filter-h F (thaw T)))]
+  F [H | T] -> [H | (mfreeze (filter-h F (thaw T)))]
       where (F H)
   F [H | T] -> (filter-h F (thaw T)))
 
 (define filter-map
-  { (A --> (maybe B)) --> (seq A) --> (seq B) }
+  { (A --> (maybe.t B)) --> (t A) --> (t B) }
   F S -> (filter-map-h F (thaw S)))
 
 (define filter-map-h
-  { (A --> (maybe B)) --> (node A) --> (seq B) }
+  { (A --> (maybe.t B)) --> (node A) --> (t B) }
   F [V | Seq] -> (filter-map-hh F (F V) Seq))
 
 (define filter-map-hh
-  { (A --> (maybe B)) --> (maybe B) --> (seq A) --> (seq B) }
-  F V Seq -> (freeze [V | (filter-map F Seq)]) where (maybe.some? V)
+  { (A --> (maybe.t B)) --> (maybe.t B) --> (t A) --> (t B) }
+  F V Seq -> (mfreeze [(maybe.get V) | (filter-map F Seq)]) where (maybe.some? V)
   F _ Seq -> (filter-map F Seq))
 
 (define flat-map
-  { (A --> (seq B)) --> (seq A) --> (seq B) }
+  { (A --> (t B)) --> (t A) --> (t B) }
   F A -> (flat-map-h F (thaw A)))
 
 (define flat-map-h
-  { (A --> (seq B)) --> (node A) --> (seq B) }
+  { (A --> (t B)) --> (node A) --> (t B) }
   _ [] -> (freeze [])
   F [X | Next] -> (flat-map-append F (F X) Next))
 
 (define flat-map-append
-  { (A --> (seq B)) --> (seq B) --> (seq A) --> (seq B) }
+  { (A --> (t B)) --> (t B) --> (t A) --> (t B) }
   F S Tail -> (flat-map-append-h F (thaw S) Tail))
 
 (define flat-map-append-h
-  { (A --> (seq B)) --> (node B) --> (seq A) --> (seq B) }
+  { (A --> (t B)) --> (node B) --> (t A) --> (t B) }
   F [] Tail -> (flat-map F Tail)
-  F [X | Next] Tail -> (freeze [X | (flat-map-append F Next Tail)]))
+  F [X | Next] Tail -> (mfreeze [X | (flat-map-append F Next Tail)]))
 
 (define seq.append
-  { (seq A) --> (seq A) --> (seq A) }
+  { (t A) --> (t A) --> (t A) }
   A B -> (append-h (thaw A) B))
 
 (define append-h
-  { (node A) --> (seq A) --> (seq A) }
+  { (node A) --> (t A) --> (t A) }
   [] B -> B
-  [H | T] B -> (freeze [H | (seq.append T B)]))
+  [H | T] B -> (mfreeze [H | (seq.append T B)]))
 
 (define seq.concat
-  { (list (seq A)) --> (seq A)}
+  { (list (t A)) --> (t A)}
   [] -> (empty)
   [S | Ss] -> (seq.append S (seq.concat Ss)))
 
 (define flatten
-  { (seq (seq A)) --> (seq A)}
+  { (t (t A)) --> (t A)}
   S -> (flatten-h (thaw S)))
 
 (define flatten-h
-  { (node (seq A)) --> (seq A)}
+  { (node (t A)) --> (t A)}
   [] -> (empty)
   [S | Ss] -> (seq.append S (flatten-h (thaw Ss))))
 
 (define cycle
-  { (seq A) --> (seq A) }
-  S -> (freeze (thaw (seq.append S (cycle S)))))
+  { (t A) --> (t A) }
+  S -> (mfreeze (thaw (seq.append S (cycle S)))))
 
 (define take
-  { number --> (seq A) --> (seq A) }
+  { number --> (t A) --> (t A) }
   0 _ -> (empty)
-  N S -> (freeze
+  N S -> (mfreeze
           (thaw (seq.cons (seq.head S)
                           (take (- N 1) (seq.tail S))))))
 
 (define drop
-  { number --> (seq A) --> (seq A) }
+  { number --> (t A) --> (t A) }
   0 S -> S
-  N S -> (freeze (thaw (drop (- N 1) (seq.tail S)))))
+  N S -> (mfreeze (thaw (drop (- N 1) (seq.tail S)))))
 
 (define take-while
-  { (A --> boolean) --> (seq A) --> (seq A) }
+  { (A --> boolean) --> (t A) --> (t A) }
   F S -> (empty) where (not (F (seq.head S)))
-  F S -> (freeze
+  F S -> (mfreeze
           (thaw (seq.cons (seq.head S)
                           (take-while F (seq.tail S))))))
 
 (define drop-while
-  { (A --> boolean) --> (seq A) --> (seq A) }
+  { (A --> boolean) --> (t A) --> (t A) }
   F S -> S where (not (F (seq.head S)))
-  F S -> (freeze (thaw (drop-while F (seq.tail S)))))
+  F S -> (mfreeze (thaw (drop-while F (seq.tail S)))))
 
 (define zip-with
-  { (A --> B --> C) --> (seq A) --> (seq B) --> (seq C) }
+  { (A --> B --> C) --> (t A) --> (t B) --> (t C) }
   Cons S1 S2 -> (zip-with-h Cons (thaw S1) (thaw S2)))
 
 (define zip-with-h
-  { (A --> B --> C) --> (node A) --> (node B) --> (seq C) }
+  { (A --> B --> C) --> (node A) --> (node B) --> (t C) }
   _ [] _ -> (empty)
   _ _ [] -> (empty)
-  Cons [X | XSeq] [Y | YSeq] -> (freeze [(Cons X Y) | (zip-with-h Cons (thaw XSeq) (thaw YSeq))]))
+  Cons [X | XSeq] [Y | YSeq] -> (mfreeze [(Cons X Y) | (zip-with-h Cons (thaw XSeq) (thaw YSeq))]))
 
 (define zip
-  { (seq A) --> (seq B) --> (seq (A * B)) }
+  { (t A) --> (t B) --> (t (A * B)) }
   S1 S2 -> (zip-h (thaw S1) (thaw S2)))
 
 (define zip-h
-  { (node A) --> (node B) --> (seq (A * B))}
+  { (node A) --> (node B) --> (t (A * B))}
   [] _ -> (empty)
   _ [] -> (empty)
-  [X | XSeq] [Y | YSeq] -> (freeze [(@p X Y) | (zip-h (thaw XSeq) (thaw YSeq))]))
+  [X | XSeq] [Y | YSeq] -> (mfreeze [(@p X Y) | (zip-h (thaw XSeq) (thaw YSeq))]))
 
 (define unzip
-  { (seq (A * B)) --> ((seq A) * (seq B)) }
+  { (t (A * B)) --> ((t A) * (t B)) }
   S -> (@p (seq.map (function fst) S)
            (seq.map (function snd) S)))
 
-\\ TODO: chunks { number -> (seq A) -> (seq (vector A)) }
+\\ TODO: chunks { number -> (t A) -> (seq (vector A)) }
 
 (preclude [seq-internal])
 
