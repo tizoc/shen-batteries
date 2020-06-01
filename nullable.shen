@@ -3,11 +3,11 @@
 
 (package nullable [@just @null null?]
 
-(datatype nullable-internal
+(datatype internal-type
   ________________
   @null_value_ : (mode (t A) -);)
 
-(datatype nullable
+(datatype t
   X : A;
   ________________
   X : (mode (t A) -);
