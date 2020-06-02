@@ -430,7 +430,26 @@
   S -> (@p (seq.map (function fst) S)
            (seq.map (function snd) S)))
 
-\\ TODO: chunks { number -> (t A) -> (seq (vector A)) }
+\\ FIXME: update limit on incomplete chunks?
+(define chunks
+  { number --> (t A) --> (t (vector A)) }
+  N _ -> (error "cannot produce seq chunks of size < 1") where (< N 1)
+  N Seq -> (freeze (chunks-h N (thaw Seq))))
+
+(define chunks-h
+  { number --> (node A) --> (node (vector A)) }
+  _ [] -> []
+  N [X | Seq] -> (let Chunk (vector N)
+                      RemainingSeq (fill-chunk Chunk 1 N [X | Seq])
+                   [Chunk | (chunks N RemainingSeq)]))
+
+(define fill-chunk
+  { (vector A) --> number --> number --> (node A) --> (t A) }
+  _   _ _     []        -> (empty)
+  Vec N Limit [X | Seq] -> (do (vector-> Vec N X)
+                               Seq)
+      where (= N Limit)
+  Vec N Limit [X | Seq] -> (fill-chunk (vector-> Vec N X) (+ N 1) Limit (thaw Seq)))
 
 (preclude [seq-internal])
 
