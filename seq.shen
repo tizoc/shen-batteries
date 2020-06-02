@@ -302,7 +302,7 @@
 
 (define filter-map-hh
   { (A --> (maybe.t B)) --> (maybe.t B) --> (t A) --> (node B) }
-  F V Seq -> [(maybe.usafe-get V) | (filter-map F Seq)] where (maybe.some? V)
+  F V Seq -> [(maybe.unsafe-get V) | (filter-map F Seq)] where (maybe.some? V)
   F _ Seq -> (filter-map-h F (thaw Seq)))
 
 (define flat-map
