@@ -123,7 +123,7 @@
   "" -> (empty)
   (@s S Ss) -> (freeze [S | (of-string Ss)]))
 
-\\ TODO: to-vector/dict
+\\ TODO: dict
 
 (define to-list
   { (t A) --> (list A) }
@@ -133,6 +133,37 @@
   { (node A) --> (list A) }
   [] -> []
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
+
+(define into-vector
+  { number --> number --> (vector A) --> (t A) --> (vector A) }
+  Start Limit Vec _ -> (error "start or limit out of range")
+      where (or (< 1 Start) (< 1 Limit)
+                (< (limit Vec) Limit) (< (limit Vec) Start))
+  Start Limit Vec Seq -> (into-vector-decreasing-h Start Limit Vec (thaw Seq)) where (> Start Limit)
+  Start Limit Vec Seq -> (into-vector-increasing-h Start Limit Vec (thaw Seq)))
+
+(define into-vector-decreasing-h
+  { number --> number --> (vector A) --> (node A) --> (vector A) }
+  N Limit V _ -> V where (< N Limit)
+  _ _ V [] -> V
+  N Limit V [X | Seq] -> (into-vector-decreasing-h (- N 1) Limit (vector-> V N X) (thaw Seq)))
+
+(define into-vector-increasing-h
+  { number --> number --> (vector A) --> (node A) --> (vector A) }
+  N Limit V _ -> V where (> N Limit)
+  _ _ V [] -> V
+  N Limit V [X | Seq] -> (into-vector-increasing-h (+ N 1) Limit (vector-> V N X) (thaw Seq)))
+
+(define to-vector-sized
+  { number --> (t A) --> (vector A) }
+  Limit _ -> (error "cannot produce a vector of size < 1") where (< Limit 1)
+  Limit Seq -> (to-vector-sized-h 1 Limit (vector Limit) (thaw Seq)))
+
+(define to-vector-sized-h
+  { number --> number --> (vector A) --> (node A) --> (vector A) }
+  N Limit V _ -> V where (> N Limit)
+  N _ V [] -> V \\ TODO: change limit to N?
+  N Limit V [X | Seq] -> (to-vector-sized-h (+ N 1) Limit (vector-> V N X) (thaw Seq)))
 
 (define to-string
   { (t string) --> string }
