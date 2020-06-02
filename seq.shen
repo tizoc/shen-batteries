@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package seq [maybe.t maybe.some? maybe.get lazy.memo @none @some]
+(package seq [maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
 (datatype internal-type
   __________________
@@ -302,7 +302,7 @@
 
 (define filter-map-hh
   { (A --> (maybe.t B)) --> (maybe.t B) --> (t A) --> (node B) }
-  F V Seq -> [(maybe.get V) | (filter-map F Seq)] where (maybe.some? V)
+  F V Seq -> [(maybe.usafe-get V) | (filter-map F Seq)] where (maybe.some? V)
   F _ Seq -> (filter-map-h F (thaw Seq)))
 
 (define flat-map
