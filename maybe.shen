@@ -1,10 +1,10 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package maybe [@some @none unit]
+(package maybe [@some @none any.t]
 
 (datatype internal-type
-  ________________
+  ______________
   @none_value_ : (mode (t A) -);
 
   ______________
@@ -26,6 +26,15 @@
   MaybeX : (t A);
   ______________
   (<-address MaybeX 1) : A;)
+
+(datatype t
+  \\ For pattern matching
+  ______________
+  (@none) : (t A);
+
+  X : A;
+  ==============
+  (@some X) : (t A);)
 
 (define @none
   { --> (t A) }
@@ -52,7 +61,7 @@
   X -> (<-address X 1) where (some? X)
   _ -> (error "Not a @some value"))
 
-(define get-unsafe
+(define unsafe-get
   { (t A) --> A }
   X -> (<-address X 1))
 
@@ -75,7 +84,14 @@
 
 (define #tag#some
   { (t A) --> string }
-  X -> (make-string "(@some ~S)" (get-unsafe X)))
+  X -> (make-string "(@some ~S)" (unsafe-get X)))
+
+(define pattern-handler
+  { any.t --> any.t --> any.t --> any.t --> any.t }
+  Self Is? Assign [@none]   -> (Is? [none? Self])
+  Self Is? Assign [@some X] -> (do (Is? [some? Self])
+                                   (Assign X [unsafe-get Self]))
+  _ _ _ _ -> (fail))
 
 (preclude [internal-type])
 
