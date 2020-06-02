@@ -85,7 +85,7 @@
   Start End -> (range-step 1 Start End) where (>= End Start)
   Start End -> (range-step -1 Start End))
 
-\\ TODO: of-vector/string/dict
+\\ TODO: dict
 
 (define of-freeze
   { (lazy A) --> (t A) }
@@ -98,9 +98,32 @@
 (define of-list
   { (list A) --> (t A) }
   [] -> (empty)
-  [X | Xs] -> (seq.cons X (of-list Xs)))
+  [X | Xs] -> (freeze [X | (of-list Xs)]))
 
-\\ TODO: to-vector/string/dict
+(define of-vector
+  { (vector A) --> (t A) }
+  V -> (of-vector-h V 1 (limit V)))
+
+(define of-vector-h
+  { (vector A) --> number --> number --> (t A) }
+  _ N L -> (empty) where (> N L)
+  V N L -> (freeze [(<-vector V N) | (of-vector-h V (+ N 1) L)]))
+
+(define of-vector-reversed
+  { (vector A) --> (t A) }
+  V -> (of-vector-reversed-h V (limit V)))
+
+(define of-vector-reversed-h
+  { (vector A) --> number --> (t A) }
+  _ 0 -> (empty)
+  V N -> (freeze [(<-vector V N) | (of-vector-reversed-h V (- N 1))]))
+
+(define of-string
+  { string --> (t string) }
+  "" -> (empty)
+  (@s S Ss) -> (freeze [S | (of-string Ss)]))
+
+\\ TODO: to-vector/dict
 
 (define to-list
   { (t A) --> (list A) }
@@ -110,6 +133,15 @@
   { (node A) --> (list A) }
   [] -> []
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
+
+(define to-string
+  { (t string) --> string }
+  S -> (to-string-h (thaw S)))
+
+(define to-string-h
+  { (node string) --> string }
+  [] -> ""
+  [S | Seq] -> (@s S (to-string-h (thaw Seq))))
 
 (define forever
   { (lazy A) --> (t A) }
