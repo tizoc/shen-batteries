@@ -149,11 +149,17 @@
   _ 0 -> (empty)
   V N -> (freeze [(<-vector V N) | (of-vector-reversed-h V (- N 1))]))
 
-\\ TODO: faster version without @s
 (define of-string
   { string --> (t string) }
   "" -> (empty)
-  (@s S Ss) -> (freeze [S | (of-string Ss)]))
+  S -> (freeze (of-string-h S 0)))
+
+(define of-string-h
+  { string --> number --> (node string) }
+  S N -> (let Char (trap-error (pos S N) (/. _ ""))
+           (if (= Char "")
+               []
+               [Char | (freeze (of-string-h S (+ N 1)))])))
 
 \\ TODO: dict
 
