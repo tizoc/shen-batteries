@@ -432,10 +432,11 @@
   N (@p Seq N) _ -> []
   N (@p Seq Remaining) Chunk -> [(adjust-chunk Chunk (- N Remaining)) | (empty)])
 
-\\ TODO: either return a new smaller vector or update limit on original vector
 (define adjust-chunk
   { (vector A) --> number --> (vector A) }
-  V N -> V)
+  V N -> (let NewChunk (vector N)
+              _ (into-vector 1 N NewChunk (of-vector V))
+            NewChunk))
 
 (preclude [seq-internal])
 
