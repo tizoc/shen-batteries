@@ -445,19 +445,27 @@
   1 [X | Seq] -> Seq
   N [X | Seq] -> (drop-h (- N 1) (thaw Seq)))
 
-\\ FIXME: these will evaluate the head twice
-
 (define take-while
   { (A --> boolean) --> (t A) --> (t A) }
-  F S -> (empty) where (not (F (seq.head S)))
-  F S -> (freeze
-          (thaw (seq.cons (seq.head S)
-                          (take-while F (seq.tail S))))))
+  F S -> (freeze (take-while-h F (thaw S))))
+
+(define take-while-h
+  { (A --> boolean) --> (node A) --> (node A) }
+  _ [] -> []
+  F [X | Seq] -> (if (F X)
+                     [X | (take-while F Seq)]
+                     []))
 
 (define drop-while
   { (A --> boolean) --> (t A) --> (t A) }
-  F S -> S where (not (F (seq.head S)))
-  F S -> (freeze (thaw (drop-while F (seq.tail S)))))
+  F S -> (freeze (drop-while-h F (thaw S))))
+
+(define drop-while-h
+  { (A --> boolean) --> (node A) --> (node A) }
+  _ [] -> []
+  F [X | Seq] -> (if (F X)
+                     (drop-while-h F (thaw Seq))
+                     [X | Seq]))
 
 (define zip-with
   { (A --> B --> C) --> (t A) --> (t B) --> (t C) }
