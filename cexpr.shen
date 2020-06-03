@@ -4,7 +4,7 @@
 (define cexpr.builder
   { symbol --> (any.t --> any.t) }
   seq -> (function seq.cexpr-builder)
-  Other -> (error "Unknown cexp: ~A" Other))
+  Other -> (error "Unknown cexpr: ~A" Other))
 
 \\ TODO:
 \\ - handle combination of multiple cexprs
