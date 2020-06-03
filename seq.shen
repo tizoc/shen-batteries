@@ -3,11 +3,11 @@
 
 \** {1 Lazy sequences} *\
 
-\** The type [(seq A)] represents a delayed sequence of values of type [A]. The
-    evaluation of the elements of the sequence is lazy, and only happens when the
-    element is accessed while the sequence is traversed. Transformation functions
-    over a sequence are also lazy, and will only be evaluated as the new sequence
-    is traversed. Sequences that are infinite can be created and transformed.
+\** The type [(seq A)] represents a delayed sequence of values of type [A]. Evaluation
+    of each element in the sequence is delayed until the element is accessed when the
+    sequence is traversed. The results of sequence transformations are also delayed,
+    and no evaluation will happen until the sequence produced by the transformation
+    is traversed.
 *\
 
 (package seq [any.t maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
