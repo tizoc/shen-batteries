@@ -1,10 +1,10 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package seq [maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
+(package seq [any.t maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
 (datatype internal-type
-  __________________
+  ______________________
   [] : (mode (node A) -);
 
   X : A;
@@ -13,16 +13,35 @@
   (cons X Seq) : (mode (node A) -);
 
   Node : (node A);
-  __________________
+  ______________________
   (freeze Node) : (mode (t A) -);
 
   Seq : (t A);
-  __________________
+  ______________________
   (lazy.memo Seq) : (mode (t A) -);
 
   Seq : (t A);
-  __________________
-  (thaw Seq) : (node A);)
+  ______________________
+  (thaw Seq) : (node A);
+
+  (list? X) : verified;
+  ______________________
+  X : (list A);
+
+  (vector? X) : verified;
+  ______________________
+  X : (vector A);
+  )
+
+(datatype t
+  X : (list A);
+  ______________________
+  X : (like A);
+
+  X : (vector A);
+  ______________________
+  X : (like A);
+  )
 
 \\ Creation
 
@@ -87,6 +106,18 @@
 
 \\ TODO: dict
 
+(define list?
+  { any.t --> boolean }
+  [] -> true
+  [_ | _] -> true
+  _ -> false)
+
+(define of
+  { (like A) --> (t A) }
+  L -> (of-list L) where (list? L)
+  V -> (of-vector V) where (vector? V)
+  _ -> (error "seq.of can only convert from lists and vectors"))
+
 (define of-freeze
   { (lazy A) --> (t A) }
   L -> (freeze [(thaw L) | (empty)]))
@@ -118,6 +149,7 @@
   _ 0 -> (empty)
   V N -> (freeze [(<-vector V N) | (of-vector-reversed-h V (- N 1))]))
 
+\\ TODO: faster version without @s
 (define of-string
   { string --> (t string) }
   "" -> (empty)
