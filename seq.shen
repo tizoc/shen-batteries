@@ -411,18 +411,41 @@
   { (t A) --> (t A) }
   S -> (freeze (thaw (seq.append S (cycle S)))))
 
-\\ FIXME: these will evaluate the head twice
+(define truncate
+  { number --> (t A) --> (t A) }
+  N _ -> (error "cannot truncate a negative amount from a seq") where (< N 0)
+  N S -> (freeze (truncate-h N (thaw S))))
+
+(define truncate-h
+  { number --> (node A) --> (node A) }
+  0 _ -> []
+  _ [] -> []
+  N [X | Seq] -> [X | (truncate (- N 1) Seq)])
+
 (define take
   { number --> (t A) --> (t A) }
-  0 _ -> (empty)
-  N S -> (freeze
-          (thaw (seq.cons (seq.head S)
-                          (take (- N 1) (seq.tail S))))))
+  N _ -> (error "cannot take a negative amount from a seq") where (< N 0)
+  N S -> (freeze (take-h N (thaw S))))
+
+(define take-h
+  { number --> (node A) --> (node A) }
+  0 _ -> []
+  N [] -> (error "failure to take from sequence that ended abruptly")
+  N [X | Seq] -> [X | (take (- N 1) Seq)])
 
 (define drop
   { number --> (t A) --> (t A) }
   0 S -> S
-  N S -> (freeze (thaw (drop (- N 1) (seq.tail S)))))
+  N _ -> (error "cannot drop a negative amount from a seq") where (< N 0)
+  N S -> (freeze (thaw (drop-h N (thaw S)))))
+
+(define drop-h
+  { number --> (node A) --> (t A) }
+  N [] -> (error "failure to drop from sequence that ended abruptly")
+  1 [X | Seq] -> Seq
+  N [X | Seq] -> (drop-h (- N 1) (thaw Seq)))
+
+\\ FIXME: these will evaluate the head twice
 
 (define take-while
   { (A --> boolean) --> (t A) --> (t A) }
