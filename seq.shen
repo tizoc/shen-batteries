@@ -36,11 +36,11 @@
 (datatype t
   X : (list A);
   ______________________
-  X : (like A);
+  X : (mode (like A) -);
 
   X : (vector A);
   ______________________
-  X : (like A);
+  X : (mode (like A) -);
   )
 
 \\ Creation
@@ -230,6 +230,10 @@
   S -> (node-tail (thaw S)))
 
 \\ Consumption
+
+(define drain
+  { (t A) --> unit }
+  Seq -> (for-each (/. _ unit) Seq))
 
 (define fold-left
   { (A --> B --> A) --> A --> (t B) --> A }
