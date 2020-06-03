@@ -1,6 +1,15 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
+\** {1 Lazy sequences} *\
+
+\** The type [(seq A)] represents a delayed sequence of values of type [A]. The
+    evaluation of the elements of the sequence is lazy, and only happens when the
+    element is accessed while the sequence is traversed. Transformation functions
+    over a sequence are also lazy, and will only be evaluated as the new sequence
+    is traversed. Sequences that are infinite can be created and transformed.
+*\
+
 (package seq [any.t maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
 (datatype t-internal
@@ -26,11 +35,11 @@
 
   (list? X) : verified;
   ______________________
-  X : (list A);
+  X : (mode (list A) -);
 
   (vector? X) : verified;
   ______________________
-  X : (vector A);
+  X : (mode (vector A) -);
   )
 
 (datatype t
@@ -43,16 +52,20 @@
   X : (mode (like A) -);
   )
 
-\\ Creation
+\** {2 Creation} *\
 
+\** [(seq.empty)] produces the empty sequence. *\
 (define empty
   { --> (t A) }
   -> (freeze []))
 
+\** [(seq.singleton X)] produces a singleton sequence containing just [X]. *\
 (define singleton
   { A --> (t A) }
   X -> (freeze [X | (empty)]))
 
+\** [(memo Seq)] wraps [Seq] in a memoized sequence for which elements are
+    evaluated only once the first time the sequence is traversed. *\
 (define memo
   { (t A) --> (t A) }
   Seq -> (lazy.memo (freeze (memo-h (thaw Seq)))))
@@ -62,26 +75,37 @@
   [] -> []
   [X | Seq] -> [X | (memo Seq)])
 
+\** [(seq.cons V S)] produces a new sequence with [V] as the first element, followed by
+    everything contained in sequence [S]. *\
 (define seq.cons
   { A --> (t A) --> (t A) }
   V S -> (freeze [V | S]))
 
+\** [(seq.snoc S V)] produces a new sequence with everything in sequence [S], followed by [V]. *\
 (define snoc
   { (t A) --> A --> (t A) }
   S V -> (seq.append S (singleton V)))
 
+\** [(seq.make N Elt)] produces a sequence containing [N] times the value of [Elt]. *\
 (define make
   { number --> A --> (t A) }
   0 _ -> (empty)
   N Elt -> (freeze [Elt | (make (- N 1) Elt)]))
 
-(define init
-  { (number --> A) --> (t A) }
-  F -> (init-h 0 F))
-
-(define init-h
-  { number --> (number --> A) --> (t A) }
-  N F -> (freeze [(F N) | (init-h (+ N 1) F)]))
+\** [(seq.unfold F Seed)] produces a sequence of values constructed from the results of [(F Seed)].
+    [F] must return [(@none)] to signal the end of the production of elements, and [(@some Elt NewSeed)]
+    to produce a new sequence element [Elt]. [NewSeed] will be passed to [F] the next time a sequence
+    element has to be produced. *\
+(define unfold
+  { (B --> (maybe.t (A * B))) --> B --> (t A) }
+  F Seed -> (freeze
+              (let MaybeResult (F Seed)
+                 (if (maybe.some? MaybeResult)
+                     (let Result (maybe.unsafe-get MaybeResult)
+                          Elt (fst Result)
+                          NewSeed (snd Result)
+                       [Elt | (unfold F NewSeed)])
+                     []))))
 
 (define range-step
   { number --> number --> number --> (t number) }
