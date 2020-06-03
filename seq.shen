@@ -135,35 +135,23 @@
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
 
 (define into-vector
-  { number --> number --> (vector A) --> (t A) --> (vector A) }
-  Start Limit Vec _ -> (error "start or limit out of range")
-      where (or (< 1 Start) (< 1 Limit)
-                (< (limit Vec) Limit) (< (limit Vec) Start))
-  Start Limit Vec Seq -> (into-vector-decreasing-h Start Limit Vec (thaw Seq)) where (> Start Limit)
-  Start Limit Vec Seq -> (into-vector-increasing-h Start Limit Vec (thaw Seq)))
+  { number --> number --> (vector A) --> (t A) --> ((t A) * number) }
+  Start Count Vec _ -> (error "start position out of vector range")
+      where (or (< Start 1)
+                (> Start (limit Vec)))
+  Start Count Vec _ -> (error "count exceeds vector limits")
+      where (or (< (+ Start Count) 0)
+                (> (+ Start Count) (+ 1 (limit Vec))))
+  _ 0 _ Seq -> (@p Seq 0)
+  Start Count Vec Seq -> (into-vector-h Start (- 0 Count) -1 Vec (thaw Seq)) where (< Count 0)
+  Start Count Vec Seq -> (into-vector-h Start Count 1 Vec (thaw Seq)))
 
-(define into-vector-decreasing-h
-  { number --> number --> (vector A) --> (node A) --> (vector A) }
-  N Limit V _ -> V where (< N Limit)
-  _ _ V [] -> V
-  N Limit V [X | Seq] -> (into-vector-decreasing-h (- N 1) Limit (vector-> V N X) (thaw Seq)))
-
-(define into-vector-increasing-h
-  { number --> number --> (vector A) --> (node A) --> (vector A) }
-  N Limit V _ -> V where (> N Limit)
-  _ _ V [] -> V
-  N Limit V [X | Seq] -> (into-vector-increasing-h (+ N 1) Limit (vector-> V N X) (thaw Seq)))
-
-(define to-vector-sized
-  { number --> (t A) --> (vector A) }
-  Limit _ -> (error "cannot produce a vector of size < 1") where (< Limit 1)
-  Limit Seq -> (to-vector-sized-h 1 Limit (vector Limit) (thaw Seq)))
-
-(define to-vector-sized-h
-  { number --> number --> (vector A) --> (node A) --> (vector A) }
-  N Limit V _ -> V where (> N Limit)
-  N _ V [] -> V \\ TODO: change limit to N?
-  N Limit V [X | Seq] -> (to-vector-sized-h (+ N 1) Limit (vector-> V N X) (thaw Seq)))
+(define into-vector-h
+  { number --> number --> number --> (vector A) --> (node A) --> ((t A) * number) }
+  N Count _ _ [] -> (@p (empty) Count)
+  N 1 _ V [X | Seq] -> (do (vector-> V N X)
+                           (@p Seq 0))
+  N Count Step V [X | Seq] -> (into-vector-h (+ N Step) (- Count 1) Step (vector-> V N X) (thaw Seq)))
 
 (define to-string
   { (t string) --> string }
@@ -381,6 +369,7 @@
   { (t A) --> (t A) }
   S -> (freeze (thaw (seq.append S (cycle S)))))
 
+\\ FIXME: these will evaluate the head twice
 (define take
   { number --> (t A) --> (t A) }
   0 _ -> (empty)
@@ -430,26 +419,23 @@
   S -> (@p (seq.map (function fst) S)
            (seq.map (function snd) S)))
 
-\\ FIXME: update limit on incomplete chunks?
 (define chunks
   { number --> (t A) --> (t (vector A)) }
   N _ -> (error "cannot produce seq chunks of size < 1") where (< N 1)
-  N Seq -> (freeze (chunks-h N (thaw Seq))))
+  N Seq -> (freeze
+             (let Chunk (vector N)
+               (chunks-h N (into-vector 1 N Chunk Seq) Chunk))))
 
 (define chunks-h
-  { number --> (node A) --> (node (vector A)) }
-  _ [] -> []
-  N [X | Seq] -> (let Chunk (vector N)
-                      RemainingSeq (fill-chunk Chunk 1 N [X | Seq])
-                   [Chunk | (chunks N RemainingSeq)]))
+  { number --> ((t A) * number) --> (vector A) --> (node (vector A)) }
+  N (@p Seq 0) Chunk -> [Chunk | (chunks N Seq)]
+  N (@p Seq N) _ -> []
+  N (@p Seq Remaining) Chunk -> [(adjust-chunk Chunk (- N Remaining)) | (empty)])
 
-(define fill-chunk
-  { (vector A) --> number --> number --> (node A) --> (t A) }
-  _   _ _     []        -> (empty)
-  Vec N Limit [X | Seq] -> (do (vector-> Vec N X)
-                               Seq)
-      where (= N Limit)
-  Vec N Limit [X | Seq] -> (fill-chunk (vector-> Vec N X) (+ N 1) Limit (thaw Seq)))
+\\ TODO: either return a new smaller vector or update limit on original vector
+(define adjust-chunk
+  { (vector A) --> number --> (vector A) }
+  V N -> V)
 
 (preclude [seq-internal])
 
