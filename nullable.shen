@@ -3,7 +3,7 @@
 
 (package nullable [@just @null null? any.t]
 
-(datatype internal-type
+(datatype t-internal
   ________________
   @null_value_ : (mode (t A) -);)
 

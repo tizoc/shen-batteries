@@ -3,7 +3,7 @@
 
 (package seq [any.t maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
-(datatype internal-type
+(datatype t-internal
   ______________________
   [] : (mode (node A) -);
 

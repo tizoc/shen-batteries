@@ -3,7 +3,7 @@
 
 (package maybe [@some @none any.t]
 
-(datatype internal-type
+(datatype t-internal
   ______________
   @none_value_ : (mode (t A) -);
 
@@ -93,6 +93,6 @@
                                    (Assign X [unsafe-get Self]))
   _ _ _ _ -> (fail))
 
-(preclude [internal-type])
+(preclude [t-internal])
 
 )

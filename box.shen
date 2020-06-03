@@ -3,7 +3,7 @@
 
 (package box []
 
-(datatype internal-type
+(datatype t-internal
   ______________
   (absvector 2) : (mode (t A) -);
 
@@ -54,6 +54,6 @@
   { (t A) --> string }
   B -> (make-string "(box ~S)" (unbox B)))
 
-(preclude [internal-type])
+(preclude [t-internal])
 
 )
