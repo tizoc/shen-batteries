@@ -344,7 +344,7 @@
   _ _ -> false)
 
 \** [(seq.exists? Test Seq)] return [true] if [(Test Elt)] is [true] for any value produced
-    the traversal of [Seq]. [Seq] is only consumed until [(Test Elt)] is true. *\
+    by the traversal of [Seq]. [Seq] is only consumed until [(Test Elt)] is true. *\
 (define exists?
   { (A --> boolean) --> (seq.t A) --> boolean }
   F S -> (exists?-h F (thaw S)))
@@ -366,7 +366,7 @@
   Cmp X S -> (exists? (Cmp X) S))
 
 \** [(seq.find Test Seq)] returns the first element in [Seq] for which [(Test Elt)] is true
-    wrapped as [(@some Elt)], and [@none] if no such element is produced by [Seq]. *\
+    wrapped as [(@some Elt)] or [@none] otherwise. *\
 (define find
   { (A --> boolean) --> (seq.t A) --> (maybe.t A) }
   F S -> (find-h F (thaw S)))
@@ -378,9 +378,8 @@
                      (@some X)
                      (find-h F (thaw Seq))))
 
-\** [(seq.find-map F Seq)] calls [(F Elt)] for each element [Elt] produced when traversing [Seq]
-    until [(@some Result)] is returned. Returns the first [(@some Result)] value, or [(@none)] if
-    there is no such result. *\
+\** [(seq.find-map F Seq)] returns the first result of [(F Elt)] of the form [(@some Result)] or
+    [(@none)] if there is no such result. *\
 (define find-map
   { (A --> (maybe.t B)) --> (seq.t A) --> (maybe.t B) }
   F S -> (find-map-h F (thaw S)))
@@ -395,6 +394,8 @@
 
 \** {2 Transformation} *\
 
+\** [(seq.map F Seq)] returns a new sequence with all the elements in [Seq] transformed
+    with [(F Elt)]. *\
 (define seq.map
   { (A --> B) --> (seq.t A) --> (seq.t B) }
   F S -> (freeze (map-h F (thaw S))))
@@ -404,6 +405,8 @@
   _ [] -> []
   F [H | T] -> [(F H) | (freeze (map-h F (thaw T)))])
 
+\** [(seq.filter Test Seq)] returns a new sequence with all the elements in [Seq] for which
+    [(Test Elt)] is [false] removed. *\
 (define filter
   { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (filter-h F (thaw S))))
@@ -415,6 +418,9 @@
       where (F H)
   F [H | T] -> (filter-h F (thaw T)))
 
+\** [(seq.filter F Seq)] returns a new sequence with all the elements in [Seq] for which
+    [(F Elt)] is [(@none)] removed, and for which the result is [(@some NewElt)] replaced by
+    [NewElt]. *\
 (define filter-map
   { (A --> (maybe.t B)) --> (seq.t A) --> (seq.t B) }
   F S -> (freeze (filter-map-h F (thaw S))))
@@ -429,6 +435,8 @@
   F V Seq -> [(maybe.unsafe-get V) | (filter-map F Seq)] where (maybe.some? V)
   F _ Seq -> (filter-map-h F (thaw Seq)))
 
+\** [(seq.flat-map F Seq)] returns a sequence that is the concatenation of all subsequences
+    produced by calling [(F Elt)] for each element in [Seq]. *\
 (define flat-map
   { (A --> (seq.t B)) --> (seq.t A) --> (seq.t B) }
   F A -> (freeze (flat-map-h F (thaw A))))
@@ -447,6 +455,8 @@
   F [] Tail -> (flat-map-h F (thaw Tail))
   F [X | Next] Tail -> [X | (freeze (flat-map-append F Next Tail))])
 
+\** [(seq.append SeqA SeqB)] returns a sequence that produces all elements in [SeqA]
+    followed by all elements in [SeqB]. *\
 (define seq.append
   { (seq.t A) --> (seq.t A) --> (seq.t A) }
   A B -> (freeze (append-h (thaw A) B)))
@@ -456,11 +466,15 @@
   [] B -> (thaw B)
   [H | T] B -> [H | (seq.append T B)])
 
+\** [(seq.concat [Seq1 Seq2 ... SeqN]) returns a sequence that produces all elements
+    in [Seq1] followed by all elements in [Seq2], .... followed by all emenets in [SeqN]. *\
 (define seq.concat
   { (list (seq.t A)) --> (seq.t A)}
   [] -> (empty)
   [S | Ss] -> (seq.append S (seq.concat Ss)))
 
+\** [(seq.flatten SeqOfSeqs)] returns a sequence that produces every element produced
+    by each subsequence produced by [SeqOfSeqs]. *\
 (define flatten
   { (seq.t (seq.t A)) --> (seq.t A) }
   S -> (freeze (thaw (flatten-h (thaw S)))))
@@ -470,10 +484,13 @@
   [] -> (empty)
   [S | Ss] -> (seq.append S (flatten-h (thaw Ss))))
 
+\** [(seq.cycle Seq)] returns an infinite sequence that produces all the elements from [Seq]
+    repeated from the beginning each time the end of the original sequence is reached. *\
 (define cycle
   { (seq.t A) --> (seq.t A) }
   S -> (freeze (thaw (seq.append S (cycle S)))))
 
+\** [(seq.truncate N Seq)] returns a sequence containing at most the first [N] elements of [Seq]. *\
 (define truncate
   { number --> (seq.t A) --> (seq.t A) }
   N _ -> (error "cannot truncate a negative amount from a seq") where (< N 0)
@@ -485,6 +502,9 @@
   _ [] -> []
   N [X | Seq] -> [X | (truncate (- N 1) Seq)])
 
+\** [(seq.take N Seq)] returns a sequence containing the first [N] elements of [Seq].
+    An error will be thrown when traversing the new sequence if the original sequence
+    had fewer than [N] elements. *\
 (define take
   { number --> (seq.t A) --> (seq.t A) }
   N _ -> (error "cannot take a negative amount from a seq") where (< N 0)
@@ -496,6 +516,9 @@
   N [] -> (error "failure to take from sequence that ended abruptly")
   N [X | Seq] -> [X | (take (- N 1) Seq)])
 
+\** [(seq.drop N Seq)] returns a sequence with the elements from [Seq] with the first [N] elements removed.
+    An error will be thrown when traversing the new sequence if the original sequence
+    had fewer than [N] elements. *\
 (define drop
   { number --> (seq.t A) --> (seq.t A) }
   0 S -> S
