@@ -236,7 +236,7 @@
   { (lazy A) --> (seq.t A) }
   L -> (freeze [(thaw L) | (forever L)]))
 
-\\ Predicates
+\** {2 Predicates} *\
 
 \** [(seq.empty? Seq)] will return [true] if [Seq] is an empty sequence, [false] otherwise. Note that
     performing this check will cause the evaluation of the first element of [Seq] if it is not empty. *\
