@@ -209,8 +209,8 @@
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
 
 \** [(seq.into-vector Start Count Vector Seq)] fills the vector [Vector] with elements produced by the sequence [Seq].
-    If [Count] is positive, the vector slots from [Start] to [Start + Count] (not included) are filled in increasing order.
-    If [Count] is negative, the vector slots from [Start] to [Start - Count] (not included) are filled in decreasing order.
+    If [Count] is positive, the vector slots from [Start] to [Start + Count - 1] are filled in increasing order.
+    If [Count] is negative, the vector slots from [Start] to [Start - abs(Count) + 1] are filled in decreasing order.
     The return value is a [(@p RemainingSeq NotFilledCount)] tuple, with [RemainingSeq] being what is left to be consumed of the sequence, and [NotFilledCount]
     the amount of slots that couldn't be filled because [Seq] got fully consumed before [Count] amount of slots were filled. If [NotFilledCount] is [0],
     that means that the operation succeeded without the [Seq] sequence ending prematurely. *\
@@ -250,6 +250,8 @@
 
 \\ Predicates
 
+\** [(seq.empty? Seq)] will return [true] if [Seq] is an empty sequence, [false] otherwise. Note that
+    performing this check will cause the evaluation of the first element of [Seq] if it is not empty. *\
 (define seq.empty?
   { (t A) --> boolean}
   S -> (empty-node? (thaw S)))
@@ -271,16 +273,21 @@
   [] -> (error "seq.tail called on empty seq")
   [_ | T] -> T)
 
+\** [(seq.head Seq)] evaluates and returns the first element of [Seq]. *\
 (define seq.head
   { (t A) --> A }
   S -> (node-head (thaw S)))
 
+\** [(seq.head Seq)] returns [Seq] without the first element. Note that this
+    will cause the evaulation of the first element of [Seq]. *\
 (define seq.tail
   { (t A) --> (t A) }
   S -> (node-tail (thaw S)))
 
 \\ Consumption
 
+\** [(seq.drain Seq)] will consume [Seq] until no more elements are left. The produced
+    elements will be discarded. *\
 (define drain
   { (t A) --> unit }
   Seq -> (for-each (/. _ unit) Seq))
