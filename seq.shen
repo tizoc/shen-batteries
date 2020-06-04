@@ -33,13 +33,11 @@
   ______________________
   (thaw Seq) : (node A);
 
-  (list? X) : verified;
   ______________________
-  X : (mode (list A) -);
+  (list? X) : verified >> X : (mode (list A) -);
 
-  (vector? X) : verified;
   ______________________
-  X : (mode (vector A) -);
+  (vector? X) : verified >> X : (mode (vector A) -);
   )
 
 \** {2 Creation} *\
@@ -251,7 +249,7 @@
   [] -> true
   _ -> false)
 
-\\ Accessors
+\** {2 Accessors} *\
 
 (define node-head
   { (node A) --> A }
@@ -268,7 +266,7 @@
   { (seq.t A) --> A }
   S -> (node-head (thaw S)))
 
-\** [(seq.head Seq)] returns [Seq] without the first element. Note that this
+\** [(seq.tail Seq)] returns [Seq] without the first element. Note that this
     will cause the evaulation of the first element of [Seq]. *\
 (define seq.tail
   { (seq.t A) --> (seq.t A) }
@@ -276,12 +274,17 @@
 
 \** {2 Consumption} *\
 
-\** [(seq.drain Seq)] will consume [Seq] until no more elements are left. The produced
+\** [(seq.drain Seq)] consumes [Seq] until no more elements are left. The produced
     elements will be discarded. *\
 (define drain
   { (seq.t A) --> unit }
   Seq -> (for-each (/. _ unit) Seq))
 
+\** [(seq.fold-left F Acc Seq)] consumes the sequence [Seq], combining each of it's elements with
+    the accumulator [Acc] by calling [(F Acc Elt)]. The result of each call to [F] is a new [NewAcc]
+    value that will be passed as argument to the next call to [F] along with the next element in the
+    [Seq] sequence: [(F NewAcc NextElt)]. The return value of [seq.fold-left] is the result of the
+    final call to [F] when the sequence is fully consumed. *\
 (define fold-left
   { (A --> B --> A) --> A --> (seq.t B) --> A }
   F Init S -> (fold-left-h F Init (thaw S)))
@@ -291,6 +294,8 @@
   _ Acc [] -> Acc
   F Acc [H | T] -> (fold-left-h F (F Acc H) (thaw T)))
 
+\** [(seq.for-each F Seq)] consumes [Seq] until no more elements are left. Each value
+    produced is passed to [F] and the result discarded. *\
 (define for-each
   { (A --> Any) --> (seq.t A) --> unit }
   F S -> (for-each-h F (thaw S)))
@@ -300,6 +305,9 @@
   _ [] -> unit
   F [H | T] -> (do (F H) (for-each-h F (thaw T))))
 
+\** [(seq.equal? SeqA SeqB)] consumes [SeqA] and [SeqB] one element at a time comparing
+    the elements with [(= EltA EltB)] until [false] is returned or one of the sequences is fully consumed.
+    The result is [true] if [false] is never returned and both sequences produce the samee amount of values *\
 (define equal?
   { (seq.t A) --> (seq.t A) --> boolean }
   S1 S2 -> (equal?-h (thaw S1) (thaw S2)))
@@ -310,6 +318,9 @@
   [X | XSeq] [X | YSeq] -> (equal?-h (thaw XSeq) (thaw YSeq))
   _ _ -> false)
 
+\** [(seq.equal-cmp? Cmp SeqA SeqB)] consumes [SeqA] and [SeqB] one element at a time comparing
+    the elements with [(Cmp EltA EltB)] until [false] is returned or one of the sequences is fully consumed.
+    The result is [true] if [false] is never returned and both sequences produce the samee amount of values *\
 (define equal-cmp?
   { (A --> B --> boolean) --> (seq.t A) --> (seq.t B) --> boolean }
   Cmp S1 S2 -> (equal-cmp?-h Cmp (thaw S1) (thaw S2)))
@@ -320,6 +331,8 @@
   Cmp [X | XSeq] [Y | YSeq] -> (equal-cmp?-h Cmp (thaw XSeq) (thaw YSeq)) where (Cmp X Y)
   _ _ _ -> false)
 
+\** [(seq.for-all? Test Seq)] return [true] if [(Test Elt)] is [true] for every value produced
+    the traversal of [Seq]. *\
 (define for-all?
   { (A --> boolean) --> (seq.t A) --> boolean }
   F S -> (for-all?-h F (thaw S)))
@@ -330,6 +343,8 @@
   F [X | Seq] -> (for-all?-h F (thaw Seq)) where (F X)
   _ _ -> false)
 
+\** [(seq.exists? Test Seq)] return [true] if [(Test Elt)] is [true] for any value produced
+    the traversal of [Seq]. [Seq] is only consumed until [(Test Elt)] is true. *\
 (define exists?
   { (A --> boolean) --> (seq.t A) --> boolean }
   F S -> (exists?-h F (thaw S)))
@@ -340,14 +355,18 @@
   F [X | _] -> true where (F X)
   F [X | Seq] -> (exists?-h F (thaw Seq)))
 
+\** [(seq.element? X Seq)] is equivalent to [(seq.exists? (= X) Seq)]. *\
 (define seq.element?
   { A --> (seq.t A) --> boolean }
   X S -> (exists? (= X) S))
 
+\** [(seq.element? Cmp X Seq)] is equivalent to [(seq.exists? (Cmp X) Seq)]. *\
 (define element-cmp?
   { (A --> B --> boolean) --> A --> (seq.t B) --> boolean }
   Cmp X S -> (exists? (Cmp X) S))
 
+\** [(seq.find Test Seq)] returns the first element in [Seq] for which [(Test Elt)] is true
+    wrapped as [(@some Elt)], and [@none] if no such element is produced by [Seq]. *\
 (define find
   { (A --> boolean) --> (seq.t A) --> (maybe.t A) }
   F S -> (find-h F (thaw S)))
@@ -359,6 +378,9 @@
                      (@some X)
                      (find-h F (thaw Seq))))
 
+\** [(seq.find-map F Seq)] calls [(F Elt)] for each element [Elt] produced when traversing [Seq]
+    until [(@some Result)] is returned. Returns the first [(@some Result)] value, or [(@none)] if
+    there is no such result. *\
 (define find-map
   { (A --> (maybe.t B)) --> (seq.t A) --> (maybe.t B) }
   F S -> (find-map-h F (thaw S)))
