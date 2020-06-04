@@ -3,7 +3,7 @@
 
 \** {1 Lazy sequences} *\
 
-\** The type [(seq A)] represents a delayed sequence of values of type [A]. Evaluation
+\** The type [(seq.t A)] represents a delayed sequence of values of type [A]. Evaluation
     of each element in the sequence is delayed until the element is accessed when the
     sequence is traversed. The results of sequence transformations are also delayed,
     and no evaluation will happen until the sequence produced by the transformation
@@ -107,6 +107,9 @@
                        [Elt | (unfold F NewSeed)])
                      []))))
 
+\** [(seq.range-step Step Start End)] produces a sequence containing all integers in the range (inclusive) from
+    [Start] to [End] and separated by [Step]. If [Step] is a negative number, a sequence of decreasing values
+    is produced. *\
 (define range-step
   { number --> number --> number --> (t number) }
   Step Start End -> (range-step-increasing-h Step Start End) where (> Step 0)
@@ -123,6 +126,8 @@
   Step Start End -> (empty) where (< Start End)
   Step Start End -> (freeze [Start | (range-step-decreasing-h Step (- Start Step) End)]))
 
+\** [(seq.range Start End)] produces a sequence containing all integers in the range (inclusive) from
+    [Start] to [End]. If [Start] is greater than [End], a sequence of decreasing values is produced. *\
 (define seq.range
   { number --> number --> (t number) }
   Start End -> (range-step 1 Start End) where (>= End Start)
@@ -136,6 +141,8 @@
   [_ | _] -> true
   _ -> false)
 
+\** [(seq.of SeqLike)] produces a sequence containing all elements in [SeqLike], where [SeqLike]
+    is either a list, or a vector. *\
 (define of
   { (like A) --> (t A) }
   L -> (of-list L) where (list? L)
@@ -150,11 +157,13 @@
   { (lazy (t A)) --> (t A) }
   L -> (thaw L))
 
+\** [(seq.of-list List)] produces a sequence containing all elements in the list [List]. *\
 (define of-list
   { (list A) --> (t A) }
   [] -> (empty)
   [X | Xs] -> (freeze [X | (of-list Xs)]))
 
+\** [(seq.of-vector Vector)] produces a sequence containing all elements in the vector [Vector]. *\
 (define of-vector
   { (vector A) --> (t A) }
   V -> (of-vector-h V 1 (limit V)))
@@ -164,6 +173,7 @@
   _ N L -> (empty) where (> N L)
   V N L -> (freeze [(<-vector V N) | (of-vector-h V (+ N 1) L)]))
 
+\** [(seq.of-vector Vector)] produces a sequence containing all elements in the vector [Vector] in reverse order. *\
 (define of-vector-reversed
   { (vector A) --> (t A) }
   V -> (of-vector-reversed-h V (limit V)))
@@ -173,6 +183,7 @@
   _ 0 -> (empty)
   V N -> (freeze [(<-vector V N) | (of-vector-reversed-h V (- N 1))]))
 
+\** [(seq.of-string String)] produces a sequence of unit strings, each one being a character in the string [String]. *\
 (define of-string
   { string --> (t string) }
   "" -> (empty)
@@ -187,6 +198,7 @@
 
 \\ TODO: dict
 
+\** [(seq.to-list Seq)] constructs a list containing every element produced by the sequence [Seq]. *\
 (define to-list
   { (t A) --> (list A) }
   S -> (to-list-h (thaw S)))
@@ -196,6 +208,12 @@
   [] -> []
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
 
+\** [(seq.into-vector Start Count Vector Seq)] fills the vector [Vector] with elements produced by the sequence [Seq].
+    If [Count] is positive, the vector slots from [Start] to [Start + Count] (not included) are filled in increasing order.
+    If [Count] is negative, the vector slots from [Start] to [Start - Count] (not included) are filled in decreasing order.
+    The return value is a [(@p RemainingSeq NotFilledCount)] tuple, with [RemainingSeq] being what is left to be consumed of the sequence, and [NotFilledCount]
+    the amount of slots that couldn't be filled because [Seq] got fully consumed before [Count] amount of slots were filled. If [NotFilledCount] is [0],
+    that means that the operation succeeded without the [Seq] sequence ending prematurely. *\
 (define into-vector
   { number --> number --> (vector A) --> (t A) --> ((t A) * number) }
   Start Count Vec _ -> (error "start position out of vector range")
@@ -215,6 +233,7 @@
                            (@p Seq 0))
   N Count Step V [X | Seq] -> (into-vector-h (+ N Step) (- Count 1) Step (vector-> V N X) (thaw Seq)))
 
+\** [(seq.to-string Seq)] constructs a list that is the concatenation of every string produced by the sequence [Seq]. *\
 (define to-string
   { (t string) --> string }
   S -> (to-string-h (thaw S)))
@@ -224,6 +243,7 @@
   [] -> ""
   [S | Seq] -> (@s S (to-string-h (thaw Seq))))
 
+\** [(seq.forever Frozen)] produces an infinite sequence that always produces values that are the result of [(thaw Frozen)]. *\
 (define forever
   { (lazy A) --> (t A) }
   L -> (freeze [(thaw L) | (forever L)]))
