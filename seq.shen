@@ -17,19 +17,19 @@
   [] : (mode (node A) -);
 
   X : A;
-  Seq : (t A);
+  Seq : (seq.t A);
   ===================
   (cons X Seq) : (mode (node A) -);
 
   Node : (node A);
   ______________________
-  (freeze Node) : (mode (t A) -);
+  (freeze Node) : (mode (seq.t A) -);
 
-  Seq : (t A);
+  Seq : (seq.t A);
   ______________________
-  (lazy.memo Seq) : (mode (t A) -);
+  (lazy.memo Seq) : (mode (seq.t A) -);
 
-  Seq : (t A);
+  Seq : (seq.t A);
   ______________________
   (thaw Seq) : (node A);
 
@@ -42,32 +42,22 @@
   X : (mode (vector A) -);
   )
 
-(datatype t
-  X : (list A);
-  ______________________
-  X : (mode (like A) -);
-
-  X : (vector A);
-  ______________________
-  X : (mode (like A) -);
-  )
-
 \** {2 Creation} *\
 
 \** [(seq.empty)] produces the empty sequence. *\
 (define empty
-  { --> (t A) }
+  { --> (seq.t A) }
   -> (freeze []))
 
 \** [(seq.singleton X)] produces a singleton sequence containing just [X]. *\
 (define singleton
-  { A --> (t A) }
+  { A --> (seq.t A) }
   X -> (freeze [X | (empty)]))
 
 \** [(memo Seq)] wraps [Seq] in a memoized sequence for which elements are
     evaluated only once the first time the sequence is traversed. *\
 (define memo
-  { (t A) --> (t A) }
+  { (seq.t A) --> (seq.t A) }
   Seq -> (lazy.memo (freeze (memo-h (thaw Seq)))))
 
 (define memo-h
@@ -78,17 +68,17 @@
 \** [(seq.cons V S)] produces a new sequence with [V] as the first element, followed by
     everything contained in sequence [S]. *\
 (define seq.cons
-  { A --> (t A) --> (t A) }
+  { A --> (seq.t A) --> (seq.t A) }
   V S -> (freeze [V | S]))
 
 \** [(seq.snoc S V)] produces a new sequence with everything in sequence [S], followed by [V]. *\
 (define snoc
-  { (t A) --> A --> (t A) }
+  { (seq.t A) --> A --> (seq.t A) }
   S V -> (seq.append S (singleton V)))
 
 \** [(seq.make N Elt)] produces a sequence containing [N] times the value of [Elt]. *\
 (define make
-  { number --> A --> (t A) }
+  { number --> A --> (seq.t A) }
   0 _ -> (empty)
   N Elt -> (freeze [Elt | (make (- N 1) Elt)]))
 
@@ -97,7 +87,7 @@
     to produce a new sequence element [Elt]. [NewSeed] will be passed to [F] the next time a sequence
     element has to be produced. *\
 (define unfold
-  { (B --> (maybe.t (A * B))) --> B --> (t A) }
+  { (B --> (maybe.t (A * B))) --> B --> (seq.t A) }
   F Seed -> (freeze
               (let MaybeResult (F Seed)
                  (if (maybe.some? MaybeResult)
@@ -111,25 +101,25 @@
     [Start] to [End] and separated by [Step]. If [Step] is a negative number, a sequence of decreasing values
     is produced. *\
 (define range-step
-  { number --> number --> number --> (t number) }
+  { number --> number --> number --> (seq.t number) }
   Step Start End -> (range-step-increasing-h Step Start End) where (> Step 0)
   Step Start End -> (range-step-decreasing-h (- 0 Step) Start End) where (< Step 0)
   _ _ _ -> (error "seq.range-step called with Step=0"))
 
 (define range-step-increasing-h
-  { number --> number --> number --> (t number) }
+  { number --> number --> number --> (seq.t number) }
   Step Start End -> (empty) where (> Start End)
   Step Start End -> (freeze [Start | (range-step-increasing-h Step (+ Start Step) End)]))
 
 (define seq.range-step-decreasing-h
-  { number --> number --> number --> (t number) }
+  { number --> number --> number --> (seq.t number) }
   Step Start End -> (empty) where (< Start End)
   Step Start End -> (freeze [Start | (range-step-decreasing-h Step (- Start Step) End)]))
 
 \** [(seq.range Start End)] produces a sequence containing all integers in the range (inclusive) from
     [Start] to [End]. If [Start] is greater than [End], a sequence of decreasing values is produced. *\
 (define seq.range
-  { number --> number --> (t number) }
+  { number --> number --> (seq.t number) }
   Start End -> (range-step 1 Start End) where (>= End Start)
   Start End -> (range-step -1 Start End))
 
@@ -144,48 +134,48 @@
 \** [(seq.of SeqLike)] produces a sequence containing all elements in [SeqLike], where [SeqLike]
     is either a list, or a vector. *\
 (define of
-  { (like A) --> (t A) }
+  { (or (list A) (vector A)) --> (seq.t A) }
   L -> (of-list L) where (list? L)
   V -> (of-vector V) where (vector? V)
   _ -> (error "seq.of can only convert from lists and vectors"))
 
 (define of-freeze
-  { (lazy A) --> (t A) }
+  { (lazy A) --> (seq.t A) }
   L -> (freeze [(thaw L) | (empty)]))
 
 (define of-freeze-seq
-  { (lazy (t A)) --> (t A) }
+  { (lazy (seq.t A)) --> (seq.t A) }
   L -> (thaw L))
 
 \** [(seq.of-list List)] produces a sequence containing all elements in the list [List]. *\
 (define of-list
-  { (list A) --> (t A) }
+  { (list A) --> (seq.t A) }
   [] -> (empty)
   [X | Xs] -> (freeze [X | (of-list Xs)]))
 
 \** [(seq.of-vector Vector)] produces a sequence containing all elements in the vector [Vector]. *\
 (define of-vector
-  { (vector A) --> (t A) }
+  { (vector A) --> (seq.t A) }
   V -> (of-vector-h V 1 (limit V)))
 
 (define of-vector-h
-  { (vector A) --> number --> number --> (t A) }
+  { (vector A) --> number --> number --> (seq.t A) }
   _ N L -> (empty) where (> N L)
   V N L -> (freeze [(<-vector V N) | (of-vector-h V (+ N 1) L)]))
 
 \** [(seq.of-vector Vector)] produces a sequence containing all elements in the vector [Vector] in reverse order. *\
 (define of-vector-reversed
-  { (vector A) --> (t A) }
+  { (vector A) --> (seq.t A) }
   V -> (of-vector-reversed-h V (limit V)))
 
 (define of-vector-reversed-h
-  { (vector A) --> number --> (t A) }
+  { (vector A) --> number --> (seq.t A) }
   _ 0 -> (empty)
   V N -> (freeze [(<-vector V N) | (of-vector-reversed-h V (- N 1))]))
 
 \** [(seq.of-string String)] produces a sequence of unit strings, each one being a character in the string [String]. *\
 (define of-string
-  { string --> (t string) }
+  { string --> (seq.t string) }
   "" -> (empty)
   S -> (freeze (of-string-h S 0)))
 
@@ -200,7 +190,7 @@
 
 \** [(seq.to-list Seq)] constructs a list containing every element produced by the sequence [Seq]. *\
 (define to-list
-  { (t A) --> (list A) }
+  { (seq.t A) --> (list A) }
   S -> (to-list-h (thaw S)))
 
 (define to-list-h
@@ -215,7 +205,7 @@
     the amount of slots that couldn't be filled because [Seq] got fully consumed before [Count] amount of slots were filled. If [NotFilledCount] is [0],
     that means that the operation succeeded without the [Seq] sequence ending prematurely. *\
 (define into-vector
-  { number --> number --> (vector A) --> (t A) --> ((t A) * number) }
+  { number --> number --> (vector A) --> (seq.t A) --> ((seq.t A) * number) }
   Start Count Vec _ -> (error "start position out of vector range")
       where (or (< Start 1)
                 (> Start (limit Vec)))
@@ -227,7 +217,7 @@
   Start Count Vec Seq -> (into-vector-h Start Count 1 Vec (thaw Seq)))
 
 (define into-vector-h
-  { number --> number --> number --> (vector A) --> (node A) --> ((t A) * number) }
+  { number --> number --> number --> (vector A) --> (node A) --> ((seq.t A) * number) }
   N Count _ _ [] -> (@p (empty) Count)
   N 1 _ V [X | Seq] -> (do (vector-> V N X)
                            (@p Seq 0))
@@ -235,7 +225,7 @@
 
 \** [(seq.to-string Seq)] constructs a list that is the concatenation of every string produced by the sequence [Seq]. *\
 (define to-string
-  { (t string) --> string }
+  { (seq.t string) --> string }
   S -> (to-string-h (thaw S)))
 
 (define to-string-h
@@ -245,7 +235,7 @@
 
 \** [(seq.forever Frozen)] produces an infinite sequence that always produces values that are the result of [(thaw Frozen)]. *\
 (define forever
-  { (lazy A) --> (t A) }
+  { (lazy A) --> (seq.t A) }
   L -> (freeze [(thaw L) | (forever L)]))
 
 \\ Predicates
@@ -253,7 +243,7 @@
 \** [(seq.empty? Seq)] will return [true] if [Seq] is an empty sequence, [false] otherwise. Note that
     performing this check will cause the evaluation of the first element of [Seq] if it is not empty. *\
 (define seq.empty?
-  { (t A) --> boolean}
+  { (seq.t A) --> boolean}
   S -> (empty-node? (thaw S)))
 
 (define empty-node?
@@ -269,31 +259,31 @@
   [H | _] -> H)
 
 (define node-tail
-  { (node A) --> (t A) }
+  { (node A) --> (seq.t A) }
   [] -> (error "seq.tail called on empty seq")
   [_ | T] -> T)
 
 \** [(seq.head Seq)] evaluates and returns the first element of [Seq]. *\
 (define seq.head
-  { (t A) --> A }
+  { (seq.t A) --> A }
   S -> (node-head (thaw S)))
 
 \** [(seq.head Seq)] returns [Seq] without the first element. Note that this
     will cause the evaulation of the first element of [Seq]. *\
 (define seq.tail
-  { (t A) --> (t A) }
+  { (seq.t A) --> (seq.t A) }
   S -> (node-tail (thaw S)))
 
-\\ Consumption
+\** {2 Consumption} *\
 
 \** [(seq.drain Seq)] will consume [Seq] until no more elements are left. The produced
     elements will be discarded. *\
 (define drain
-  { (t A) --> unit }
+  { (seq.t A) --> unit }
   Seq -> (for-each (/. _ unit) Seq))
 
 (define fold-left
-  { (A --> B --> A) --> A --> (t B) --> A }
+  { (A --> B --> A) --> A --> (seq.t B) --> A }
   F Init S -> (fold-left-h F Init (thaw S)))
 
 (define fold-left-h
@@ -302,7 +292,7 @@
   F Acc [H | T] -> (fold-left-h F (F Acc H) (thaw T)))
 
 (define for-each
-  { (A --> Any) --> (t A) --> unit }
+  { (A --> Any) --> (seq.t A) --> unit }
   F S -> (for-each-h F (thaw S)))
 
 (define for-each-h
@@ -311,7 +301,7 @@
   F [H | T] -> (do (F H) (for-each-h F (thaw T))))
 
 (define equal?
-  { (t A) --> (t A) --> boolean }
+  { (seq.t A) --> (seq.t A) --> boolean }
   S1 S2 -> (equal?-h (thaw S1) (thaw S2)))
 
 (define equal?-h
@@ -321,7 +311,7 @@
   _ _ -> false)
 
 (define equal-cmp?
-  { (A --> B --> boolean) --> (t A) --> (t B) --> boolean }
+  { (A --> B --> boolean) --> (seq.t A) --> (seq.t B) --> boolean }
   Cmp S1 S2 -> (equal-cmp?-h Cmp (thaw S1) (thaw S2)))
 
 (define equal-cmp?-h
@@ -331,7 +321,7 @@
   _ _ _ -> false)
 
 (define for-all?
-  { (A --> boolean) --> (t A) --> boolean }
+  { (A --> boolean) --> (seq.t A) --> boolean }
   F S -> (for-all?-h F (thaw S)))
 
 (define for-all?-h
@@ -341,7 +331,7 @@
   _ _ -> false)
 
 (define exists?
-  { (A --> boolean) --> (t A) --> boolean }
+  { (A --> boolean) --> (seq.t A) --> boolean }
   F S -> (exists?-h F (thaw S)))
 
 (define exists?-h
@@ -351,15 +341,15 @@
   F [X | Seq] -> (exists?-h F (thaw Seq)))
 
 (define seq.element?
-  { A --> (t A) --> boolean }
+  { A --> (seq.t A) --> boolean }
   X S -> (exists? (= X) S))
 
 (define element-cmp?
-  { (A --> B --> boolean) --> A --> (t B) --> boolean }
+  { (A --> B --> boolean) --> A --> (seq.t B) --> boolean }
   Cmp X S -> (exists? (Cmp X) S))
 
 (define find
-  { (A --> boolean) --> (t A) --> (maybe.t A) }
+  { (A --> boolean) --> (seq.t A) --> (maybe.t A) }
   F S -> (find-h F (thaw S)))
 
 (define find-h
@@ -370,7 +360,7 @@
                      (find-h F (thaw Seq))))
 
 (define find-map
-  { (A --> (maybe.t B)) --> (t A) --> (maybe.t B) }
+  { (A --> (maybe.t B)) --> (seq.t A) --> (maybe.t B) }
   F S -> (find-map-h F (thaw S)))
 
 (define find-map-h
@@ -381,10 +371,10 @@
                        Result
                        (find-map-h F (thaw Seq)))))
 
-\\ Transformation
+\** {2 Transformation} *\
 
 (define seq.map
-  { (A --> B) --> (t A) --> (t B) }
+  { (A --> B) --> (seq.t A) --> (seq.t B) }
   F S -> (freeze (map-h F (thaw S))))
 
 (define map-h
@@ -393,7 +383,7 @@
   F [H | T] -> [(F H) | (freeze (map-h F (thaw T)))])
 
 (define filter
-  { (A --> boolean) --> (t A) --> (t A) }
+  { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (filter-h F (thaw S))))
 
 (define filter-h
@@ -404,7 +394,7 @@
   F [H | T] -> (filter-h F (thaw T)))
 
 (define filter-map
-  { (A --> (maybe.t B)) --> (t A) --> (t B) }
+  { (A --> (maybe.t B)) --> (seq.t A) --> (seq.t B) }
   F S -> (freeze (filter-map-h F (thaw S))))
 
 (define filter-map-h
@@ -413,57 +403,57 @@
   F [V | Seq] -> (filter-map-hh F (F V) Seq))
 
 (define filter-map-hh
-  { (A --> (maybe.t B)) --> (maybe.t B) --> (t A) --> (node B) }
+  { (A --> (maybe.t B)) --> (maybe.t B) --> (seq.t A) --> (node B) }
   F V Seq -> [(maybe.unsafe-get V) | (filter-map F Seq)] where (maybe.some? V)
   F _ Seq -> (filter-map-h F (thaw Seq)))
 
 (define flat-map
-  { (A --> (t B)) --> (t A) --> (t B) }
+  { (A --> (seq.t B)) --> (seq.t A) --> (seq.t B) }
   F A -> (freeze (flat-map-h F (thaw A))))
 
 (define flat-map-h
-  { (A --> (t B)) --> (node A) --> (node B) }
+  { (A --> (seq.t B)) --> (node A) --> (node B) }
   _ [] -> []
   F [X | Next] -> (flat-map-append F (F X) Next))
 
 (define flat-map-append
-  { (A --> (t B)) --> (t B) --> (t A) --> (node B) }
+  { (A --> (seq.t B)) --> (seq.t B) --> (seq.t A) --> (node B) }
   F S Tail -> (flat-map-append-h F (thaw S) Tail))
 
 (define flat-map-append-h
-  { (A --> (t B)) --> (node B) --> (t A) --> (node B) }
+  { (A --> (seq.t B)) --> (node B) --> (seq.t A) --> (node B) }
   F [] Tail -> (flat-map-h F (thaw Tail))
   F [X | Next] Tail -> [X | (freeze (flat-map-append F Next Tail))])
 
 (define seq.append
-  { (t A) --> (t A) --> (t A) }
+  { (seq.t A) --> (seq.t A) --> (seq.t A) }
   A B -> (freeze (append-h (thaw A) B)))
 
 (define append-h
-  { (node A) --> (t A) --> (node A) }
+  { (node A) --> (seq.t A) --> (node A) }
   [] B -> (thaw B)
   [H | T] B -> [H | (seq.append T B)])
 
 (define seq.concat
-  { (list (t A)) --> (t A)}
+  { (list (seq.t A)) --> (seq.t A)}
   [] -> (empty)
   [S | Ss] -> (seq.append S (seq.concat Ss)))
 
 (define flatten
-  { (t (t A)) --> (t A) }
+  { (seq.t (seq.t A)) --> (seq.t A) }
   S -> (freeze (thaw (flatten-h (thaw S)))))
 
 (define flatten-h
-  { (node (t A)) --> (t A) }
+  { (node (seq.t A)) --> (seq.t A) }
   [] -> (empty)
   [S | Ss] -> (seq.append S (flatten-h (thaw Ss))))
 
 (define cycle
-  { (t A) --> (t A) }
+  { (seq.t A) --> (seq.t A) }
   S -> (freeze (thaw (seq.append S (cycle S)))))
 
 (define truncate
-  { number --> (t A) --> (t A) }
+  { number --> (seq.t A) --> (seq.t A) }
   N _ -> (error "cannot truncate a negative amount from a seq") where (< N 0)
   N S -> (freeze (truncate-h N (thaw S))))
 
@@ -474,7 +464,7 @@
   N [X | Seq] -> [X | (truncate (- N 1) Seq)])
 
 (define take
-  { number --> (t A) --> (t A) }
+  { number --> (seq.t A) --> (seq.t A) }
   N _ -> (error "cannot take a negative amount from a seq") where (< N 0)
   N S -> (freeze (take-h N (thaw S))))
 
@@ -485,19 +475,19 @@
   N [X | Seq] -> [X | (take (- N 1) Seq)])
 
 (define drop
-  { number --> (t A) --> (t A) }
+  { number --> (seq.t A) --> (seq.t A) }
   0 S -> S
   N _ -> (error "cannot drop a negative amount from a seq") where (< N 0)
   N S -> (freeze (thaw (drop-h N (thaw S)))))
 
 (define drop-h
-  { number --> (node A) --> (t A) }
+  { number --> (node A) --> (seq.t A) }
   N [] -> (error "failure to drop from sequence that ended abruptly")
   1 [X | Seq] -> Seq
   N [X | Seq] -> (drop-h (- N 1) (thaw Seq)))
 
 (define take-while
-  { (A --> boolean) --> (t A) --> (t A) }
+  { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (take-while-h F (thaw S))))
 
 (define take-while-h
@@ -508,7 +498,7 @@
                      []))
 
 (define drop-while
-  { (A --> boolean) --> (t A) --> (t A) }
+  { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (drop-while-h F (thaw S))))
 
 (define drop-while-h
@@ -519,7 +509,7 @@
                      [X | Seq]))
 
 (define zip-with
-  { (A --> B --> C) --> (t A) --> (t B) --> (t C) }
+  { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
   Cons S1 S2 -> (freeze (zip-with-h Cons (thaw S1) (thaw S2))))
 
 (define zip-with-h
@@ -529,7 +519,7 @@
   Cons [X | XSeq] [Y | YSeq] -> [(Cons X Y) | (zip-with Cons XSeq YSeq)])
 
 (define zip
-  { (t A) --> (t B) --> (t (A * B)) }
+  { (seq.t A) --> (seq.t B) --> (seq.t (A * B)) }
   S1 S2 -> (freeze (zip-h (thaw S1) (thaw S2))))
 
 (define zip-h
@@ -539,19 +529,19 @@
   [X | XSeq] [Y | YSeq] -> [(@p X Y) | (zip XSeq YSeq)])
 
 (define unzip
-  { (t (A * B)) --> ((t A) * (t B)) }
+  { (seq.t (A * B)) --> ((seq.t A) * (seq.t B)) }
   S -> (@p (seq.map (function fst) S)
            (seq.map (function snd) S)))
 
 (define chunks
-  { number --> (t A) --> (t (vector A)) }
+  { number --> (seq.t A) --> (seq.t (vector A)) }
   N _ -> (error "cannot produce seq chunks of size < 1") where (< N 1)
   N Seq -> (freeze
              (let Chunk (vector N)
                (chunks-h N (into-vector 1 N Chunk Seq) Chunk))))
 
 (define chunks-h
-  { number --> ((t A) * number) --> (vector A) --> (node (vector A)) }
+  { number --> ((seq.t A) * number) --> (vector A) --> (node (vector A)) }
   N (@p Seq 0) Chunk -> [Chunk | (chunks N Seq)]
   N (@p Seq N) _ -> []
   N (@p Seq Remaining) Chunk -> [(adjust-chunk Chunk (- N Remaining)) | (empty)])
