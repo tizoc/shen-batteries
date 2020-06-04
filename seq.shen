@@ -531,6 +531,8 @@
   1 [X | Seq] -> Seq
   N [X | Seq] -> (drop-h (- N 1) (thaw Seq)))
 
+\** [(seq.take-while Test Seq)] returns a sequence containing elements of [Seq] for
+    which [(Test Elt)] is [true] until [false] is returned or the sequence ends. *\
 (define take-while
   { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (take-while-h F (thaw S))))
@@ -542,6 +544,9 @@
                      [X | (take-while F Seq)]
                      []))
 
+\** [(seq.drop-while Test Seq)] returns a sequence containing elements of [Seq]
+    skipping all elements for which [(Test Elt)] is [true] until [false] is returned
+    or the sequence ends. *\
 (define drop-while
   { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (drop-while-h F (thaw S))))
@@ -553,6 +558,10 @@
                      (drop-while-h F (thaw Seq))
                      [X | Seq]))
 
+\** [(seq.zip-with Cons SeqA SeqB)] returns a new sequence containing elements
+    that are the result of calling [(Cons EltA EltB)] for each element produced
+    by the parallel traversal of [SeqA] and [SeqB]. The produced sequence is
+    as long as the shortest of the input sequences. *\
 (define zip-with
   { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
   Cons S1 S2 -> (freeze (zip-with-h Cons (thaw S1) (thaw S2))))
@@ -563,6 +572,7 @@
   _ _ [] -> []
   Cons [X | XSeq] [Y | YSeq] -> [(Cons X Y) | (zip-with Cons XSeq YSeq)])
 
+\** [(seq.zip SeqA SeqB)] is equivalent to [(seq.zip-with (/. A B (@p A B)) SeqA SeqB)]. *\
 (define zip
   { (seq.t A) --> (seq.t B) --> (seq.t (A * B)) }
   S1 S2 -> (freeze (zip-h (thaw S1) (thaw S2))))
@@ -573,11 +583,18 @@
   _ [] -> []
   [X | XSeq] [Y | YSeq] -> [(@p X Y) | (zip XSeq YSeq)])
 
+\** [(seq.unzip SeqA*B)] returns [(@p SeqA SeqB)], where [SeqA*B] is a sequence
+    of tuples [(@p A B)], [SeqA] is [(seq.map (function fst) SeqA*B)] and [SeqB] is
+    [(seq.map (function snd) SeqA*B)]. *\
 (define unzip
   { (seq.t (A * B)) --> ((seq.t A) * (seq.t B)) }
   S -> (@p (seq.map (function fst) S)
            (seq.map (function snd) S)))
 
+\** [(seq.chunks N Seq)] returns a sequence of vectors of size [N], with
+    each vector filled with the elements obtained from taking [N] elements
+    from [Seq]. The last vector may have a size smaller than [N] if the
+    sequence ends before it can be fully filled. *\
 (define chunks
   { number --> (seq.t A) --> (seq.t (vector A)) }
   N _ -> (error "cannot produce seq chunks of size < 1") where (< N 1)
