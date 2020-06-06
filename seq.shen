@@ -466,7 +466,7 @@
   [] B -> (thaw B)
   [H | T] B -> [H | (seq.append T B)])
 
-\** [(seq.concat [Seq1 Seq2 ... SeqN]) returns a sequence that produces all elements
+\** [(seq.concat [Seq1 Seq2 ... SeqN])] returns a sequence that produces all elements
     in [Seq1] followed by all elements in [Seq2], .... followed by all emenets in [SeqN]. *\
 (define seq.concat
   { (list (seq.t A)) --> (seq.t A)}
