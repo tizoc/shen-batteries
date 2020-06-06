@@ -49,7 +49,8 @@
   10 := skip;)    \\ LF
 
 (defcc <doc-comment>
-   <backslash> <times> <times> <whitespaces?> <doc-contents> := (parse-comment-block <doc-contents>);)
+   <backslash> <times> <times> <whitespaces?> <doc-contents>
+      := (parse-comment-block <doc-contents>);)
 
 (defcc <doc-contents>
    <doc-comment-end>  := [];
@@ -59,7 +60,8 @@
   <whitespaces?> <times> <backslash> := skip)
 
 (defcc <header>
-  <lcurly> <digit> <whitespaces> <headercontents> <rcurly> := [header <digit> | <headercontents>];)
+  <lcurly> <digit> <whitespaces> <headercontents> <rcurly>
+      := [header <digit> | <headercontents>];)
 
 (defcc <code>
   <lsb> <code-text> <rsb> := [code <code-text>];)
@@ -68,7 +70,7 @@
   <shen-code> := <shen-code>;)
 
 (defcc <escaped-text>
-  <whitespaces> <escaped-char*> := (@s " " <escaped-char*>);
+  <whitespaces> <escaped-char*>  := (@s " " <escaped-char*>);
   <escaped-char> <escaped-char*> := (@s <escaped-char> <escaped-char*>);)
 
 (defcc <escaped-char*>
@@ -125,7 +127,8 @@
 
 (define make-docs
   [] -> []
-  [[standalone | Fragments] | Rest] -> [[standalone | (process-fragments Fragments)] | (make-docs Rest)]
+  [[standalone | Fragments] | Rest] -> [[standalone | (process-fragments Fragments)]
+                                        | (make-docs Rest)]
   [[associate | Fragments] [define Name | DefRest] | Rest]
     -> [[func Name (extract-type-signature DefRest) | (process-function-doc Name Fragments)]
         | (make-docs Rest)]
@@ -160,21 +163,24 @@
   [T | Rest] -> (@s (make-string "~R" T) " " (type-signature-string Rest)))
 
 (define render-docs-as-markdown
-  [[standalone | Fragments] | Rest] -> (do (for-each (function render-docs-as-markdown-h) Fragments)
-                                           (output "~%~%")
-                                           (render-docs-as-markdown Rest))
-  [[func Name untyped | Fragments] | Rest] -> (do (render-docs-as-markdown-h [header 6 [text Name]])
-                                                  (output "~%")
-                                                  (for-each (function render-docs-as-markdown-h) Fragments)
-                                                  (output "~%")
-                                                  (render-docs-as-markdown Rest))
-  [[func Name Type | Fragments] | Rest] -> (do (render-docs-as-markdown-h [header 4 [text Name]])
-                                               (output "**Type**: ")
-                                               (render-docs-as-markdown-h [code Type])
-                                               (output "~%~%")
-                                               (for-each (function render-docs-as-markdown-h) Fragments)
-                                               (output "~%~%")
-                                               (render-docs-as-markdown Rest))
+  [[standalone | Fragments] | Rest]
+    -> (do (for-each (function render-docs-as-markdown-h) Fragments)
+           (output "~%~%")
+           (render-docs-as-markdown Rest))
+  [[func Name untyped | Fragments] | Rest]
+    -> (do (render-docs-as-markdown-h [header 6 [text Name]])
+           (output "~%")
+           (for-each (function render-docs-as-markdown-h) Fragments)
+           (output "~%")
+           (render-docs-as-markdown Rest))
+  [[func Name Type | Fragments] | Rest]
+    -> (do (render-docs-as-markdown-h [header 4 [text Name]])
+           (output "**Type**: ")
+           (render-docs-as-markdown-h [code Type])
+           (output "~%~%")
+           (for-each (function render-docs-as-markdown-h) Fragments)
+           (output "~%~%")
+           (render-docs-as-markdown Rest))
   [] -> unit)
 
 (define render-docs-as-markdown-h
@@ -197,7 +203,7 @@
   [Exe Input] -> (let Bytes (read-file-as-bytelist Input)
                       Parsed (compile (function <st_input-withdocs>) Bytes)
                       Docs (make-docs Parsed)
-                    (render-docs-as-markdown Docs))
+                   (render-docs-as-markdown Docs))
   [Exe | Other] -> (print-usage Exe))
 
 )
