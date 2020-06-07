@@ -1,14 +1,21 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-\** {1 Lazy sequences} *\
+\** {1 Lazy sequences}
 
-\** The type [(seq.t A)] represents a delayed sequence of values of type [A]. Evaluation
+    The type [(seq.t A)] represents a delayed sequence of values of type [A]. Evaluation
     of each element in the sequence is delayed until the element is accessed when the
     sequence is traversed. The results of sequence transformations are also delayed,
     and no evaluation will happen until the sequence produced by the transformation
     is traversed.
+
+    {2 Dependencies}
+
+    Before loading `seq.shen`, the following files need to be loaded with `(tc +)` enabled:
+    `t.shen`, `maybe.shen`, `box.shen` and `lazy.shen`.
 *\
+
+
 
 (package seq [any.t maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
@@ -40,7 +47,9 @@
   (vector? X) : verified >> X : (mode (vector A) -);
   )
 
-\** {2 Creation} *\
+\** {2 API} *\
+
+\** {3 Creation} *\
 
 \** [(seq.empty)] produces the empty sequence. *\
 (define empty
@@ -236,7 +245,7 @@
   { (lazy A) --> (seq.t A) }
   L -> (freeze [(thaw L) | (forever L)]))
 
-\** {2 Predicates} *\
+\** {3 Predicates} *\
 
 \** [(seq.empty? Seq)] will return [true] if [Seq] is an empty sequence, [false] otherwise. Note that
     performing this check will cause the evaluation of the first element of [Seq] if it is not empty. *\
@@ -249,7 +258,7 @@
   [] -> true
   _ -> false)
 
-\** {2 Accessors} *\
+\** {3 Accessors} *\
 
 (define node-head
   { (node A) --> A }
@@ -272,7 +281,7 @@
   { (seq.t A) --> (seq.t A) }
   S -> (node-tail (thaw S)))
 
-\** {2 Consumption} *\
+\** {3 Consumption} *\
 
 \** [(seq.drain Seq)] consumes [Seq] until no more elements are left. The produced
     elements will be discarded. *\
@@ -392,7 +401,7 @@
                        Result
                        (find-map-h F (thaw Seq)))))
 
-\** {2 Transformation} *\
+\** {3 Transformation} *\
 
 \** [(seq.map F Seq)] returns a new sequence with all the elements in [Seq] transformed
     with [(F Elt)]. *\
