@@ -88,7 +88,7 @@
   <lsb> <code-text> <rsb> := [code <code-text>];)
 
 (defcc <code-text>
-  <shen-code> := <shen-code>;)
+  <shen-code> := (make-string "~R" (head <shen-code>));)
 
 (defcc <escaped-text>
   <spaces> <escaped-char*>  := (@s <spaces> <escaped-char*>);
@@ -190,16 +190,16 @@
            (render-fragment [linebreak])
            (render-docs-as-markdown Rest))
   [[func Name untyped | Fragments] | Rest]
-    -> (do (render-fragment [header 4 [text Name]])
+    -> (do (render-fragment [header 4 [code Name]])
            (render-fragment [linebreak])
            (for-each (function render-fragment) Fragments)
            (render-fragment [linebreak])
            (render-docs-as-markdown Rest))
   [[func Name Type | Fragments] | Rest]
-    -> (do (render-fragment [header 4 [text Name]])
+    -> (do (render-fragment [header 4 [code Name]])
            (render-fragment [linebreak])
            (output "**Type**: ")
-           (render-fragment [code Type])
+           (render-fragment [type Type])
            (render-fragment [linebreak])
            (for-each (function render-fragment) Fragments)
            (render-fragment [linebreak])
@@ -211,7 +211,8 @@
   [header N | Fragments] -> (do (output "~A " (times "#" N))
                                 (for-each (function render-fragment) Fragments))
   [text Text] -> (output "~A" Text)
-  [code Code] -> (output "`~A`" (type-signature-string Code)))
+  [code Code] -> (output "`~A`" Code)
+  [type Code] -> (output "`~A`" (type-signature-string Code)))
 
 (define times
   S 0 -> ""
