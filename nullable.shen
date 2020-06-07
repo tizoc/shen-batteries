@@ -43,6 +43,6 @@
                                    (Assign X Self))
   _ _ _ _ -> (fail))
 
-(preclude [nullable-internal])
+(preclude [t-internal])
 
 )
