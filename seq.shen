@@ -623,6 +623,6 @@
               _ (into-vector 1 N NewChunk (of-vector V))
             NewChunk))
 
-(preclude [seq-internal])
+(preclude [t-internal])
 
 )
