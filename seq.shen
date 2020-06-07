@@ -316,7 +316,7 @@
 
 \** [(seq.equal? SeqA SeqB)] consumes [SeqA] and [SeqB] one element at a time comparing
     the elements with [(= EltA EltB)] until [false] is returned or one of the sequences is fully consumed.
-    The result is [true] if [false] is never returned and both sequences produce the samee amount of values *\
+    The result is [true] if [false] is never returned and both sequences produce the same amount of values *\
 (define equal?
   { (seq.t A) --> (seq.t A) --> boolean }
   S1 S2 -> (equal?-h (thaw S1) (thaw S2)))
@@ -329,7 +329,7 @@
 
 \** [(seq.equal-cmp? Cmp SeqA SeqB)] consumes [SeqA] and [SeqB] one element at a time comparing
     the elements with [(Cmp EltA EltB)] until [false] is returned or one of the sequences is fully consumed.
-    The result is [true] if [false] is never returned and both sequences produce the samee amount of values *\
+    The result is [true] if [false] is never returned and both sequences produce the same amount of values *\
 (define equal-cmp?
   { (A --> B --> boolean) --> (seq.t A) --> (seq.t B) --> boolean }
   Cmp S1 S2 -> (equal-cmp?-h Cmp (thaw S1) (thaw S2)))
@@ -476,7 +476,7 @@
   [H | T] B -> [H | (seq.append T B)])
 
 \** [(seq.concat [Seq1 Seq2 ... SeqN])] returns a sequence that produces all elements
-    in [Seq1] followed by all elements in [Seq2], .... followed by all emenets in [SeqN]. *\
+    in [Seq1] followed by all elements in [Seq2], .... followed by all elements in [SeqN]. *\
 (define seq.concat
   { (list (seq.t A)) --> (seq.t A)}
   [] -> (empty)
