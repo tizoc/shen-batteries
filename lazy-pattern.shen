@@ -3,15 +3,13 @@
 
 (package lazy (external lazy)
 
-(datatype pattern-matching
+(datatype t
   X : A >> P;
   _________________
   (freeze X) : (lazy A) >> P;)
 
-(define freeze-pattern
+(define pattern-handler
   Self Is? Assign [freeze X] -> (Assign X [thaw Self])
   _ _ _ _ -> (fail))
-
-(shen.x.programmable-pattern-matching.register-handler freeze-pattern)
 
 )
