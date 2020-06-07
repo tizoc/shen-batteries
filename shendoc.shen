@@ -24,6 +24,7 @@
 (systemf text)
 (systemf header)
 (systemf code)
+(systemf linebreak)
 
 \\ Import these from Shen's kernel
 (defcc <whitespaces>   shen.<whitespaces>   := shen.<whitespaces>;)
@@ -40,16 +41,36 @@
 (defcc <rrb>           shen.<rrb>           := shen.<rrb>;)
 (defcc <shen-code>     shen.<st_input>      := shen.<st_input>;)
 
-(defcc <whitespaces?>
+(defcc <whitespace*>
   <whitespaces> := skip;
   <e> := skip;)
+
+(defcc <spaces?>
+  <spaces> := skip;
+  <e> := skip;)
+
+(defcc <space>
+  32 := skip;
+  9 := skip;)
+
+(defcc <space*>
+  <space> <space*> := skip;
+  <e> := skip;)
+
+(defcc <spaces>
+  <newline> <space> <spaces> := " ";
+  <space> <spaces> := <spaces>;
+  <space> := " ";)
 
 (defcc <newline>
   13 10 := skip;  \\ CRLF
   10 := skip;)    \\ LF
 
+(defcc <linebreak>
+  <space*> <newline> <space*> <newline> <space*> := [linebreak];)
+
 (defcc <doc-comment>
-   <backslash> <times> <times> <whitespaces?> <doc-contents>
+   <backslash> <times> <times> <whitespace*> <doc-contents>
       := (parse-comment-block <doc-contents>);)
 
 (defcc <doc-contents>
@@ -57,10 +78,10 @@
    C <doc-contents>   := [C | <doc-contents>];)
 
 (defcc <doc-comment-end>
-  <whitespaces?> <times> <backslash> := skip)
+  <whitespace*> <times> <backslash> := skip)
 
 (defcc <header>
-  <lcurly> <digit> <whitespaces> <headercontents> <rcurly>
+  <lcurly> <digit> <spaces> <headercontents> <rcurly>
       := [header <digit> | <headercontents>];)
 
 (defcc <code>
@@ -70,31 +91,32 @@
   <shen-code> := <shen-code>;)
 
 (defcc <escaped-text>
-  <whitespaces> <escaped-char*>  := (@s " " <escaped-char*>);
+  <spaces> <escaped-char*>  := (@s <spaces> <escaped-char*>);
   <escaped-char> <escaped-char*> := (@s <escaped-char> <escaped-char*>);)
 
 (defcc <escaped-char*>
-  <whitespaces> <escaped-char*>  := (@s " " <escaped-char*>);
+  <spaces> <escaped-char*>  := (@s <spaces> <escaped-char*>);
   <escaped-char> <escaped-char*> := (@s <escaped-char> <escaped-char*>);
   <e>                            := "";)
 
 (defcc <escaped-char>
-  92 92 := "\";                 \\ "\\"
+  <backslash> <backslash> := "\"; \\ "\\"
   <backslash> <rcurly> := "}";  \\ "\}"
   <backslash> <lcurly> := "{";  \\ "\{"
   <backslash> <rsb>    := "]";  \\ "\["
   <backslash> <lsb>    := "[";  \\ "\]"
   C                    := (n->string C)
-      where (not (element? C [91 93 123 125]));)
+      where (not (element? C [10 13 91 93 123 125]));)
 
 (defcc <doctext>
-  <whitespaces?> <header> <doctext> := [<header> | <doctext>];
-  <whitespaces?> <code> <doctext>   := [<code> | <doctext>];
+  <linebreak> <doctext>   := [[linebreak] | <doctext>];
+  <spaces?> <header> <doctext>      := [<header> | <doctext>];
+  <spaces?> <code> <doctext>        := [<code> | <doctext>];
   <escaped-text> <doctext>          := [[text <escaped-text>] | <doctext>];
   <e>                               := [];)
 
 (defcc <headercontents>
-  <whitespaces?> <code> <headercontents> := [<code> | <headercontents>];
+  <whitespace*> <code> <headercontents> := [<code> | <headercontents>];
   <escaped-text> <headercontents>        := [[text <escaped-text>] | <headercontents>];
   <e>                                    := [];)
 
@@ -164,29 +186,30 @@
 
 (define render-docs-as-markdown
   [[standalone | Fragments] | Rest]
-    -> (do (for-each (function render-docs-as-markdown-h) Fragments)
-           (output "~%~%")
+    -> (do (for-each (function render-fragment) Fragments)
+           (render-fragment [linebreak])
            (render-docs-as-markdown Rest))
   [[func Name untyped | Fragments] | Rest]
-    -> (do (render-docs-as-markdown-h [header 6 [text Name]])
-           (output "~%")
-           (for-each (function render-docs-as-markdown-h) Fragments)
-           (output "~%")
+    -> (do (render-fragment [header 4 [text Name]])
+           (render-fragment [linebreak])
+           (for-each (function render-fragment) Fragments)
+           (render-fragment [linebreak])
            (render-docs-as-markdown Rest))
   [[func Name Type | Fragments] | Rest]
-    -> (do (render-docs-as-markdown-h [header 4 [text Name]])
+    -> (do (render-fragment [header 4 [text Name]])
+           (render-fragment [linebreak])
            (output "**Type**: ")
-           (render-docs-as-markdown-h [code Type])
-           (output "~%~%")
-           (for-each (function render-docs-as-markdown-h) Fragments)
-           (output "~%~%")
+           (render-fragment [code Type])
+           (render-fragment [linebreak])
+           (for-each (function render-fragment) Fragments)
+           (render-fragment [linebreak])
            (render-docs-as-markdown Rest))
   [] -> unit)
 
-(define render-docs-as-markdown-h
+(define render-fragment
+  [linebreak] -> (output "~%~%")
   [header N | Fragments] -> (do (output "~A " (times "#" N))
-                                (for-each (function render-docs-as-markdown-h) Fragments)
-                                (output "~%"))
+                                (for-each (function render-fragment) Fragments))
   [text Text] -> (output "~A" Text)
   [code Code] -> (output "`~A`" (type-signature-string Code)))
 
@@ -198,10 +221,17 @@
   F [] -> unit
   F [X | Rest] -> (do (F X) (for-each F Rest)))
 
+(define without-macros
+  Expr -> (let Macros (value *macros*)
+               _ (set *macros* [])
+               Result (thaw Expr)
+               _ (set *macros* Macros)
+            Result))
+
 (define main
-  [Exe Input Output] -> (main [Exe Input])
+  [Exe Input Output] -> (main [Exe Input]) \\ TODO
   [Exe Input] -> (let Bytes (read-file-as-bytelist Input)
-                      Parsed (compile (function <st_input-withdocs>) Bytes)
+                      Parsed (without-macros (freeze (compile (function <st_input-withdocs>) Bytes)))
                       Docs (make-docs Parsed)
                    (render-docs-as-markdown Docs))
   [Exe | Other] -> (print-usage Exe))
