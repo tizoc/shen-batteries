@@ -2,7 +2,13 @@
 
 The type `(seq.t A)` represents a delayed sequence of values of type `A`. Evaluation of each element in the sequence is delayed until the element is accessed when the sequence is traversed. The results of sequence transformations are also delayed, and no evaluation will happen until the sequence produced by the transformation is traversed.
 
-## Creation
+## Dependencies
+
+Before loading `seq.shen`, the following files need to be loaded with `(tc +)` enabled: `t.shen`, `maybe.shen`, `box.shen` and `lazy.shen`.
+
+## API
+
+### Creation
 
 #### seq.empty
 
@@ -112,7 +118,7 @@ The type `(seq.t A)` represents a delayed sequence of values of type `A`. Evalua
 
 `(seq.forever Frozen)` produces an infinite sequence that always produces values that are the result of `(thaw Frozen)`.
 
-## Predicates
+### Predicates
 
 #### seq.empty?
 
@@ -120,7 +126,7 @@ The type `(seq.t A)` represents a delayed sequence of values of type `A`. Evalua
 
 `(seq.empty? Seq)` will return `true` if `Seq` is an empty sequence, `false` otherwise. Note that performing this check will cause the evaluation of the first element of `Seq` if it is not empty.
 
-## Accessors
+### Accessors
 
 #### seq.head
 
@@ -134,7 +140,7 @@ The type `(seq.t A)` represents a delayed sequence of values of type `A`. Evalua
 
 `(seq.tail Seq)` returns `Seq` without the first element. Note that this will cause the evaulation of the first element of `Seq`.
 
-## Consumption
+### Consumption
 
 #### seq.drain
 
@@ -202,7 +208,7 @@ The type `(seq.t A)` represents a delayed sequence of values of type `A`. Evalua
 
 `(seq.find-map F Seq)` returns the first result of `(F Elt)` of the form `(@some Result)` or `(@none)` if there is no such result.
 
-## Transformation
+### Transformation
 
 #### seq.map
 
