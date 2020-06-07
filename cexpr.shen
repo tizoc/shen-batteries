@@ -1,6 +1,28 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
+\** {1 Computation expressions}
+
+    This library (inspired by the F# feature of the same name) provides small
+    mini-language to express composable computations with custom control flow.
+
+    Computation expressions can express monads, monoids, monad transformers,
+    and applicative functors.
+
+    {2 Overview}
+
+    TODO
+
+    {2 Examples}
+
+    TODO
+
+    {2 Implementing new computation expression types}
+
+    TODO
+
+*\
+
 (define cexpr.builder
   { symbol --> (any.t --> any.t) }
   seq -> (function seq.cexpr-builder)
