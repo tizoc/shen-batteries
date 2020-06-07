@@ -61,7 +61,7 @@
   { A --> (seq.t A) }
   X -> (freeze [X | (empty)]))
 
-\** [(memo Seq)] wraps [Seq] in a memoized sequence for which elements are
+\** [(seq.memo Seq)] wraps [Seq] in a memoized sequence for which elements are
     evaluated only once the first time the sequence is traversed. *\
 (define memo
   { (seq.t A) --> (seq.t A) }
