@@ -23,10 +23,29 @@
 
 *\
 
+(datatype cexpr.t-internal
+  ___________________
+  (put cexpr.builders N F) : unit;
+
+  ___________________
+  (unput cexpr.builders N) : unit;
+
+  ___________________
+  (function (get cexpr.builders N)) : (any.t --> any.t);)
+
+(define cexpr.register
+  { symbol --> symbol --> unit }
+  Name FName -> (put cexpr.builders Name FName))
+
+(define cexpr.unregister
+  { symbol --> unit }
+  Name -> (unput cexpr.builders Name))
+
 (define cexpr.builder
   { symbol --> (any.t --> any.t) }
-  seq -> (function seq.cexpr-builder)
-  Other -> (error "Unknown cexpr: ~A" Other))
+  Name -> (trap-error
+            (function (get cexpr.builders Name))
+            (/. _ (error "Unknown cexpr: ~A" Name))))
 
 \\ TODO:
 \\ - handle combination of multiple cexprs
@@ -46,15 +65,4 @@
   [:CX Var Expr | Rest] -> [let Var Expr [:CX | Rest]]
   [:CX | Other] -> (error "invalid computation expression ~R" Other))
 
-\\ Computation Expression Builder
-
-(define seq.cexpr-builder
-  { any.t --> any.t }
-  [] -> [seq.empty]
-  [for Expr F] -> [seq.flat-map F [seq.of Expr]]
-  [bind Expr F] -> [seq.flat-map F Expr]
-  [return Expr] -> [seq.singleton Expr]
-  [return-from Expr] -> Expr
-  [yield Expr] -> [seq.singleton Expr]
-  [yield-from Expr] -> Expr
-  Other -> (error "seq computation expressions do not support ~R" Other))
+(preclude [cexpr.t-internal])

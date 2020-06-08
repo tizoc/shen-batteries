@@ -30,6 +30,10 @@
   (requires t maybe lazy)
   (loads tc+ "seq.shen"))
 
+(library.declare seq-cexpr
+  (requires t cexpr)
+  (loads tc+ "seq-cexpr.shen"))
+
 (library.declare cexpr
   (requires t)
   (loads tc+ "cexpr.shen"))
