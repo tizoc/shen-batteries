@@ -98,10 +98,16 @@
 (define register-compiler-context-diff
   Name [OriginalMacros OriginalMacroreg OriginalDatatypes OriginalAlldatatypes]
     -> (let MacroRegDiff (difference (value shen.*macroreg*) OriginalMacroreg)
-            DatatypesDiff (remove-#type-suffix (difference (value shen.*datatypes*) OriginalDatatypes))
+            DatatypesDiff (difference (value shen.*datatypes*) OriginalDatatypes)
           (do (register-prop Name provides-macros MacroRegDiff)
-              (register-prop Name provides-types DatatypesDiff))))
+              (register-prop Name provides-types (remove-#type-suffix DatatypesDiff)))))
 
+(define remove-internal-types
+  [_ _ OriginalDatatypes OriginalAllDatatypes]
+    -> (let DatatypesDiff (difference (value shen.*datatypes*) OriginalDatatypes)
+            AllDatatypesDiff (difference (value shen.*alldatatypes*) OriginalAllDatatypes)
+            InternalTypes (difference AllDatatypesDiff DatatypesDiff)
+         (set shen.*alldatatypes* (difference (value shen.*alldatatypes*) InternalTypes))))
 
 (define use
   Name -> Name where (get-prop Name active)
@@ -126,7 +132,6 @@
               (register-prop Name active false)
               Name))
 
-\\ TODO: would be good to remove all *.t-internal types
 (define require
   Name -> Name where (get-prop Name loaded)
   Name -> (let Requires (get-prop Name requires)
@@ -134,14 +139,15 @@
                _ (for-each (/. Lib (use Lib)) Requires)
                Loads (get-prop Name loads)
                OriginalTC (if (tc?) + -)
-               CompilerContext (current-compiler-context)
+               OriginalContext (current-compiler-context)
                _ (tc -)
                _ (trap-error (handle-loads Loads)
                    (/. E (do (tc OriginalTC)
                              (for-each (/. Lib (unuse Lib)) Requires)
-                             (restore-compiler-context CompilerContext)
+                             (restore-compiler-context OriginalContext)
                              (error (error-to-string E)))))
-               _ (register-compiler-context-diff Name CompilerContext)
+               _ (register-compiler-context-diff Name OriginalContext)
+               _ (remove-internal-types OriginalContext)
                _ (tc OriginalTC)
                _ (for-each (/. Lib (unuse Lib)) [Name | Requires])
                _ (register-prop Name loaded true)
