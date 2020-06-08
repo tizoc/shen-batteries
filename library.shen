@@ -132,24 +132,30 @@
               (register-prop Name active false)
               Name))
 
+(define inactive-libraries
+  [] -> []
+  [Name | Rest] -> (inactive-libraries Rest) where (get-prop Name active)
+  [Name | Rest] -> [Name | (inactive-libraries Rest)])
+
 (define require
   Name -> Name where (get-prop Name loaded)
   Name -> (let Requires (get-prop Name requires)
                _ (for-each (/. Lib (require Lib)) Requires)
-               _ (for-each (/. Lib (use Lib)) Requires)
+               InactiveLibs (inactive-libraries Requires)
+               _ (for-each (/. Lib (use Lib)) InactiveLibs)
                Loads (get-prop Name loads)
                OriginalTC (if (tc?) + -)
                OriginalContext (current-compiler-context)
                _ (tc -)
                _ (trap-error (handle-loads Loads)
                    (/. E (do (tc OriginalTC)
-                             (for-each (/. Lib (unuse Lib)) Requires)
+                             (for-each (/. Lib (unuse Lib)) InactiveLibs)
                              (restore-compiler-context OriginalContext)
                              (error (error-to-string E)))))
                _ (register-compiler-context-diff Name OriginalContext)
                _ (remove-internal-types OriginalContext)
                _ (tc OriginalTC)
-               _ (for-each (/. Lib (unuse Lib)) [Name | Requires])
+               _ (for-each (/. Lib (unuse Lib)) [Name | InactiveLibs])
                _ (register-prop Name loaded true)
             Name))
 
