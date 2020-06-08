@@ -109,9 +109,9 @@
             InternalTypes (difference AllDatatypesDiff DatatypesDiff)
          (set shen.*alldatatypes* (difference (value shen.*alldatatypes*) InternalTypes))))
 
-(define use
+(define use-one
   Name -> Name where (get-prop Name active)
-  Name -> (let Require (require Name)
+  Name -> (let Require (require-one Name)
                Macros (get-prop Name provides-macros)
                PatternHandlers (get-prop Name provides-pattern-handlers)
                Types (get-prop Name provides-types)
@@ -122,7 +122,7 @@
                MarkActive (register-prop Name active true)
             Name))
 
-(define unuse
+(define unuse-one
   Name -> Name where (not (get-prop Name active))
   Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. _ skip)))
                         (get-prop Name provides-macros))
@@ -137,12 +137,12 @@
   [Name | Rest] -> (inactive-libraries Rest) where (get-prop Name active)
   [Name | Rest] -> [Name | (inactive-libraries Rest)])
 
-(define require
+(define require-one
   Name -> Name where (get-prop Name loaded)
   Name -> (let Requires (get-prop Name requires)
-               _ (for-each (/. Lib (require Lib)) Requires)
+               _ (require Requires)
                InactiveLibs (inactive-libraries Requires)
-               _ (for-each (/. Lib (use Lib)) InactiveLibs)
+               _ (use InactiveLibs)
                Loads (get-prop Name loads)
                OriginalTC (if (tc?) + -)
                OriginalContext (current-compiler-context)
@@ -155,7 +155,7 @@
                _ (register-compiler-context-diff Name OriginalContext)
                _ (remove-internal-types OriginalContext)
                _ (tc OriginalTC)
-               _ (for-each (/. Lib (unuse Lib)) [Name | InactiveLibs])
+               _ (unuse [Name | InactiveLibs])
                _ (register-prop Name loaded true)
             Name))
 
@@ -164,5 +164,24 @@
   [tc+ | Rest] -> (do (tc +) (handle-loads Rest))
   [tc- | Rest] -> (do (tc -) (handle-loads Rest))
   [File | Rest] -> (do (load File) (handle-loads Rest)))
+
+(define use
+  [] -> unit
+  [Name | Rest] -> (do (use-one Name)
+                       (use Rest)))
+
+(define unuse
+  [] -> unit
+  [Name | Rest] -> (do (unuse-one Name)
+                       (unuse Rest)))
+
+(define require
+  [] -> unit
+  [Name | Rest] -> (do (require-one Name)
+                       (require Rest)))
+
+(declare use [[list symbol] --> unit])
+(declare unuse [[list symbol] --> unit])
+(declare require [[list symbol] --> unit])
 
 )
