@@ -108,8 +108,30 @@
   C                    := (n->string C)
       where (not (element? C [10 13 91 93 123 125]));)
 
+(defcc <list>
+  <list-element> <list-elements> := [list <list-element> | <list-elements>];)
+
+(defcc <list-element>
+  45 <spaces?> <list-element-content> <newline> := <list-element-content>;)
+
+(defcc <list-element-content>
+  <list-element-content-fragment> <list-element-content-fragment*> := [<list-element-content-fragment> | <list-element-content-fragment*>];)
+
+(defcc <list-element-content-fragment>
+  <code> := <code>;
+  <escaped-text> := [text <escaped-text>];)
+
+(defcc <list-element-content-fragment*>
+  <list-element-content-fragment> <list-element-content-fragment*> := [<list-element-content-fragment> | <list-element-content-fragment*>];
+  <e> := [];)
+
+(defcc <list-elements>
+  <list-element> <list-elements> := [<list-element> | <list-elements>];
+  <e> := [];)
+
 (defcc <doctext>
-  <linebreak> <doctext>   := [[linebreak] | <doctext>];
+  <linebreak> <doctext>             := [[linebreak] | <doctext>];
+  <list> <doctext>                  := [<list> | <doctext>];
   <spaces?> <header> <doctext>      := [<header> | <doctext>];
   <spaces?> <code> <doctext>        := [<code> | <doctext>];
   <escaped-text> <doctext>          := [[text <escaped-text>] | <doctext>];
@@ -208,11 +230,27 @@
 
 (define render-fragment
   [linebreak] -> (output "~%~%")
+  [list] -> unit
+  [list | Elts] -> (do (render-list-elements Elts)
+                       (output "~%"))
   [header N | Fragments] -> (do (output "~A " (times "#" N))
                                 (for-each (function render-fragment) Fragments))
   [text Text] -> (output "~A" Text)
   [code Code] -> (output "`~A`" Code)
-  [type Code] -> (output "`~A`" (type-signature-string Code)))
+  [type Code] -> (output "`~A`" (type-signature-string Code))
+  X -> (error "+++ unkown fragment ~A" X))
+
+(define render-list-elements
+  [] -> unit
+  [Elt | Elts] -> (do (output "- ")
+                      (render-fragments Elt)
+                      (output "~%")
+                      (render-list-elements Elts)))
+
+(define render-fragments
+  [] -> unit
+  [Elt | Elts] -> (do (render-fragment Elt)
+                      (render-fragments Elts)))
 
 (define times
   S 0 -> ""
