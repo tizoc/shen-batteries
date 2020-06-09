@@ -3,15 +3,40 @@
 
 \** {1 Libraries loader}
 
+    Libraries for Shen.
+
+    {2 Overview}
+
     TODO
 
     {2 Declaring libraries}
 
-    TODO
+    Libraries are declared with the [library.declare] special form, with syntax:
 
-    {2 Loading libraries}
+    [(library.declare <LIBRARY-NAME> <LIBRARY-DECLARATION> ...)]
 
-    TODO
+    [<LIBRARY-NAME>] is a symbol, it must be unique, and will be used to reference this library.
+
+    Each [<LIBRARY-DECLARATION>] is one of:
+
+    - [(loads <TC-OR-FILE> ...)] declares which files to load when requiring this library. [<TC-OR-FILE>] is a string with the name of a file to load, [tc+] to enable typechecking before loading the files that come next, or [tc-] to disable typechecking before loading the files that come next.
+    - [(requires <LIBRARY-NAME> ...)] declares the dependencies of this library. Each [<LIBRARY-NAME>] is the name of a library. Each library named here will be required and activated before loading the files of the library being defined.
+    - [(provides-pattern-handlers <FUNCTION-NAME> ...)] declares any function defined in this library that will be activated to extend the pattern handler when this library is activated.
+
+    {2 API}
+
+    {3 Loading libraries}
+
+    [(library.use [<LIBRARY-NAME> ...])] loads and activates every library named in the list. Performing [library.use] on a library that is already active has no effect.
+
+    [(library.require [<LIBRARY-NAME> ...])] loads every library named in the list without performing any activation. Performing [library.require] on a library that has been required before has no effect.
+
+    Most of the time [library.use] will be used in user code, with [library.required] reserved for special situations.
+
+    {3 Deactivating libraries}
+
+    [(library.unuse [<LIBRARY-NAME> ...])] deactivates every library named in the list. Performing [library.unuse] on a library that is not active has no effect.
+
 *\
 
 (package library [
