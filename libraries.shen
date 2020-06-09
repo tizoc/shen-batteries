@@ -9,10 +9,12 @@
 
 (library.declare maybe
   (requires t)
+  (provides-pattern-handlers maybe.pattern-handler)
   (loads tc+ "maybe.shen"))
 
 (library.declare nullable
   (requires t)
+  (provides-pattern-handlers nullable.pattern-handler)
   (loads tc+ "nullable.shen"))
 
 (library.declare box
@@ -24,6 +26,7 @@
 
 (library.declare lazy-pattern
   (requires lazy)
+  (provides-pattern-handlers lazy.pattern-handler)
   (loads tc+ "lazy-pattern.shen"))
 
 (library.declare seq
