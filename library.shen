@@ -13,15 +13,15 @@
 
     Libraries are declared with the [library.declare] special form, with syntax:
 
-    [(library.declare <LIBRARY-NAME> <LIBRARY-DECLARATION> ...)]
+    [(library.declare <LIBRARY-NAME> <LIBRARY-DIRECTIVE> ...)]
 
     [<LIBRARY-NAME>] is a symbol, it must be unique, and will be used to reference this library.
 
-    Each [<LIBRARY-DECLARATION>] is one of:
+    Each [<LIBRARY-DIRECTIVE>] is one of:
 
-    - [(loads <TC-OR-FILE> ...)] declares which files to load when requiring this library. [<TC-OR-FILE>] is a string with the name of a file to load, [tc+] to enable typechecking before loading the files that come next, or [tc-] to disable typechecking before loading the files that come next.
-    - [(requires <LIBRARY-NAME> ...)] declares the dependencies of this library. Each [<LIBRARY-NAME>] is the name of a library. Each library named here will be required and activated before loading the files of the library being defined.
-    - [(provides-pattern-handlers <FUNCTION-NAME> ...)] declares any function defined in this library that will be activated to extend the pattern handler when this library is activated.
+-   [(loads <TC-OR-FILE> ...)] declares which files to load when requiring this library. [<TC-OR-FILE>] is a string with the name of a file to load, [tc+] to enable type-checking before loading the files that come next, or [tc-] to disable type-checking before loading the files that come next. By default, [tc-] is assumed.
+-   [(requires <LIBRARY-NAME> ...)] declares the dependencies of this library. Each [<LIBRARY-NAME>] is the name of a library. Each library named here will be required and activated before loading the files of the library being defined.
+-   [(provides-pattern-handlers <FUNCTION-NAME> ...)] declares any function defined in this library that will be activated to extend the pattern handler when this library is activated.
 
     {2 API}
 
