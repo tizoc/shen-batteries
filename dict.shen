@@ -39,49 +39,53 @@
 
 \** {3 Construction} *\
 
-\** [(dict.make N)] *\
+\** [(dict.make SizeHint)] creates a new dictionary. [SizeHint] is a size hint for the underlying implementation,
+    the recommended value is equal to the expected amount values this dict will hold. *\
 (define dict.make
   { number --> (dict.t Key Value) }
   SizeHint -> (shen.dict SizeHint))
 
 \** {3 Predicates} *\
 
-\** [(dict.is? X)] *\
+\** [(dict.is? X)] returns [true] if [X] is a dictionary, and [false] otherwise. *\
 (define dict.is?
   { A --> boolean }
   Value -> (shen.dict? Value))
 
 \** {3 Access} *\
 
-\** [(dict.get Dict Key)] *\
+\** [(dict.get Dict Key)] returns the value in [Dict] associated with [Key]. Raises an error if no value associated with [Key] is found. *\
 (define dict.get
   { (dict.t Key Value) --> Key --> Value }
   Dict Key -> (shen.<-dict Dict Key))
 
 \** {3 Modification} *\
 
-\** [(dict.set Dict Key Value)] *\
+\** [(dict.set Dict Key Value)] associates [Value] with [Key] in [Dict]. *\
 (define dict.set
   { (dict.t Key Value) --> Key --> Value --> Value }
   Dict Key Value -> (shen.dict-> Dict Key Value))
 
+\** [(dict.delete Dict Key)] deletes the value associated with [Key] in [Dict]. *\
 (define dict.delete
   { (dict.t Key Value) --> Key --> Key }
   Dict Key -> (shen.dict-rm Dict Key))
 
 \** {3 Traversal} *\
 
-\** [(dict.set Dict Key Value)] *\
+\** [(dict.fold F Dict Accum)] calls [(F Key Value Accum)] for each association in [Dict].
+    The return value of each call to [F] is used as [Accum] in the next call.
+    Returns the last result of calling [F]. *\
 (define dict.fold
   { (Key --> Value --> A --> A) --> (dict.t Key Value) --> A --> A }
   F Dict Seed -> (shen.dict-fold F Dict Seed))
 
-\** [(dict.keys Dict)] *\
+\** [(dict.keys Dict)] returns a list of all keys in [Dict]. *\
 (define dict.keys
   { (dict.t Key Value) --> (list Key) }
   Dict -> (shen.dict-keys Dict))
 
-\** [(dict.values Dict)] *\
+\** [(dict.values Dict)] returns a list of all values in [Dict]. *\
 (define dict.values
   { (dict.t Key Value) --> (list Value) }
   Dict -> (shen.dict-values Dict))
