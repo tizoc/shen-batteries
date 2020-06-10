@@ -9,13 +9,7 @@
     and no evaluation will happen until the sequence produced by the transformation
     is traversed.
 
-    {2 Dependencies}
-
-    Before loading `seq.shen`, the following files need to be loaded with `(tc +)` enabled:
-    `t.shen`, `maybe.shen`, `box.shen` and `lazy.shen`.
 *\
-
-
 
 (package seq [any.t maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
