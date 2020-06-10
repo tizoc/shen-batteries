@@ -24,8 +24,8 @@
     loading the files that come next, or [tc-] to disable type-checking before loading the files that come next.
     By default, [tc-] is assumed.
 -   [(requires <LIBRARY-NAME> ...)] declares the dependencies of this library.
-    Each [<LIBRARY-NAME>] is the name of a library.
-    Each library named here will be required and activated before loading the files of the library being defined.
+    Each [<LIBRARY-NAME>] is the name of a library that will be required and activated before loading
+    the files of the library being defined.
 -   [(provides-pattern-handlers <FUNCTION-NAME> ...)] declares any function defined in this library that
     will be activated to extend the pattern handler when this library is activated.
 
