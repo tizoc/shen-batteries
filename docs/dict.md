@@ -2,8 +2,6 @@
 
 Public API and types for internal Shen dictionary data structure.
 
-TODO
-
 ## API
 
 ### Construction
