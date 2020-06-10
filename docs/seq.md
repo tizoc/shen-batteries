@@ -2,10 +2,6 @@
 
 The type `(seq.t A)` represents a delayed sequence of values of type `A`. Evaluation of each element in the sequence is delayed until the element is accessed when the sequence is traversed. The results of sequence transformations are also delayed, and no evaluation will happen until the sequence produced by the transformation is traversed.
 
-## Dependencies
-
-Before loading `seq.shen`, the following files need to be loaded with `(tc +)` enabled: `t.shen`, `maybe.shen`, `box.shen` and `lazy.shen`.
-
 ## API
 
 ### Creation
