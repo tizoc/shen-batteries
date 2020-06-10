@@ -17,7 +17,7 @@ Libraries are declared with the `library.declare` special form, with syntax:
 Each `<LIBRARY-DIRECTIVE>` is one of:
 
 - `(loads <TC-OR-FILE> ...)` declares which files to load when requiring this library. `<TC-OR-FILE>` is a string with the name of a file to load, `tc+` to enable type-checking before loading the files that come next, or `tc-` to disable type-checking before loading the files that come next. By default, `tc-` is assumed.
-- `(requires <LIBRARY-NAME> ...)` declares the dependencies of this library. Each `<LIBRARY-NAME>` is the name of a library. Each library named here will be required and activated before loading the files of the library being defined.
+- `(requires <LIBRARY-NAME> ...)` declares the dependencies of this library. Each `<LIBRARY-NAME>` is the name of a library that will be required and activated before loading the files of the library being defined.
 - `(provides-pattern-handlers <FUNCTION-NAME> ...)` declares any function defined in this library that will be activated to extend the pattern handler when this library is activated.
 
 ## API
