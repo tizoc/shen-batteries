@@ -52,7 +52,7 @@
     loads requires tc+ tc-
     disable-macros
     preclude-types
-    provides-pattern-handlers disable-pattern-handlers
+    disable-pattern-handlers
 ]
 
 (set *libraries* (shen.dict 100))
@@ -100,8 +100,6 @@
   Name [preclude-types | Types]   -> (register-prop preclude-types Types)
   Name [disable-pattern-handlers | Handlers]
                                   -> (register-prop disable-pattern-handlers Handlers)
-  Name [provides-pattern-handlers | Handlers]
-                                  -> (register-prop provides-pattern-handlers Handlers)
   Name [loads | Loads]            -> (register-prop Name loads Loads)
   Name Other -> (error "Invalid library declaration for ~A" Name)
   )
@@ -111,14 +109,22 @@
           OriginalMacroreg (value shen.*macroreg*)
           OriginalDatatypes (value shen.*datatypes*)
           OriginalAlldatatypes (value shen.*alldatatypes*)
-       [OriginalMacros OriginalMacroreg OriginalDatatypes OriginalAlldatatypes]))
+          OriginalPatternHandlers (value shen.x.programmable-pattern-matching.*pattern-handlers*)
+          OriginalPatternHandlersReg (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*)
+       [OriginalMacros OriginalMacroreg
+        OriginalDatatypes OriginalAlldatatypes
+        OriginalPatternHandlers OriginalPatternHandlersReg]))
 
 (define restore-compiler-context
-  [OriginalMacros OriginalMacroreg OriginalDatatypes OriginalAlldatatypes]
+  [OriginalMacros OriginalMacroreg
+   OriginalDatatypes OriginalAlldatatypes
+   OriginalPatternHandlers OriginalPatternHandlersReg]
     -> (do (set *macros* OriginalMacros)
            (set shen.*macroreg* OriginalMacroreg)
            (set shen.*datatypes* OriginalDatatypes)
-           (set shen.*alldatatypes* OriginalAlldatatypes)))
+           (set shen.*alldatatypes* OriginalAlldatatypes)
+           (set shen.x.programmable-pattern-matching.*pattern-handlers* OriginalPatternHandlers)
+           (set shen.x.programmable-pattern-matching.*pattern-handlers-reg* OriginalPatternHandlersReg)))
 
 (define remove-#type-suffix
   [] -> []
@@ -130,18 +136,26 @@
   (@s C Rest) -> (@s C (remove-#type-suffix-h Rest)))
 
 (define register-compiler-context-diff
-  Name [OriginalMacros OriginalMacroreg OriginalDatatypes OriginalAlldatatypes]
+  Name [OriginalMacros OriginalMacroreg OriginalDatatypes OriginalAlldatatypes OriginalPatternHandlers OriginalPatternHandlersReg]
     -> (let MacroRegDiff (difference (value shen.*macroreg*) OriginalMacroreg)
             DatatypesDiff (difference (value shen.*datatypes*) OriginalDatatypes)
+            PatternHandlersRegDiff (difference (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*) OriginalPatternHandlersReg)
           (do (register-prop Name provides-macros MacroRegDiff)
-              (register-prop Name provides-types (remove-#type-suffix DatatypesDiff)))))
+              (register-prop Name provides-types (remove-#type-suffix DatatypesDiff))
+              (register-prop Name provides-pattern-handlers PatternHandlersRegDiff))))
 
 (define remove-internal-types
-  [_ _ OriginalDatatypes OriginalAllDatatypes]
+  [_ _ OriginalDatatypes OriginalAllDatatypes _ _]
     -> (let DatatypesDiff (difference (value shen.*datatypes*) OriginalDatatypes)
             AllDatatypesDiff (difference (value shen.*alldatatypes*) OriginalAllDatatypes)
             InternalTypes (difference AllDatatypesDiff DatatypesDiff)
          (set shen.*alldatatypes* (difference (value shen.*alldatatypes*) InternalTypes))))
+
+(define remove-pattern-handlers
+  [_ _ _ _ _ OriginalPatternHandlersReg]
+    -> (let PatternHandlersRegDiff (difference (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*) OriginalPatternHandlersReg)
+         (map (/. Handler (shen.x.programmable-pattern-matching.unregister-handler Handler))
+              PatternHandlersRegDiff)))
 
 (define use-one
   Name -> Name where (get-prop Name active)
@@ -161,7 +175,7 @@
   Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. _ skip)))
                         (get-prop Name provides-macros))
               (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. _ skip)))
-                        (get-prop Name provides-macros))
+                        (get-prop Name provides-pattern-handlers))
               (preclude (get-prop Name provides-types))
               (register-prop Name active false)
               Name))
@@ -170,6 +184,13 @@
   [] -> []
   [Name | Rest] -> (inactive-libraries Rest) where (get-prop Name active)
   [Name | Rest] -> [Name | (inactive-libraries Rest)])
+
+(define apply-filters
+  Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. _ skip)))
+                        (get-prop Name disable-macros))
+              (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. _ skip)))
+                        (get-prop Name disable-pattern-handlers))
+              (preclude (get-prop Name preclude-types))))
 
 (define require-one
   Name -> Name where (get-prop Name loaded)
@@ -181,6 +202,7 @@
                OriginalTC (if (tc?) + -)
                OriginalContext (current-compiler-context)
                _ (tc -)
+               _ (apply-filters Name)
                _ (trap-error (handle-loads Loads)
                    (/. E (do (tc OriginalTC)
                              (unuse InactiveLibs)
@@ -188,6 +210,7 @@
                              (error (error-to-string E)))))
                _ (register-compiler-context-diff Name OriginalContext)
                _ (remove-internal-types OriginalContext)
+               _ (remove-pattern-handlers OriginalContext)
                _ (tc OriginalTC)
                _ (unuse [Name | InactiveLibs])
                _ (register-prop Name loaded true)
