@@ -183,7 +183,7 @@
                _ (tc -)
                _ (trap-error (handle-loads Loads)
                    (/. E (do (tc OriginalTC)
-                             (for-each (/. Lib (unuse Lib)) InactiveLibs)
+                             (unuse InactiveLibs)
                              (restore-compiler-context OriginalContext)
                              (error (error-to-string E)))))
                _ (register-compiler-context-diff Name OriginalContext)
