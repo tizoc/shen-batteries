@@ -14,9 +14,19 @@ Adds `verified` rules for the `number?`, `string?`, `symbol?` and `boolean?` pre
 
 ### `t.verified-if`
 
-This rule extends the typechecker so that when the `True` branch of `(if Test True False)` expressions is typechecked, any `verified` rules that result from `Test` are added to the
+This rule extends the typechecker so that when the `True` branch of `(if Test True False)` expressions is typechecked, any `verified` rules that result from `Test` are taken into account.
 
-Example `(if (number? X) (+ X 2) 0)` for an `X` of unkown type would not typecheck without this rule, but `X` would.
+Example: `(if (number? X) (+ X 2) 0)` for an `X` of unkown type would not typecheck without this rule, but `X` would.
+
+### `t.verified-and-head`
+
+This rule extends the typechecked so that then the `Tail` expression of `(and Head Tail)` expressions is typechecked, any `verified` rules that result from `Head` are are taken into account.
+
+Example:
+
+`(define test { A --> boolean } X -> (and (number? X) (> X 0)))`
+
+The above code doesn't typecheck by default, but if `t.verified-and-head` and `t.verified-objects` are enabled it does.
 
 ### `t.or`
 
