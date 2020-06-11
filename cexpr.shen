@@ -31,7 +31,7 @@
   (unput cexpr.builders N) : unit;
 
   ___________________
-  (function (get cexpr.builders N)) : (any.t --> any.t);)
+  (function (get cexpr.builders N)) : (unit --> unit);)
 
 (define cexpr.register
   { symbol --> symbol --> unit }
@@ -42,7 +42,7 @@
   Name -> (unput cexpr.builders Name))
 
 (define cexpr.builder
-  { symbol --> (any.t --> any.t) }
+  { symbol --> (unit --> unit) }
   Name -> (trap-error
             (function (get cexpr.builders Name))
             (/. _ (error "Unknown cexpr: ~A" Name))))

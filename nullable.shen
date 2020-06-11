@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package nullable [@just @null null? any.t]
+(package nullable [@just @null null? unit unit]
 
 (datatype t-internal
   ________________
@@ -35,9 +35,9 @@
 (define null?
   { (t A) --> boolean }
   X -> (= X @null_value_))
-
+(spy +)
 (define pattern-handler
-  { any.t --> any.t --> any.t --> any.t --> any.t }
+  { unit --> unit --> unit --> unit --> unit }
   Self Is? Assign [@null]   -> (Is? [null? Self])
   Self Is? Assign [@just X] -> (do (Is? [not [null? Self]])
                                    (Assign X Self))

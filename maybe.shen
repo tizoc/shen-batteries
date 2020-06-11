@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package maybe [@some @none any.t]
+(package maybe [@some @none unit]
 
 (datatype t-internal
   ______________
@@ -87,7 +87,7 @@
   X -> (make-string "(@some ~S)" (unsafe-get X)))
 
 (define pattern-handler
-  { any.t --> any.t --> any.t --> any.t --> any.t }
+  { unit --> unit --> unit --> unit --> unit }
   Self Is? Assign [@none]   -> (Is? [none? Self])
   Self Is? Assign [@some X] -> (do (Is? [some? Self])
                                    (Assign X [unsafe-get Self]))

@@ -11,7 +11,7 @@
 
 *\
 
-(package seq [any.t maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
+(package seq [unit maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
 (datatype t-internal
   ______________________
@@ -127,7 +127,7 @@
 \\ TODO: dict
 
 (define list?
-  { any.t --> boolean }
+  { unit --> boolean }
   [] -> true
   [_ | _] -> true
   _ -> false)
