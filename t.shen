@@ -13,18 +13,19 @@
     when writting functions where the type of the inputs is not known, or
     when the result is discarded. Use carefully.
 
-    {3 [t.verified-if]}
-
-    This rule makes the [true] branches of [if] expressions be typechecked in the same
-    way as clauses in `define`s. Example [(if (number? X) (+ X 2) 0)] for an [X] of
-    unkown type would not typecheck without this rule, but [X -> (+ X 2) where (number? X)]
-    would.
-
     {3 [t.verified-objects]}
 
     Adds [verified] rules for the [number?], [string?], [symbol?] and [boolean?] predicate,
     and also for [and] expressions ([(and X Y)] adds [verified] for the [X] and [Y] expressions
-    if there is a rule defined for them.
+    if there is a rule defined for them).
+
+    {3 [t.verified-if]}
+
+    This rule extends the typechecker so that when the [True] branch of [(if Test True False)] expressions
+    is typechecked, any [verified] rules that result from [Test] are added to the
+
+    Example [(if (number? X) (+ X 2) 0)] for an [X] of unkown type would not typecheck
+    without this rule, but [X -> (+ X 2) where (number? X)] would.
 
     {3 [t.or]}
 
