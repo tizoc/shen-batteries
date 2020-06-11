@@ -29,7 +29,7 @@
 
     {3 [t.verified-and-head]}
 
-    This rule extends the typechecked so that then the [Tail] expression of [(and Head Tail)] expressions
+    This rule extends the typechecker so that then the [Tail] expression of [(and Head Tail)] expressions
     is typechecked, any [verified] rules that result from [Head] are are taken into account.
 
     Example:
