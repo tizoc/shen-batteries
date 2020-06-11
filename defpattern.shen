@@ -12,4 +12,8 @@
                 Body
                 [_ _ _ _ -> [fail]])))
 
+(define undef
+  { symbol --> symbol }
+  Name -> (shen.x.programmable-pattern-matching.unregister-handler Name))
+
 )
