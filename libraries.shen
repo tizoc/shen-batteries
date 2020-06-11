@@ -4,29 +4,29 @@
 (library.declare t
   (loads tc+ "t.shen"))
 
+(library.declare defpattern
+  (loads "defpattern.shen"))
+
 (library.declare dict
   (loads tc+ "dict.shen"))
 
 (library.declare maybe
-  (requires t)
-  (provides-pattern-handlers maybe.pattern-handler)
+  (requires t defpattern)
   (loads tc+ "maybe.shen"))
 
 (library.declare nullable
-  (requires t)
-  (provides-pattern-handlers nullable.pattern-handler)
+  (requires t defpattern)
   (loads tc+ "nullable.shen"))
 
 (library.declare box
   (loads tc+ "box.shen"))
 
 (library.declare lazy
-  (requires t box)
+  (requires t defpattern box)
   (loads tc+ "lazy.shen"))
 
 (library.declare lazy-pattern
   (requires lazy)
-  (provides-pattern-handlers lazy.pattern-handler)
   (loads tc+ "lazy-pattern.shen"))
 
 (library.declare seq

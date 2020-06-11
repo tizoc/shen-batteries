@@ -86,12 +86,10 @@
   { (t A) --> string }
   X -> (make-string "(@some ~S)" (unsafe-get X)))
 
-(define pattern-handler
-  { unit --> unit --> unit --> unit --> unit }
+(defpattern maybe.pattern-handler
   Self Is? Assign [@none]   -> (Is? [none? Self])
   Self Is? Assign [@some X] -> (do (Is? [some? Self])
-                                   (Assign X [unsafe-get Self]))
-  _ _ _ _ -> (fail))
+                                   (Assign X [unsafe-get Self])))
 
 (preclude [t-internal])
 

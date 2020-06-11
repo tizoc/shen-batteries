@@ -8,8 +8,7 @@
   _________________
   (freeze X) : (lazy A) >> P;)
 
-(define pattern-handler
-  Self Is? Assign [freeze X] -> (Assign X [thaw Self])
-  _ _ _ _ -> (fail))
+(defpattern lazy.pattern-handler
+  Self Is? Assign [freeze X] -> (Assign X [thaw Self]))
 
 )

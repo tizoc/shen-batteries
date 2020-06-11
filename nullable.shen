@@ -35,13 +35,11 @@
 (define null?
   { (t A) --> boolean }
   X -> (= X @null_value_))
-(spy +)
-(define pattern-handler
-  { unit --> unit --> unit --> unit --> unit }
+
+(defpattern nullable.pattern-handler
   Self Is? Assign [@null]   -> (Is? [null? Self])
   Self Is? Assign [@just X] -> (do (Is? [not [null? Self]])
-                                   (Assign X Self))
-  _ _ _ _ -> (fail))
+                                   (Assign X Self)))
 
 (preclude [t-internal])
 
