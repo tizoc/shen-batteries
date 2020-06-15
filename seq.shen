@@ -11,7 +11,7 @@
 
 *\
 
-(package seq [unit maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
+(package seq [void maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
 (datatype t-internal
   ______________________
@@ -127,7 +127,7 @@
 \\ TODO: dict
 
 (define list?
-  { unit --> boolean }
+  { (or A (list A)) --> boolean }
   [] -> true
   [_ | _] -> true
   _ -> false)
@@ -280,8 +280,8 @@
 \** [(seq.drain Seq)] consumes [Seq] until no more elements are left. The produced
     elements will be discarded. *\
 (define drain
-  { (seq.t A) --> unit }
-  Seq -> (for-each (/. _ unit) Seq))
+  { (seq.t A) --> void }
+  Seq -> (for-each (/. _ (void)) Seq))
 
 \** [(seq.fold-left F Acc Seq)] consumes the sequence [Seq], combining each of it's elements with
     the accumulator [Acc] by calling [(F Acc Elt)]. The result of each call to [F] is a new [NewAcc]
@@ -300,12 +300,12 @@
 \** [(seq.for-each F Seq)] consumes [Seq] until no more elements are left. Each value
     produced is passed to [F] and the result discarded. *\
 (define for-each
-  { (A --> Any) --> (seq.t A) --> unit }
+  { (A --> Any) --> (seq.t A) --> void }
   F S -> (for-each-h F (thaw S)))
 
 (define for-each-h
-  { (A --> Any) --> (node A) --> unit }
-  _ [] -> unit
+  { (A --> Any) --> (node A) --> void }
+  _ [] -> (void)
   F [H | T] -> (do (F H) (for-each-h F (thaw T))))
 
 \** [(seq.equal? SeqA SeqB)] consumes [SeqA] and [SeqB] one element at a time comparing
