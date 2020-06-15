@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package maybe [@some @none unit]
+(package maybe [@some @none void sexp]
 
 (datatype t-internal
   ______________
@@ -76,11 +76,11 @@
   _ X -> (@none))
 
 (define for-each
-  { (A --> B) --> (t A) --> unit }
+  { (A --> B) --> (t A) --> void }
   F X -> (do (F (maybe.get X))
-             unit)
+             (void))
       where (some? X)
-  _ X -> unit)
+  _ X -> (void))
 
 (define #tag#some
   { (t A) --> string }

@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package nullable [@just @null null? unit unit]
+(package nullable [@just @null null? void sexp defpattern]
 
 (datatype t-internal
   ________________
