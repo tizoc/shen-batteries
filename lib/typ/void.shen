@@ -17,4 +17,6 @@
 
 (define void
   { --> void}
-  -> -void-)
+  -> (shen.x.features.cond-expand
+       shen/scheme (scm.void)
+       true -void-))
