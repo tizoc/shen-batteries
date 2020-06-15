@@ -34,11 +34,11 @@
   (loads tc+ "box.shen"))
 
 (library.declare lazy
-  (requires defpattern box)
+  (requires box)
   (loads tc+ "lazy.shen"))
 
 (library.declare lazy-pattern
-  (requires lazy)
+  (requires typ/unit defpattern lazy)
   (loads tc+ "lazy-pattern.shen"))
 
 (library.declare seq
