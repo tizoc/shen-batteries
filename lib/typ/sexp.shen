@@ -9,27 +9,27 @@
 (datatype typ/sexp.t
     X : symbol;
     ______________
-    X : atom;
+    X : (mode atom -);
 
     X : boolean;
     ______________
-    X : atom;
+    X :(mode  atom -);
 
     X : string;
     ______________
-    X : atom;
+    X : (mode atom -);
 
     X : number;
     ______________
-    X : atom;
+    X : (mode atom -);
 
     ______________
-    [] : atom;
+    [] : (mode atom -);
 
     X : atom;
     ______________
-    X : sexp;
+    X : (mode sexp -);
 
     [X | Y] : (list sexp);
     ========================
-    [X | Y] : sexp;)
+    [X | Y] : (mode sexp -);)
