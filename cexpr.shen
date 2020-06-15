@@ -25,24 +25,24 @@
 
 (datatype cexpr.t-internal
   ___________________
-  (put cexpr.builders N F) : unit;
+  (put cexpr.builders N F) : void;
 
   ___________________
-  (unput cexpr.builders N) : unit;
+  (unput cexpr.builders N) : void;
 
   ___________________
-  (function (get cexpr.builders N)) : (unit --> unit);)
+  (function (get cexpr.builders N)) : (sexp --> sexp);)
 
 (define cexpr.register
-  { symbol --> symbol --> unit }
+  { symbol --> symbol --> void }
   Name FName -> (put cexpr.builders Name FName))
 
 (define cexpr.unregister
-  { symbol --> unit }
+  { symbol --> void }
   Name -> (unput cexpr.builders Name))
 
 (define cexpr.builder
-  { symbol --> (unit --> unit) }
+  { symbol --> (sexp --> sexp) }
   Name -> (trap-error
             (function (get cexpr.builders Name))
             (/. _ (error "Unknown cexpr: ~A" Name))))

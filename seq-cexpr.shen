@@ -2,7 +2,7 @@
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
 (define seq.cexpr-builder
-  { unit --> unit }
+  { sexp --> sexp }
   [] -> [seq.empty]
   [for Expr F] -> [seq.flat-map F [seq.of Expr]]
   [bind Expr F] -> [seq.flat-map F Expr]
