@@ -4,6 +4,9 @@
 (library.declare typ/or
   (loads tc+ "lib/typ/or.shen"))
 
+(library.declare typ/sexp
+  (loads tc+ "lib/typ/sexp.shen"))
+
 (library.declare typ/unit
   (loads tc+ "lib/typ/unit.shen"))
 
@@ -16,18 +19,22 @@
 (library.declare typ/verified-objects
   (loads tc+ "lib/typ/verified-objects.shen"))
 
+(library.declare typ/void
+  (loads tc+ "lib/typ/void.shen"))
+
 (library.declare defpattern
+  (requires typ/sexp typ/void)
   (loads "defpattern.shen"))
 
 (library.declare dict
   (loads tc+ "dict.shen"))
 
 (library.declare maybe
-  (requires typ/unit defpattern)
+  (requires typ/void typ/sexp defpattern)
   (loads tc+ "maybe.shen"))
 
 (library.declare nullable
-  (requires typ/unit defpattern)
+  (requires typ/void typ/sexp defpattern)
   (loads tc+ "nullable.shen"))
 
 (library.declare box
@@ -38,19 +45,19 @@
   (loads tc+ "lazy.shen"))
 
 (library.declare lazy-pattern
-  (requires typ/unit defpattern lazy)
+  (requires typ/void typ/sexp defpattern lazy)
   (loads tc+ "lazy-pattern.shen"))
 
 (library.declare seq
-  (requires typ/unit typ/or maybe lazy)
+  (requires typ/void typ/or maybe lazy)
   (loads tc+ "seq.shen"))
 
 (library.declare seq-cexpr
-  (requires typ/unit cexpr)
+  (requires typ/sexp typ/void cexpr)
   (loads tc+ "seq-cexpr.shen"))
 
 (library.declare cexpr
-  (requires typ/unit)
+  (requires typ/sexp typ/void)
   (loads tc+ "cexpr.shen"))
 
 (library.declare let-match
