@@ -3,7 +3,11 @@
 Useful mostly-generic datatypes.
 
 include::void.adoc[]
+
 include::or.adoc[]
+
 include::sexp.adoc[]
+
 include::verified-and-head.adoc[]
+
 include::verified-if.adoc[]
