@@ -15,23 +15,18 @@
     TODO
 *\
 
-(package shendoc []
+(package shendoc [void]
 
 \\ Needed so that package-macro doesn't alter annotations produced
 \\ from comments inside package declarations.
 (systemf standalone)
 (systemf associate)
-(systemf text)
-(systemf header)
-(systemf code)
-(systemf linebreak)
 
 \\ Import these from Shen's kernel
 (defcc <whitespaces>   shen.<whitespaces>   := shen.<whitespaces>;)
 (defcc <comment>       shen.<comment>       := shen.<comment>;)
 (defcc <atom>          shen.<atom>          := shen.<atom>;)
 (defcc <digit>         shen.<digit>         := shen.<digit>;)
-(defcc <times>         shen.<times>         := shen.<times>;)
 (defcc <backslash>     shen.<backslash>     := shen.<backslash>;)
 (defcc <lcurly>        shen.<lcurly>        := shen.<lcurly>;)
 (defcc <rcurly>        shen.<rcurly>        := shen.<rcurly>;)
@@ -39,108 +34,41 @@
 (defcc <rsb>           shen.<rsb>           := shen.<rsb>;)
 (defcc <lrb>           shen.<lrb>           := shen.<lrb>;)
 (defcc <rrb>           shen.<rrb>           := shen.<rrb>;)
+(defcc <colon>         shen.<colon>         := shen.<colon>;)
 (defcc <shen-code>     shen.<st_input>      := shen.<st_input>;)
+
+(defcc <doc-comment-line>
+  <backslash> <backslash> <colon> <space?> <line-remaining> := <line-remaining>;)
+
+(defcc <doc-comment-block>
+  <doc-comment-line> <newline> <doc-comment-block> := [<doc-comment-line> | <doc-comment-block>];
+  <doc-comment-line> := [<doc-comment-line>];)
+
+(defcc <doc-comment>
+  <doc-comment-block> := <doc-comment-block>;)
+
+(defcc <line-remaining>
+  <non-newline> <line-remaining> := (@s <non-newline> <line-remaining>);
+  <e> := "";)
+
+(defcc <non-newline>
+  C := (n->string C) where (not (or (= C 10) (= C 13)));)
 
 (defcc <whitespace*>
   <whitespaces> := skip;
-  <e> := skip;)
+  <e>           := skip;)
 
-(defcc <spaces?>
-  <spaces> := skip;
+(defcc <space?>
+  <space> := skip;
   <e> := skip;)
 
 (defcc <space>
   32 := skip;
   9 := skip;)
 
-(defcc <space*>
-  <space> <space*> := skip;
-  <e> := skip;)
-
-(defcc <spaces>
-  <newline> <space> <spaces> := " ";
-  <space> <spaces> := <spaces>;
-  <space> := " ";)
-
 (defcc <newline>
   13 10 := skip;  \\ CRLF
-  10 := skip;)    \\ LF
-
-(defcc <linebreak>
-  <space*> <newline> <space*> <newline> <space*> := [linebreak];)
-
-(defcc <doc-comment>
-   <backslash> <times> <times> <whitespace*> <doc-contents>
-      := (parse-comment-block <doc-contents>);)
-
-(defcc <doc-contents>
-   <doc-comment-end>  := [];
-   C <doc-contents>   := [C | <doc-contents>];)
-
-(defcc <doc-comment-end>
-  <whitespace*> <times> <backslash> := skip)
-
-(defcc <header>
-  <lcurly> <digit> <spaces> <headercontents> <rcurly>
-      := [header <digit> | <headercontents>];)
-
-(defcc <code>
-  <lsb> <code-text> <rsb> := [code <code-text>];)
-
-(defcc <code-text>
-  <shen-code> := (make-string "~R" (head <shen-code>));)
-
-(defcc <escaped-text>
-  <spaces> <escaped-char*>  := (@s <spaces> <escaped-char*>);
-  <escaped-char> <escaped-char*> := (@s <escaped-char> <escaped-char*>);)
-
-(defcc <escaped-char*>
-  <spaces> <escaped-char*>  := (@s <spaces> <escaped-char*>);
-  <escaped-char> <escaped-char*> := (@s <escaped-char> <escaped-char*>);
-  <e>                            := "";)
-
-(defcc <escaped-char>
-  <backslash> <backslash> := "\"; \\ "\\"
-  <backslash> <rcurly> := "}";  \\ "\}"
-  <backslash> <lcurly> := "{";  \\ "\{"
-  <backslash> <rsb>    := "]";  \\ "\["
-  <backslash> <lsb>    := "[";  \\ "\]"
-  C                    := (n->string C)
-      where (not (element? C [10 13 91 93 123 125]));)
-
-(defcc <list>
-  <list-element> <list-elements> := [list <list-element> | <list-elements>];)
-
-(defcc <list-element>
-  45 <spaces?> <list-element-content> <newline> := <list-element-content>;)
-
-(defcc <list-element-content>
-  <list-element-content-fragment> <list-element-content-fragment*> := [<list-element-content-fragment> | <list-element-content-fragment*>];)
-
-(defcc <list-element-content-fragment>
-  <code> := <code>;
-  <escaped-text> := [text <escaped-text>];)
-
-(defcc <list-element-content-fragment*>
-  <list-element-content-fragment> <list-element-content-fragment*> := [<list-element-content-fragment> | <list-element-content-fragment*>];
-  <e> := [];)
-
-(defcc <list-elements>
-  <list-element> <list-elements> := [<list-element> | <list-elements>];
-  <e> := [];)
-
-(defcc <doctext>
-  <linebreak> <doctext>             := [[linebreak] | <doctext>];
-  <list> <doctext>                  := [<list> | <doctext>];
-  <spaces?> <header> <doctext>      := [<header> | <doctext>];
-  <spaces?> <code> <doctext>        := [<code> | <doctext>];
-  <escaped-text> <doctext>          := [[text <escaped-text>] | <doctext>];
-  <e>                               := [];)
-
-(defcc <headercontents>
-  <whitespace*> <code> <headercontents> := [<code> | <headercontents>];
-  <escaped-text> <headercontents>        := [[text <escaped-text>] | <headercontents>];
-  <e>                                    := [];)
+  10    := skip;) \\ LF
 
 (defcc <st_input-withdocs>
   <doc-comment> <newline> <newline> <st_input-withdocs>
@@ -166,33 +94,19 @@
 (defcc <st_input-withdocs2>
   <st_input-withdocs> := <st_input-withdocs>;)
 
-(define parse-comment-block
-  S -> (compile (function <doctext>) S))
-
 (define make-docs
   [] -> []
-  [[standalone | Fragments] | Rest] -> [[standalone | (process-fragments Fragments)]
-                                        | (make-docs Rest)]
-  [[associate | Fragments] [define Name | DefRest] | Rest]
-    -> [[func Name (extract-type-signature DefRest) | (process-function-doc Name Fragments)]
+  [[standalone | Lines] | Rest]
+     -> [[standalone | Lines] | (make-docs Rest)]
+  [[associate | Lines] [define Name | DefRest] | Rest]
+    -> [[func Name (extract-type-signature DefRest) | Lines]
         | (make-docs Rest)]
-  [[associate | Fragments] [defcc Name | DefRest] | Rest]
-    -> [[func Name untyped | (process-function-doc Name Fragments)]
+  [[associate | Lines] [defcc Name | DefRest] | Rest]
+    -> [[func Name untyped | Lines]
         | (make-docs Rest)]
-  [[associate | Fragments] _ | Rest]
-    -> (make-docs [[standalone | (process-fragments Fragments)] | Rest])
+  [[associate | Lines] _ | Rest]
+    -> (make-docs [[standalone | Lines] | Rest])
   [_ | Rest] -> (do _ (make-docs Rest)))
-
-(define process-fragments
-  [] -> []
-  [Fragment | Rest] -> [(process-fragment Fragment) | (process-fragments Rest)])
-
-(define process-fragment
-  [header | Rest] -> [header | (map (function process-fragment) Rest)]
-  X -> X)
-
-(define process-function-doc
-  Name Fragments -> (process-fragments Fragments))
 
 (define extract-type-signature
   [{ | Rest] -> (extract-type-signature-h Rest)
@@ -206,51 +120,22 @@
   [T] -> (make-string "~R" T)
   [T | Rest] -> (@s (make-string "~R" T) " " (type-signature-string Rest)))
 
-(define render-docs-as-markdown
-  [[standalone | Fragments] | Rest]
-    -> (do (for-each (function render-fragment) Fragments)
-           (render-fragment [linebreak])
-           (render-docs-as-markdown Rest))
-  [[func Name Type | Fragments] | Rest]
+(define render-doc
+  [[standalone | Lines] | Rest]
+    -> (do (for-each (/. Line (output "~A~%" Line)) Lines)
+           (nl)
+           (render-doc Rest))
+  [[func Name Type | Lines] | Rest]
     -> (do (if (= Type untyped)
-               (render-fragment [header 4 [code Name]])
-               (render-fragment [header 4 [code Name] [text " : "] [type Type]]))
-           (render-fragment [linebreak])
-           (for-each (function render-fragment) Fragments)
-           (render-fragment [linebreak])
-           (render-docs-as-markdown Rest))
-  [] -> unit)
-
-(define render-fragment
-  [linebreak] -> (output "~%~%")
-  [list] -> unit
-  [list | Elts] -> (do (render-list-elements Elts)
-                       (output "~%"))
-  [header N | Fragments] -> (do (output "~A " (times "#" N))
-                                (for-each (function render-fragment) Fragments))
-  [text Text] -> (output "~A" Text)
-  [code Code] -> (output "`~A`" Code)
-  [type Code] -> (output "`~A`" (type-signature-string Code))
-  X -> (error "+++ unkown fragment ~A" X))
-
-(define render-list-elements
-  [] -> unit
-  [Elt | Elts] -> (do (output "- ")
-                      (render-fragments Elt)
-                      (output "~%")
-                      (render-list-elements Elts)))
-
-(define render-fragments
-  [] -> unit
-  [Elt | Elts] -> (do (render-fragment Elt)
-                      (render-fragments Elts)))
-
-(define times
-  S 0 -> ""
-  S N -> (@s S (times S (- N 1))))
+               (output ".. function:: ~A~%~%" Name)
+               (output ".. function:: ~A : ~A~%~%" Name (type-signature-string Type)))
+           (for-each (/. Line (output "    ~A~%" Line)) Lines)
+           (nl)
+           (render-doc Rest))
+  [] -> void)
 
 (define for-each
-  F [] -> unit
+  F [] -> void
   F [X | Rest] -> (do (F X) (for-each F Rest)))
 
 (define without-macros
@@ -265,7 +150,7 @@
   [Exe Input] -> (let Bytes (read-file-as-bytelist Input)
                       Parsed (without-macros (freeze (compile (function <st_input-withdocs>) Bytes)))
                       Docs (make-docs Parsed)
-                   (render-docs-as-markdown Docs))
+                   (render-doc Docs))
   [Exe | Other] -> (print-usage Exe))
 
 )
