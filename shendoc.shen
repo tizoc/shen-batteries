@@ -1,19 +1,18 @@
 \\ Copyright (c) 2020 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-\** {1 Shen documentation generator}
-
-    Shendoc is a tool to generate documentation from special comments
-    embedded in Shen source code files.
-
-    {2 Documentation comment syntax}
-
-    TODO
-
-    {2 Usage}
-
-    TODO
-*\
+\\: = Shen documentation generator
+\\:
+\\: Shendoc is a tool to generate documentation from special comments
+\\: embedded in Shen source code files.
+\\:
+\\: == Documentation comment syntax}
+\\:
+\\: TODO
+\\:
+\\: == Usage}
+\\:
+\\: TODO
 
 (package shendoc [void]
 
