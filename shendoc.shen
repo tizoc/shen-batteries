@@ -127,9 +127,9 @@
            (render-doc Rest))
   [[func Name Type | Lines] | Rest]
     -> (do (if (= Type untyped)
-               (output ".. function:: ~A~%~%" Name)
-               (output ".. function:: ~A : ~A~%~%" Name (type-signature-string Type)))
-           (for-each (/. Line (output "    ~A~%" Line)) Lines)
+               (output "==== `~A`~%~%" Name)
+               (output "==== `~A` : `~A`~%~%" Name (type-signature-string Type)))
+           (for-each (/. Line (output "~A~%" Line)) Lines)
            (nl)
            (render-doc Rest))
   [] -> void)
