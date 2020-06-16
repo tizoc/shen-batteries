@@ -1,21 +1,21 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-\\: = `typ/verified-and-head.t`
+\\: == `typ/verified-and-head.t`
 \\:
-\\:  This rule extends the typechecker so that then the `Tail` expression of `(and Head Tail)` expressions
-\\:  is typechecked, any `verified` rules that result from `Head` are are taken into account.
+\\: This rule extends the typechecker so that then the `Tail` expression of `(and Head Tail)` expressions
+\\: is typechecked, any `verified` rules that result from `Head` are are taken into account.
 \\:
-\\:  Example:
+\\: Example:
 \\:
-\\:  ```shen
-\\:  (define test
-\\:    { A --> boolean }
-\\:    X -> (and (number? X) (> X 0)))
-\\:  ```
+\\: ```shen
+\\: (define test
+\\:   { A --> boolean }
+\\:   X -> (and (number? X) (> X 0)))
+\\: ```
 \\:
-\\:  The above code doesn't typecheck by default, but if `typ/verified-and-head.t` and `typ/verified-objects.t`
-\\:  are enabled it does.
+\\: The above code doesn't typecheck by default, but if `typ/verified-and-head.t` and `typ/verified-objects.t`
+\\: are enabled it does.
 
 (datatype typ/verified-and-head.t
   Q : boolean;

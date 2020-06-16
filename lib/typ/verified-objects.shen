@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-\\: = typ/verified-objects.t
+\\: == typ/verified-objects.t
 \\:
 \\: Adds `verified` rules for the `number?`, `string?`, `symbol?` and `boolean?` predicate,
 \\: and also for `and` expressions (`(and X Y)` adds `verified` for the `X` and `Y` expressions
