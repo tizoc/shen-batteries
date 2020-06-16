@@ -7,9 +7,6 @@
 (library.declare typ/sexp
   (loads tc+ "lib/typ/sexp.shen"))
 
-(library.declare typ/unit
-  (loads tc+ "lib/typ/unit.shen"))
-
 (library.declare typ/verified-and-head
   (loads tc+ "lib/typ/verified-and-head.shen"))
 
