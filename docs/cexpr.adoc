@@ -1,0 +1,20 @@
+= Computation expressions
+
+This library (inspired by the F# feature of the same name) provides small
+mini-language to express composable computations with custom control flow.
+
+Computation expressions can express monads, monoids, monad transformers,
+and applicative functors.
+
+== Overview
+
+TODO
+
+== Examples
+
+TODO
+
+== Implementing new computation expression types
+
+TODO
+
