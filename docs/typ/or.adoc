@@ -1,4 +1,4 @@
-= `typ/or.t`
+== `typ/or.t`
 
 A value inhabits the type `(or t1 t2)` if it inhabits `t1` or `t2`.
 

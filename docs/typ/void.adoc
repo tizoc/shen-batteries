@@ -1,4 +1,4 @@
-= `void`
+== `void`
 
 `(void)` returns the void object. The void object represents an unspecified value, and
 is useful as a result of side-effectful functions without a meaningful return value.
