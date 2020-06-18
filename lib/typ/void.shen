@@ -9,7 +9,12 @@
 \\: Should not be used for anything else than to express that a return value should be ignored
 \\: and discarded.
 
+(datatype typ/void.internal-t
+  ____________________
+  X : (mode void -);)
+
 (datatype typ/void.t
+  X : A;
   ____________________
   X : (mode void -);)
 
@@ -18,3 +23,5 @@
   -> (shen.x.features.cond-expand
        shen/scheme (scm.void)
        true -void-))
+
+(preclude [typ/void.internal-t])
