@@ -1,0 +1,138 @@
+= Iter
+
+The type `(iter.t A)` represents an iterator that produces values of type `A`.
+When applied to a function of type `A --> void`, the function will be aplied
+to every value produced by the iterator until it is consumed or an exception
+is raised.
+
+Instances of `(iter.t A)` are push-based iterators, which means that the iteration
+is controlled by the producer. For a pull-based iterator see the `seq` library.
+
+== Creation
+
+==== `iter.from-lazy` : `(lazy (maybe.t A)) --> (iter.t A)`
+
+`(iter.from-lazy Frozen)`
+
+==== `iter.empty` : `--> (iter.t A)`
+
+`(iter.empty)`
+
+==== `iter.singleton` : `A --> (iter.t A)`
+
+`(iter.singleton X)`
+
+==== `iter.cons` : `A --> (iter.t A) --> (iter.t A)`
+
+`(iter.cons X Iter)`
+
+==== `iter.snoc` : `(iter.t A) --> A --> (iter.t A)`
+
+`(iter.snoc Iter X)`
+
+==== `iter.repeat` : `A --> (iter.t A)`
+
+`(iter.repeat X)`
+
+==== `iter.init` : `(number --> A) --> (iter.t A)`
+
+`(iter.init F)`
+
+==== `iter.iterate` : `(A --> A) --> A --> (iter.t A)`
+
+`(iterate F X)`
+
+==== `iter.forever` : `(lazy A) --> (iter.t A)`
+
+`(iter.forever Frozen)`
+
+==== `iter.cycle` : `(iter.t A) --> (iter.t A)`
+
+`(iter.cycle Iter)`
+
+==== `iter.unfoldr` : `(B --> (maybe.t (A * B))) --> B --> (iter.t A)`
+
+`(iter.unfoldr X F Init)`
+
+==== `iter.scan` : `(B --> A --> B) --> B --> (iter.t A) --> (iter.t B)`
+
+`(iter.scan F Init Iter)`
+
+== Consumption
+
+==== `iter.for-each` : `(A --> void) --> (iter.t A) --> void`
+
+`(for-each F Iter)`
+
+==== `iter.for-eachi` : `(number --> A --> void) --> (iter.t A) --> void`
+
+`(for-eachi F Iter)`
+
+==== `iter.fold` : `(A --> B --> A) --> A --> (iter.t B) --> A`
+
+`(iter.fold F Init Iter)`
+
+==== `iter.foldi` : `(A --> number --> B --> A) --> A --> (iter.t B) --> A`
+
+`(iter.foldi F Init Iter)`
+
+==== `iter.fold-map` : `(Acc --> A --> (Acc * B)) --> Acc --> (iter.t A) --> (iter.t B)`
+
+`(iter.fold-map F Init Iter)`
+
+==== `iter.fold-filter-map` : `(Acc --> A --> (Acc * (maybe.t B))) --> Acc --> (iter.t A) --> (iter.t B)`
+
+`(iter.fold-filter-map F Init Iter)`
+
+==== `iter.map` : `(A --> B) --> (iter.t A) --> (iter.t B)`
+
+`(iter.map F Iter)`
+
+==== `iter.mapi` : `(number --> A --> B) --> (iter.t A) --> (iter.t B)`
+
+`(iter.mapi F Iter)`
+
+`(iter.map-by-2 F Iter)`
+
+==== `iter.exists?` : `(A --> boolean) --> (iter.t A) --> boolean`
+
+`(iter.exists? Test Iter)`
+
+==== `iter.element?` : `A --> (iter.t A) --> boolean`
+
+`(iter.element? X Iter)`
+
+==== `iter.element-eq?` : `(A --> A --> boolean) --> A --> (iter.t A) --> boolean`
+
+`(iter.element-eq? EqF X Iter)`
+
+==== `iter.find-map` : `(A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B)`
+
+`(iter.find-map F Iter)`
+
+==== `iter.find-mapi` : `(number --> A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B)`
+
+`(iter.find-mapi F Iter)`
+
+==== `iter.find` : `(A --> boolean) --> (iter.t A) --> (maybe.t A)`
+
+`(iter.find Test Iter)`
+
+==== `iter.find-exn` : `(A --> boolean) --> (iter.t A) --> A`
+
+`(iter.find-exn Test Iter)`
+
+==== `iter.length` : `(iter.t A) --> number`
+
+`(iter.length Iter)`
+
+==== `iter.empty?` : `(iter.t A) --> boolean`
+
+`(iter.empty? Iter)`
+
+== Transformation
+
+== Misc
+
+=== List-like
+
