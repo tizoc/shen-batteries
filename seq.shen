@@ -8,6 +8,9 @@
 \\: sequence is traversed. The results of sequence transformations are also delayed,
 \\: and no evaluation will happen until the sequence produced by the transformation
 \\: is traversed.
+\\:
+\\: Instances of `(seq.t A)` are pull-based iterators, which means that the iteration
+\\: is controlled by the consumer. For a push-based iterator see the `iter` library.
 
 (package seq [void maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
@@ -232,7 +235,8 @@
   [] -> ""
   [S | Seq] -> (@s S (to-string-h (thaw Seq))))
 
-\\: `(seq.forever Frozen)` produces an infinite sequence that always produces values that are the result of `(thaw Frozen)`.
+\\: `(seq.forever Frozen)` produces an infinite sequence that produces values that are the result of
+\\: doing `(thaw Frozen)` repeatedly.
 (define forever
   { (lazy A) --> (seq.t A) }
   L -> (freeze [(thaw L) | (forever L)]))
