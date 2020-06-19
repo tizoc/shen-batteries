@@ -49,6 +49,10 @@
   (requires typ/void typ/or maybe lazy)
   (loads tc+ "seq.shen"))
 
+(library.declare iter
+  (requires typ/void maybe box)
+  (loads tc+ "iter.shen"))
+
 (library.declare seq-cexpr
   (requires typ/sexp typ/void cexpr)
   (loads tc+ "seq-cexpr.shen"))
