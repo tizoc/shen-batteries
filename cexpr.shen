@@ -67,7 +67,7 @@
   [:CX [if Test    Then]] -> (let Builder (cexpr.builder CX)
                                [if Test (Builder Then) (Builder [])])
   [:CX [if Test Then Else]] -> (let Builder (cexpr.builder CX)
-                                 [if Test (Builder Expr) (Builder Else)])
+                                 [if Test (Builder Then) (Builder Else)])
 
   \\ As joining expression
   [:CX return Expr      | Rest] -> (let Builder (cexpr.builder CX)
