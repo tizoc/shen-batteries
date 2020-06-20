@@ -16,12 +16,12 @@
 (synonyms (iter.t A) ((A --> void) --> void))
 
 \\ Utils
-(define reraise-if-not
-  { string --> A --> exception --> A }
-  Tag Res Err -> (let S (error-to-string Err)
-               (if (= Tag S) \\ FIXME: this is horrible, fix
-                   Res       \\ once suspendable iters are implemented
-                   (simple-error S))))
+(define guard-catch
+  { string --> (exception --> A) --> exception --> A }
+  Tag Handler Err -> (let S (error-to-string Err)
+                       (if (= Tag S)          \\ FIXME: this is horrible, fix
+                           (Handler Err)      \\ once suspendable iters are implemented
+                           (simple-error S))))
 
 \\: == Creation
 
@@ -192,7 +192,7 @@
                                      (error "exit-forall")
                                      (void))))
                      true)
-                 (reraise-if-not "exit-forall" false)))
+                 (guard-catch "exit-forall" (/. _ false))))
 
 \\: `(iter.exists? Test Iter)`
 (define exists?
@@ -202,7 +202,7 @@
                                      (error "exit-exists")
                                      (void))))
                      false)
-                 (reraise-if-not "exit-exists" true)))
+                 (guard-catch "exit-exists" (/. _ true))))
 
 \\: `(iter.element? X Iter)`
 (define iter.element?
@@ -224,7 +224,7 @@
                                       (do (box.put Result Maybe)
                                           (simple-error "exit-findmap"))
                                       (void)))))
-                    (reraise-if-not "exit-findmap" (void)))
+                    (guard-catch "exit-findmap" (/. _ (void))))
                   (box.unbox Result))))
 
 \\: `(iter.find-mapi F Iter)`
@@ -237,7 +237,7 @@
                                       (do (box.put Result Maybe)
                                           (simple-error "exit-findmapi"))
                                       (box.modify (+ 1) Index)))))
-                    (reraise-if-not "exit-findmapi" (void)))
+                    (guard-catch "exit-findmapi" (/. _ (void))))
                   (box.unbox Result))))
 
 \\: `(iter.find Test Iter)`
@@ -265,7 +265,7 @@
   Iter -> (trap-error
             (do (Iter (/. _ (error "exit-empty")))
                 true)
-            (reraise-if-not "exit-empty" false)))
+            (guard-catch "exit-empty" (/. _ false))))
 
 \\: == Transformation
 
