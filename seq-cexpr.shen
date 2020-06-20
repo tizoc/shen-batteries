@@ -3,14 +3,14 @@
 
 (define seq.cexpr-builder
   { sexp --> sexp }
-  [] -> [seq.empty]
-  [for Expr F] -> [seq.flat-map F [seq.of Expr]]
-  [bind Expr F] -> [seq.flat-map F Expr]
-  [return Expr] -> [seq.singleton Expr]
-  [return-from Expr] -> Expr
-  [yield Expr] -> [seq.singleton Expr]
-  [yield-from Expr] -> Expr
-  [combine Cexpr1 Cexpr2] -> [seq.append Cexpr1 Cexpr2]
-  Other -> (cexpr.default-builder seq Other))
+  []                  -> [seq.empty]
+  [for Expr F]        -> [seq.flat-map F [seq.of Expr]]
+  [bind Expr F]       -> [seq.flat-map F Expr]
+  [return Expr]       -> [seq.singleton Expr]
+  [return-from Expr]  -> Expr
+  [yield Expr]        -> [seq.singleton Expr]
+  [yield-from Expr]   -> Expr
+  [combine CX1 CX]    -> [seq.append CX1 CX2]
+  Other               -> (cexpr.default-builder seq Other))
 
 (cexpr.register seq seq.cexpr-builder)
