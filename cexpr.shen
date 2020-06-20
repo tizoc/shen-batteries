@@ -46,21 +46,40 @@
             (/. _ (error "Unknown cexpr: ~A" Name))))
 
 \\ TODO:
-\\ - handle combination of multiple cexprs
-\\ - handle else-less if expression
 \\ - handle exceptions
 (defmacro cexpr.macro
-  [:CX] -> ((cexpr.builder CX) [])
+  [:CX]                  -> ((cexpr.builder CX) [])
   [:CX do <-- Do | Rest] -> [:CX _ <-- Do | Rest]
-  [:CX do Do | Rest] -> [:CX _ Do | Rest]
-  [:CX Arr Expr] -> ((cexpr.builder CX) [return Expr]) where (= Arr ->)
-  [:CX return Expr] -> ((cexpr.builder CX) [return Expr])
-  [:CX return-from Expr] -> ((cexpr.builder CX) [return-from Expr])
-  [:CX yield Expr] -> ((cexpr.builder CX) [yield Expr])
-  [:CX yield-from Expr] -> ((cexpr.builder CX) [yield-from Expr])
+  [:CX do Do | Rest]     -> [:CX _ Do | Rest]
+  [:CX Arr Expr]         -> ((cexpr.builder CX) [return Expr]) where (= Arr ->)
+
+  \\ As last expression
+  [:CX return      Expr]  -> ((cexpr.builder CX) [return Expr])
+  [:CX return-from Expr]  -> ((cexpr.builder CX) [return-from Expr])
+  [:CX yield       Expr]  -> ((cexpr.builder CX) [yield Expr])
+  [:CX yield-from  Expr]  -> ((cexpr.builder CX) [yield-from Expr])
+  [:CX [if Test    Expr]] -> [if Test Expr ((cexpr.builder CX) [])]
+
+  \\ As joining expression
+  [:CX return Expr      | Rest] -> (let Builder (cexpr.builder CX)
+                                     (Builder [combine (Builder [return Expr])
+                                                       (Builder [delay [:CX | Rest]])]))
+  [:CX return-from Expr | Rest] -> (let Builder (cexpr.builder CX)
+                                     (Builder [combine (Builder [return-from Expr])
+                                                       (Builder [delay [:CX | Rest]])]))
+  [:CX yield Expr       | Rest] -> (let Builder (cexpr.builder CX)
+                                     (Builder [combine (Builder [yield Expr])
+                                                       (Builder [delay [:CX | Rest]])]))
+  [:CX yield-from Expr  | Rest] -> (let Builder (cexpr.builder CX)
+                                     (Builder [combine (Builder [yield-from Expr])
+                                                       (Builder [delay [:CX | Rest]])]))
+  [:CX [if Test Expr]   | Rest] -> (let Builder (cexpr.builder CX)
+                                     (Builder [combine (Builder [if Test Expr (Builder [])])
+                                                       (Builder [delay [:CX | Rest]])]))
+
   [:CX Var <-- Expr | Rest] -> ((cexpr.builder CX) [bind Expr [/. Var [:CX | Rest]]])
   [:CX Var <== Expr | Rest] -> ((cexpr.builder CX) [for Expr [/. Var [:CX | Rest]]])
-  [:CX Var Expr | Rest] -> [let Var Expr [:CX | Rest]]
-  [:CX | Other] -> (error "invalid computation expression ~R" Other))
+  [:CX Var Expr     | Rest] -> [let Var Expr [:CX | Rest]]
+  [:CX | Other]             -> (error "invalid computation expression ~R" Other))
 
 (preclude [cexpr.t-internal])

@@ -10,6 +10,9 @@
   [return-from Expr] -> Expr
   [yield Expr] -> [seq.singleton Expr]
   [yield-from Expr] -> Expr
+  [delay Expr] -> Expr
+  [run Expr] -> Expr
+  [combine Cexpr1 Cexpr2] -> [seq.append Cexpr1 Cexpr2]
   Other -> (error "seq computation expressions do not support ~R" Other))
 
 (cexpr.register seq seq.cexpr-builder)
