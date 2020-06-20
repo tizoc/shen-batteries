@@ -10,7 +10,7 @@
   [return-from Expr]  -> Expr
   [yield Expr]        -> [seq.singleton Expr]
   [yield-from Expr]   -> Expr
-  [combine CX1 CX]    -> [seq.append CX1 CX2]
+  [combine CX1 CX2]   -> [seq.append CX1 CX2]
   Other               -> (cexpr.default-builder seq Other))
 
 (cexpr.register seq seq.cexpr-builder)
