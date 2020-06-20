@@ -64,7 +64,10 @@
   [:CX return-from Expr]  -> ((cexpr.builder CX) [return-from Expr])
   [:CX yield       Expr]  -> ((cexpr.builder CX) [yield Expr])
   [:CX yield-from  Expr]  -> ((cexpr.builder CX) [yield-from Expr])
-  [:CX [if Test    Expr]] -> [if Test Expr ((cexpr.builder CX) [])]
+  [:CX [if Test    Then]] -> (let Builder (cexpr.builder CX)
+                               [if Test (Builder Then) (Builder [])])
+  [:CX [if Test Then Else]] -> (let Builder (cexpr.builder CX)
+                                 [if Test (Builder Expr) (Builder Else)])
 
   \\ As joining expression
   [:CX return Expr      | Rest] -> (let Builder (cexpr.builder CX)
@@ -79,9 +82,13 @@
   [:CX yield-from Expr  | Rest] -> (let Builder (cexpr.builder CX)
                                      (Builder [combine (Builder [yield-from Expr])
                                                        (Builder [delay [:CX | Rest]])]))
-  [:CX [if Test Expr]   | Rest] -> (let Builder (cexpr.builder CX)
-                                     (Builder [combine (Builder [if Test Expr (Builder [])])
+  [:CX [if Test Then]   | Rest] -> (let Builder (cexpr.builder CX)
+                                     (Builder [combine [if Test (Builder Then) (Builder [])]
                                                        (Builder [delay [:CX | Rest]])]))
+  [:CX [if Test Then Else] | Rest] -> (let Builder (cexpr.builder CX)
+                                        (Builder [combine [if Test (Builder Then) (Builder Else)]
+                                                          (Builder [delay [:CX | Rest]])]))
+
 
   [:CX Var <-- Expr | Rest] -> ((cexpr.builder CX) [bind Expr [/. Var [:CX | Rest]]])
   [:CX Var <== Expr | Rest] -> ((cexpr.builder CX) [for Expr [/. Var [:CX | Rest]]])
