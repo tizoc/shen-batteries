@@ -54,7 +54,7 @@
   (loads tc+ "iter.shen"))
 
 (library.declare seq-cexpr
-  (requires typ/sexp typ/void cexpr)
+  (requires typ/sexp cexpr)
   (loads tc+ "seq-cexpr.shen"))
 
 (library.declare cexpr
