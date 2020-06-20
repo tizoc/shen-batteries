@@ -29,7 +29,7 @@
   (unput cexpr.builders N) : void;
 
   ___________________
-  (function (get cexpr.builders N)) : (sexp --> sexp);)
+  (function (get cexpr.builders N)) : ((list sexp) --> sexp);)
 
 (define cexpr.register
   { symbol --> symbol --> void }
@@ -40,47 +40,36 @@
   Name -> (unput cexpr.builders Name))
 
 (define cexpr.builder
-  { symbol --> (sexp --> sexp) }
+  { symbol --> ((list sexp) --> sexp) }
   Name -> (trap-error
             (function (get cexpr.builders Name))
             (/. _ (error "Unknown cexpr: ~A" Name))))
 
 (define cexpr.default-builder
-  { symbol --> sexp --> sexp }
+  { symbol --> (list sexp) --> sexp }
   _ [delay Expr] -> Expr
   _ [run Expr] -> Expr
   Name Expr -> (error "~A computation expressions do not support ~R" Name Expr))
 
+(define cexpr.build-combine
+  { ((list sexp) --> sexp) --> sexp --> (list sexp) --> sexp }
+  _  CExp [] -> CExp
+  Mk CExp Rest -> (Mk [combine CExp (Mk [delay (cexpr.build Mk Rest)])]))
+
 \\ TODO:
 \\ - handle exceptions
 (define cexpr.build
-  { (sexp --> sexp) --> (list sexp) --> sexp }
+  { ((list sexp) --> sexp) --> (list sexp) --> sexp }
   Mk [do <-- Do | Rest] -> (cexpr.build Mk [_ <-- Do | Rest])
   Mk [do Do | Rest]     -> (cexpr.build Mk [_ Do | Rest])
   Mk [Arr Expr]         -> (Mk [return Expr]) where (= Arr ->)
 
-  \\ As last expression
-  Mk [return      Expr]  -> (Mk [return Expr])
-  Mk [return-from Expr]  -> (Mk [return-from Expr])
-  Mk [yield       Expr]  -> (Mk [yield Expr])
-  Mk [yield-from  Expr]  -> (Mk [yield-from Expr])
-  Mk [[if Test    Then]] -> [if Test (Mk Then) (Mk [])]
-  Mk [[if Test Then Else]] -> [if Test (Mk Then) (Mk Else)]
-
-  \\ As joining expression
-  Mk [return Expr      | Rest] -> (Mk [combine (Mk [return Expr])
-                                               (Mk [delay (cexpr.build Mk Rest)])])
-  Mk [return-from Expr | Rest] -> (Mk [combine (Mk [return-from Expr])
-                                               (Mk [delay (cexpr.build Mk Rest)])])
-  Mk [yield Expr       | Rest] -> (Mk [combine (Mk [yield Expr])
-                                               (Mk [delay (cexpr.build Mk Rest)])])
-  Mk [yield-from Expr  | Rest] -> (Mk [combine (Mk [yield-from Expr])
-                                               (Mk [delay (cexpr.build Mk Rest)])])
-  Mk [[if Test Then]   | Rest] -> (Mk [combine [if Test (Mk Then) (Mk [])]
-                                               (Mk [delay (cexpr.build Mk Rest)])])
-  Mk [[if Test Then Else] | Rest] -> (Mk [combine [if Test (Mk Then) (Mk Else)]
-                                                  (Mk [delay (cexpr.build Mk Rest)])])
-
+  Mk [return      Expr     | Rest] -> (cexpr.build-combine Mk (Mk [return Expr])             Rest)
+  Mk [return-from Expr     | Rest] -> (cexpr.build-combine Mk (Mk [return-from Expr])        Rest)
+  Mk [yield       Expr     | Rest] -> (cexpr.build-combine Mk (Mk [yield Expr])              Rest)
+  Mk [yield-from  Expr     | Rest] -> (cexpr.build-combine Mk (Mk [yield-from Expr])         Rest)
+  Mk [[if P [T|Ts]       ] | Rest] -> (cexpr.build-combine Mk [if P (Mk [T|Ts]) (Mk [])]     Rest)
+  Mk [[if P [T|Ts] [E|Es]] | Rest] -> (cexpr.build-combine Mk [if P (Mk [T|Ts]) (Mk [E|Es])] Rest)
 
   Mk [Var <-- Expr | Rest] -> (Mk [bind Expr [/. Var (cexpr.build Mk Rest)]])
   Mk [Var <== Expr | Rest] -> (Mk [for Expr [/. Var (cexpr.build Mk Rest)]])
