@@ -6,29 +6,29 @@
 \\: `sexp` is the type inhabited by S-expressions.
 
 (datatype typ/sexp.t
-    [X | Y] : (list sexp);
-    ========================
-    [X | Y] : (mode sexp -);
+  [X | Y] : (list sexp);
+  ========================
+  [X | Y] : (mode sexp -);
 
-    X : symbol;
-    ______________
-    X : (mode atom -);
+  X : atom;
+  ______________
+  X : (mode sexp -);
 
-    X : boolean;
-    ______________
-    X :(mode  atom -);
+  X : symbol;
+  ______________
+  X : (mode atom -);
 
-    X : string;
-    ______________
-    X : (mode atom -);
+  X : boolean;
+  ______________
+  X : (mode atom -);
 
-    X : number;
-    ______________
-    X : (mode atom -);
+  X : string;
+  ______________
+  X : (mode atom -);
 
-    ______________
-    [] : (mode atom -);
+  X : number;
+  ______________
+  X : (mode atom -);
 
-    X : atom;
-    ______________
-    X : (mode sexp -);)
+  ______________
+  [] : (mode atom -);)
