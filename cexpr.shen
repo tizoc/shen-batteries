@@ -45,6 +45,12 @@
             (function (get cexpr.builders Name))
             (/. _ (error "Unknown cexpr: ~A" Name))))
 
+(define cexpr.default-builder
+  { symbol --> sexp --> sexp }
+  _ [delay Expr] -> Expr
+  _ [run Expr] -> Expr
+  Name Expr -> (error "~A computation expressions do not support ~R" Name Expr))
+
 \\ TODO:
 \\ - handle exceptions
 (defmacro cexpr.macro
