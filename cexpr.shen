@@ -79,11 +79,21 @@
   { (lazy sexp) --> sexp }
   L -> (trap-error (thaw L) (/. _ (fail))))
 
-\\ TODO: implement more restrictive applicative version with
-\\ parallel bindings here
+(define cexpr.collect-bindings
+  { (list sexp) --> (list (sexp * sexp)) --> ((list (sexp * sexp)) * sexp) }
+  [Var <-- Expr and | Rest]  Acc -> (cexpr.collect-bindings Rest (append Acc [(@p Var Expr)]))
+  [Var <-- Expr return Body] Acc -> (@p (append Acc [(@p Var Expr)]) Body)
+  Other                      _   -> (error "invalid applicative computation expression ~R" Other))
+
+\\ TODO: revise and verify all this
 (define cexpr.build-applicative
   { ((list sexp) --> sexp) --> (list sexp) --> sexp }
-  Mk [Var <-- Expr return Return] -> (fail-catch (freeze (Mk [bind-return Expr [/. Var Return]])))
+  Mk [Var <-- Expr return Return] <- (fail-catch (freeze (Mk [bind-return Expr [/. Var Return]])))
+  Mk [Var <-- Expr and | Rest] -> (let (@p Bindings Body) (cexpr.collect-bindings [Var <-- Expr and | Rest] [])
+                                       Vars (map (function fst) Bindings)
+                                       Exprs (map (function snd) Bindings)
+                                       ArgsV (gensym (protect V))
+                                    (Mk [bind-return (Mk [merge-sources | Exprs]) [/. ArgsV [let [@p | Vars] ArgsV Body]]]))
   Mk Expr -> (fail))
 
 (define cexpr.build
