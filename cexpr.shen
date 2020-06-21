@@ -47,9 +47,9 @@
 
 (define cexpr.default-builder
   { symbol --> (list sexp) --> sexp }
-  _ [delay Expr] -> Expr
-  _ [run Expr] -> Expr
-  Name Expr -> (error "~A computation expressions do not support ~R" Name Expr))
+  _    [delay Expr] -> Expr
+  _    [run   Expr] -> Expr
+  Name Expr         -> (error "~A computation expressions do not support ~R" Name Expr))
 
 (define cexpr.build-combine
   { ((list sexp) --> sexp) --> sexp --> (list sexp) --> sexp }
@@ -58,23 +58,38 @@
 
 \\ TODO:
 \\ - handle exceptions
-(define cexpr.build
+\\ - allow custom extensions?
+(define cexpr.build-monadic
   { ((list sexp) --> sexp) --> (list sexp) --> sexp }
-  Mk [do <-- Do | Rest] -> (cexpr.build Mk [_ <-- Do | Rest])
-  Mk [do Do | Rest]     -> (cexpr.build Mk [_ Do | Rest])
-  Mk [Arr Expr]         -> (Mk [return Expr]) where (= Arr ->)
-
+  Mk [do <--      Do       | Rest] -> (cexpr.build Mk [_ <-- Do | Rest])
+  Mk [do          Do       | Rest] -> (cexpr.build Mk [_     Do | Rest])
+  Mk [Arr         Expr           ] -> (Mk [return Expr]) where (= Arr ->)
   Mk [return      Expr     | Rest] -> (cexpr.build-combine Mk (Mk [return Expr])             Rest)
   Mk [return-from Expr     | Rest] -> (cexpr.build-combine Mk (Mk [return-from Expr])        Rest)
   Mk [yield       Expr     | Rest] -> (cexpr.build-combine Mk (Mk [yield Expr])              Rest)
   Mk [yield-from  Expr     | Rest] -> (cexpr.build-combine Mk (Mk [yield-from Expr])         Rest)
   Mk [[if P [T|Ts]       ] | Rest] -> (cexpr.build-combine Mk [if P (Mk [T|Ts]) (Mk [])]     Rest)
   Mk [[if P [T|Ts] [E|Es]] | Rest] -> (cexpr.build-combine Mk [if P (Mk [T|Ts]) (Mk [E|Es])] Rest)
+  Mk [Var <--     Expr     | Rest] -> (Mk [bind Expr [/. Var (cexpr.build Mk Rest)]])
+  Mk [Var <==     Expr     | Rest] -> (Mk [for Expr [/. Var (cexpr.build Mk Rest)]])
+  Mk [Var         Expr     | Rest] -> [let Var Expr (cexpr.build Mk Rest)]
+  Mk Other                         -> (error "invalid computation expression ~R" Other))
 
-  Mk [Var <-- Expr | Rest] -> (Mk [bind Expr [/. Var (cexpr.build Mk Rest)]])
-  Mk [Var <== Expr | Rest] -> (Mk [for Expr [/. Var (cexpr.build Mk Rest)]])
-  Mk [Var Expr     | Rest] -> [let Var Expr (cexpr.build Mk Rest)]
-  Mk Other                 -> (error "invalid computation expression ~R" Other))
+(define fail-catch
+  { (lazy sexp) --> sexp }
+  L -> (trap-error (thaw L) (/. _ (fail))))
+
+\\ TODO: implement more restrictive applicative version with
+\\ parallel bindings here
+(define cexpr.build-applicative
+  { ((list sexp) --> sexp) --> (list sexp) --> sexp }
+  Mk [Var <-- Expr return Return] -> (fail-catch (freeze (Mk [bind-return Expr [/. Var Return]])))
+  Mk Expr -> (fail))
+
+(define cexpr.build
+  { ((list sexp) --> sexp) --> (list sexp) --> sexp }
+  Mk Expr <- (cexpr.build-applicative Mk Expr)
+  Mk Expr -> (cexpr.build-monadic Mk Expr))
 
 (defmacro cexpr.macro
   [:CX | CExpr] -> (cexpr.build (cexpr.builder CX) CExpr))
