@@ -92,8 +92,8 @@
   Mk [Var <-- Expr and | Rest] -> (let (@p Bindings Body) (cexpr.collect-bindings [Var <-- Expr and | Rest] [])
                                        Vars (map (function fst) Bindings)
                                        Exprs (map (function snd) Bindings)
-                                       ArgsV (gensym (protect V))
-                                    (Mk [bind-return (Mk [merge-sources | Exprs]) [/. ArgsV [let [@p | Vars] ArgsV Body]]]))
+                                    (Mk [bind-return (Mk [merge-sources | Exprs])
+                                                     [/. [@p | Vars] Body]]))
   Mk Expr -> (fail))
 
 (define cexpr.build
