@@ -18,8 +18,9 @@
 
 (define seq.cexpr-builder-bind-return
   { sexp --> sexp --> sexp }
-  F [seq.zip S1 [seq.zip S2 S3]] -> [set.map3 F S1 S2 S3]
-  F [seq.zip S1 S2] -> [seq.map2 F S1 S2]
+  \\ FIXME: have to take care of undoing the tuple deconstruction in the lambda
+  \\ F [seq.zip S1 [seq.zip S2 S3]] -> [set.map3 F S1 S2 S3]
+  \\ F [seq.zip S1 S2] -> [seq.map2 F S1 S2]
   F Expr            -> [seq.map F Expr])
 
 (cexpr.register seq seq.cexpr-builder)
