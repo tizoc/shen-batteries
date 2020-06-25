@@ -410,6 +410,20 @@
   _ [] -> []
   F [H | T] -> [(F H) | (freeze (map-h F (thaw T)))])
 
+\\: `(seq.map2 F SeqA SeqB)` returns a new sequence containing elements that are the results
+\\: of `(F EltA EltB)`, with `EltA` and `EltB` being elements resulting from the parallel
+\\: traversal of the sequences `SeqA` and `SeqB`. The resulting sequence is as long as
+\\: the shortest of the two input sequences.
+(define map2
+  { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
+  F S T -> (freeze (map2-h F (thaw S) (thaw T))))
+
+(define map2-h
+  { (A --> B --> C) --> (node A) --> (node B) --> (node C) }
+  _ [] _ -> []
+  _ _ [] -> []
+  F [AH | AT] [BH | BT] -> [(F AH BH) | (freeze (map2-h F (thaw AT) (thaw BT)))])
+
 \\: `(seq.filter Test Seq)` returns a new sequence with all the elements in `Seq` for which
 \\: `(Test Elt)` is `false` removed.
 (define filter
