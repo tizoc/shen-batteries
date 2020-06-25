@@ -416,13 +416,28 @@
 \\: the shortest of the two input sequences.
 (define map2
   { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
-  F S T -> (freeze (map2-h F (thaw S) (thaw T))))
+  F SA SB -> (freeze (map2-h F (thaw SA) (thaw SB))))
 
 (define map2-h
   { (A --> B --> C) --> (node A) --> (node B) --> (node C) }
   _ [] _ -> []
   _ _ [] -> []
   F [AH | AT] [BH | BT] -> [(F AH BH) | (freeze (map2-h F (thaw AT) (thaw BT)))])
+
+\\: `(seq.map3 F SeqA SeqB SeqC)` returns a new sequence containing elements that are the results
+\\: of `(F EltA EltB EltC)`, with `EltA`, `EltB` and `EltC` being elements resulting from the parallel
+\\: traversal of the sequences `SeqA`, `SeqB` and `SeqC`. The resulting sequence is as long as
+\\: the shortest of the three input sequences.
+(define map3
+  { (A --> B --> C --> D) --> (seq.t A) --> (seq.t B) --> (seq.t C) --> (seq.t D) }
+  F SA SB SC -> (freeze (map3-h F (thaw SA) (thaw SB) (thaw SC))))
+
+(define map3-h
+  { (A --> B --> C --> D) --> (node A) --> (node B) --> (node C) --> (node D) }
+  _ [] _ _ -> []
+  _ _ [] _ -> []
+  _ _ _ [] -> []
+  F [AH | AT] [BH | BT] [CH | CT] -> [(F AH BH CH) | (freeze (map3-h F (thaw AT) (thaw BT) (thaw CT)))])
 
 \\: `(seq.filter Test Seq)` returns a new sequence with all the elements in `Seq` for which
 \\: `(Test Elt)` is `false` removed.
