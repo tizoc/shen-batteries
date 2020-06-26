@@ -269,20 +269,90 @@
 
 \\: == Transformation
 
-\\ (define filter { (A --> boolean) --> (iter.t A) --> (iter.t A) } )
-\\ (define append { (iter.t A) --> (iter.t A) --> (iter.t A) } )
-\\ (define append-l { (iter.t A) list --> (iter.t A) } )
-\\ (define concat { (iter.t A) t --> (iter.t A) } )
-\\ (define flatten { (iter.t A) t --> (iter.t A) } )
-\\ (define flat-map { (A --> (iter.t B)) --> (iter.t A) --> (iter.t B) } )
-\\ (define flat-map-l { (A --> B list) --> (iter.t A) --> (iter.t B) } )
-\\ (define seq-list { (iter.t A) list --> A list t } )
-\\ (define seq-list-map { (A --> (iter.t B)) --> A list --> B list t } )
-\\ (define filter-map { (A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) } )
-\\ (define filter-mapi { (number --> A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) } )
-\\ (define filter-count { (A --> boolean) --> (iter.t A) --> number } )
-\\ (define intersperse { A --> (iter.t A) --> (iter.t A) } )
-\\ (define keep-some { (maybe.t A) t --> (iter.t A) } )
+\\: `(iter.filter F Iter)`
+(define filter
+  { (A --> boolean) --> (iter.t A) --> (iter.t A) }
+  F Iter Yield -> (Iter (/. X (if (F X)
+                                  (Yield X)
+                                  (void)))))
+
+\\: `(iter.append IterL IterR)`
+(define iter.append
+  { (iter.t A) --> (iter.t A) --> (iter.t A) }
+  IterL IterR Yield -> (do (IterL Yield)
+                           (IterR Yield)))
+
+\\: `(iter.concat IterList)`
+(define iter.concat
+  { (list (iter.t A)) --> (iter.t A) }
+  [] _ -> (void)
+  [Iter | Rest] Yield -> (do (Iter Yield)
+                             (iter.concat Rest Yield)))
+
+\\: `(iter.flatten ItersIter)`
+(define flatten
+  { (iter.t (iter.t A)) --> (iter.t A) }
+  Iters Yield -> (Iters (/. Iter (Iter Yield))))
+
+\\: `(iter.flat-map F Iter)`
+(define flat-map
+  { (A --> (iter.t B)) --> (iter.t A) --> (iter.t B) }
+  F Iter Yield -> (Iter (/. X (F X Yield))))
+
+\\: `(iter.flat-map-l F Iter)`
+(define flat-map-l
+  { (A --> (list B)) --> (iter.t A) --> (iter.t B) }
+  F Iter Yield -> (Iter (/. X (list-for-each Yield (F X)))))
+
+(define list-for-each
+  { (A --> void) --> (list A) --> void }
+  F [] -> (void)
+  F [X | Rest] -> (do (F X)
+                      (list-for-each F Rest)))
+
+\\: `(iter.filter-map F Iter)`
+(define filter-map
+  { (A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) }
+  F Iter Yield -> (Iter (/. X (let Res (F X)
+                                (if (maybe.some? Res)
+                                    (Yield (maybe.unsafe-get Res))
+                                    (void))))))
+
+\\: `(iter.filter-mapi F Iter)`
+(define filter-mapi
+  { (number --> A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) }
+  F Iter Yield -> (let Index (box.make 0)
+                    (Iter (/. X (let Res (F (box.unbox Index) X)
+                                     _ (box.modify (+ 1) Index)
+                                  (if (maybe.some? Res)
+                                      (Yield (maybe.unsafe-get Res))
+                                      (void)))))))
+
+\\: `(iter.filter-count F Iter)`
+(define filter-count
+  { (A --> boolean) --> (iter.t A) --> number }
+  F Iter -> (let Count (box.make 0)
+                 _ (Iter (/. X (if (F X)
+                                   (box.modify (+ 1) Count)
+                                   (void))))
+              (box.unbox Count)))
+
+\\: `(iter.intersperse Elt Iter)`
+(define intersperse
+  { A --> (iter.t A) --> (iter.t A) }
+  Elt Iter Yield -> (let First (box.make true)
+                      (Iter (/. X (do (if (box.unbox First)
+                                          (do (box.put First false) (void))
+                                          (Yield Elt))
+                                      (Yield X))))))
+
+\\: `(iter.keep-some Iter)`
+(define keep-some
+  { (iter.t (maybe.t A)) --> (iter.t A) }
+  Iter Yield -> (Iter (/. X (if (maybe.some? X)
+                                (Yield (maybe.unsafe-get X))
+                                (void)))))
+
 \\ (define persistent { (iter.t A) --> (iter.t A) } )
 \\ (define persistent-lazy { (iter.t A) --> (iter.t A) } )
 
