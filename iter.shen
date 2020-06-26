@@ -4,14 +4,14 @@
 \\: = Iter
 \\:
 \\: The type `(iter.t A)` represents an iterator that produces values of type `A`.
-\\: When applied to a function of type `A --> void`, the function will be aplied
+\\: When applied to a function of type `A --> void`, the function will be applied
 \\: to every value produced by the iterator until it is consumed or an exception
 \\: is raised.
 \\:
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
 
-(package iter [maybe.t maybe.some? maybe.unsafe-get @some @none void box.make box.unbox box.put box.modify]
+(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify]
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
@@ -117,12 +117,12 @@
 
 \\: == Consumption
 
-\\: `(for-each F Iter)`
+\\: `(iter.for-each F Iter)`
 (define for-each
   { (A --> void) --> (iter.t A) --> void }
   F Iter -> (Iter F))
 
-\\: `(for-eachi F Iter)`
+\\: `(iter.for-eachi F Iter)`
 (define for-eachi
   { (number --> A --> void) --> (iter.t A) --> void }
   F Iter -> (let Index (box.make 0)
@@ -162,10 +162,7 @@
                          (Iter (/. X (let Acc*Y (F (box.unbox Acc) X)
                                           _ (box.put Acc (fst Acc*Y))
                                           Y (snd Acc*Y)
-                                       (if (maybe.some? Y)
-                                           (Yield (maybe.unsafe-get Y))
-                                           (void)))))))
-
+                                       (maybe.for-each Yield Y))))))
 
 \\: `(iter.map F Iter)`
 (define iter.map
@@ -313,10 +310,7 @@
 \\: `(iter.filter-map F Iter)`
 (define filter-map
   { (A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) }
-  F Iter Yield -> (Iter (/. X (let Res (F X)
-                                (if (maybe.some? Res)
-                                    (Yield (maybe.unsafe-get Res))
-                                    (void))))))
+  F Iter Yield -> (Iter (/. X (maybe.for-each Yield (F X)))))
 
 \\: `(iter.filter-mapi F Iter)`
 (define filter-mapi
@@ -324,9 +318,7 @@
   F Iter Yield -> (let Index (box.make 0)
                     (Iter (/. X (let Res (F (box.unbox Index) X)
                                      _ (box.modify (+ 1) Index)
-                                  (if (maybe.some? Res)
-                                      (Yield (maybe.unsafe-get Res))
-                                      (void)))))))
+                                  (maybe.for-each Yield Res))))))
 
 \\: `(iter.filter-count F Iter)`
 (define filter-count
@@ -349,9 +341,7 @@
 \\: `(iter.keep-some Iter)`
 (define keep-some
   { (iter.t (maybe.t A)) --> (iter.t A) }
-  Iter Yield -> (Iter (/. X (if (maybe.some? X)
-                                (Yield (maybe.unsafe-get X))
-                                (void)))))
+  Iter Yield -> (Iter (/. X (maybe.for-each Yield X))))
 
 \\ (define persistent { (iter.t A) --> (iter.t A) } )
 \\ (define persistent-lazy { (iter.t A) --> (iter.t A) } )
