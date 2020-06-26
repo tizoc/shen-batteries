@@ -10,6 +10,10 @@
   ========================
   [X | Y] : (mode sexp -);
 
+  X : (list sexp);
+  ______________
+  X : (mode sexp -);
+
   X : atom;
   ______________
   X : (mode sexp -);
