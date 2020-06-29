@@ -70,6 +70,16 @@
   { (A --> A) --> (t A) --> (t A) }
   F Box -> (box.put Box (F (unbox Box))))
 
+\\: `(box.incr Box)` increments the number stored in `Box` by 1.
+(define box.incr
+  { (t number) --> (t number) }
+  Box -> (box.put Box (+ (unbox Box) 1)))
+
+\\: `(box.decr Box)` decrements the number stored in `Box` by 1.
+(define box.decr
+  { (t number) --> (t number) }
+  Box -> (box.put Box (- (unbox Box) 1)))
+
 (define #tag
   { (t A) --> string }
   B -> (make-string "(box ~S)" (unbox B)))
