@@ -11,7 +11,7 @@
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
 
-(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify]
+(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr]
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
@@ -174,7 +174,7 @@
   { (number --> A --> B) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (let Index (box.make 0)
                     (Iter (/. X (do (Yield (F (box.unbox Index) X))
-                                    (box.modify (+ 1) Index))))))
+                                    (box.incr Index))))))
 
 \\: `(iter.map-by-2 F Iter)`
 \\(define map-by-2
@@ -233,7 +233,7 @@
                                   (if (maybe.some? Maybe)
                                       (do (box.put Result Maybe)
                                           (simple-error "exit-findmapi"))
-                                      (box.modify (+ 1) Index)))))
+                                      (box.incr Index)))))
                     (guard-catch "exit-findmapi" (/. _ (void))))
                   (box.unbox Result))))
 
@@ -253,7 +253,7 @@
 \\: `(iter.length Iter)`
 (define iter.length { (iter.t A) --> number }
   Iter -> (let R (box.make 0)
-               _ (Iter (/. _ (box.modify (+ 1) R)))
+               _ (Iter (/. _ (box.incr R)))
             (box.unbox R)))
 
 \\: `(iter.empty? Iter)`
@@ -317,7 +317,7 @@
   { (number --> A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (let Index (box.make 0)
                     (Iter (/. X (let Res (F (box.unbox Index) X)
-                                     _ (box.modify (+ 1) Index)
+                                     _ (box.incr Index)
                                   (maybe.for-each Yield Res))))))
 
 \\: `(iter.filter-count F Iter)`
@@ -325,7 +325,7 @@
   { (A --> boolean) --> (iter.t A) --> number }
   F Iter -> (let Count (box.make 0)
                  _ (Iter (/. X (if (F X)
-                                   (box.modify (+ 1) Count)
+                                   (box.incr Count)
                                    (void))))
               (box.unbox Count)))
 
@@ -343,6 +343,8 @@
   { (iter.t (maybe.t A)) --> (iter.t A) }
   Iter Yield -> (Iter (/. X (maybe.for-each Yield X))))
 
+\\: == Caching
+
 \\ (define persistent { (iter.t A) --> (iter.t A) } )
 \\ (define persistent-lazy { (iter.t A) --> (iter.t A) } )
 
@@ -350,15 +352,51 @@
 
 \\: === List-like
 
-\\ (define head { (iter.t A) --> (maybe.t A) } )
-\\ (define head-exn { (iter.t A) --> A } )
-\\ (define take { number --> (iter.t A) --> (iter.t A) } )
-\\ (define take-while { (A --> boolean) --> (iter.t A) --> (iter.t A) } )
+\\: `(iter.head Iter)`
+(define iter.head
+  { (iter.t A) --> (maybe.t A) }
+  Iter -> (let R (box.make (@none))
+            (do
+              (trap-error
+                (Iter (/. X (do (box.put R (@some X))
+                                (error "exit-head"))))
+                (guard-catch "exit-head" (/. _ (void))))
+              (box.unbox R))))
+
+\\: `(iter.head-exn)`
+(define head-exn
+  { (iter.t A) --> A }
+  Iter -> (let R (iter.head Iter)
+            (if (maybe.some? R)
+                (maybe.unsafe-get R)
+                (error "iter.head-exn called on emtpy iter"))))
+
+\\: `(iter.take N Iter)`
+(define take
+  { number --> (iter.t A) --> (iter.t A) }
+  N Iter Yield -> (let Count (box.make 0)
+                    (trap-error
+                      (Iter (/. X (if (= (box.unbox Count) N)
+                                      (error "exit-take")
+                                      (do (box.incr Count)
+                                          (Yield X)))))
+                      (guard-catch "exit-take" (/. _ (void))))))
+
+\\: `(iter.take-while P Iter)`
+(define take-while
+  { (A --> boolean) --> (iter.t A) --> (iter.t A) }
+  P Iter Yield -> (trap-error
+                    (Iter (/. X (if (P X)
+                                    (Yield X)
+                                    (error "exit-take-while"))))
+                    (guard-catch "exit-take-while" (/. _ (void)))))
+
 \\ (define fold-while { (A --> B --> (A * boolean)) --> A --> (iter.t B) --> A } )
 \\ (define drop { number --> (iter.t A) --> (iter.t A) } )
 \\ (define drop-while { (A --> boolean) --> (iter.t A) --> (iter.t A) } )
 \\ (define rev { (iter.t A) --> (iter.t A) } )
 \\ (define enumerate { (iter.t A) --> (iter.t (number * A)) } )
 
-
 )
+
+
