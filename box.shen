@@ -80,6 +80,11 @@
   { (t number) --> (t number) }
   Box -> (box.put Box (- (unbox Box) 1)))
 
+\\: `(box.toggle Box)` replaces the contents of `Box` with `true` if it contains `false` or with `false` if it contains `true`.
+(define box.toggle
+  { (t boolean) --> (t boolean) }
+  Box -> (box.put Box (not (unbox Box))))
+
 (define #tag
   { (t A) --> string }
   B -> (make-string "(box ~S)" (unbox B)))
