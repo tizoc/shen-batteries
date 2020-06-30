@@ -11,7 +11,7 @@
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
 
-(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr]
+(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t]
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
@@ -391,11 +391,51 @@
                                     (error "exit-take-while"))))
                     (guard-catch "exit-take-while" (/. _ (void)))))
 
-\\ (define fold-while { (A --> B --> (A * boolean)) --> A --> (iter.t B) --> A } )
-\\ (define drop { number --> (iter.t A) --> (iter.t A) } )
-\\ (define drop-while { (A --> boolean) --> (iter.t A) --> (iter.t A) } )
-\\ (define rev { (iter.t A) --> (iter.t A) } )
-\\ (define enumerate { (iter.t A) --> (iter.t (number * A)) } )
+(define fold-while-consume-h
+  { (A --> B --> (A * boolean)) --> (box.t A) --> B --> void }
+  F State X -> (let (@p Acc Cont) (F (box.unbox State) X)
+                    _ (box.put State Acc)
+                 (if Cont
+                     (void)
+                     (error "exit-fold-while"))))
+
+\\: `(iter.fold-while F Init Iter)`
+(define fold-while
+  { (A --> B --> (A * boolean)) --> A --> (iter.t B) --> A }
+  F Init Iter -> (let State (box.make Init)
+                   (do (trap-error
+                         (Iter (fold-while-consume-h F State))
+                         (guard-catch "exit-fold-while" (/. _ (void))))
+                       (box.unbox State))))
+
+\\: `(iter.drop N Iter)`
+(define drop
+  { number --> (iter.t A) --> (iter.t A) }
+  N Iter Yield -> (let Count (box.make 0)
+                    (Iter (/. X (if (>= (box.unbox Count) N)
+                                    (Yield X)
+                                    (box.incr Count))))))
+
+\\: `(iter.drop-while P Iter)`
+(define drop-while
+  { (A --> boolean) --> (iter.t A) --> (iter.t A) }
+  P Iter Yield -> (let Drop (box.make true)
+                    (Iter (/. X (if (box.unbox Drop)
+                                    (if (P X)
+                                        (void)
+                                        (do (box.toggle Drop)
+                                            (Yield X)))
+                                    (Yield X))))))
+\\ `(iter.reverse Iter)`
+\\ (define iter.reverse { (iter.t A) --> (iter.t A) } )
+
+\\: `(iter.enumerate Iter)`
+(define enumerate
+  { (iter.t A) --> (iter.t (number * A)) }
+  Iter Yield -> (let R (box.make 0)
+                  (Iter (/. X (let N (box.unbox R)
+                                   _ (box.incr R)
+                                (Yield (@p N X)))))))
 
 )
 
