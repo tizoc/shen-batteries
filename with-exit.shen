@@ -9,8 +9,9 @@
 \\:
 \\: Example:
 \\:
-\\:     (1+) (with-exit Exit (+ 3 4 (Exit 10) 5))
-\\:     10 : number
+\\: [source,shen]
+\\: (with-exit Exit (+ 3 4 (Exit 10) 5))
+\\: // Result: 10 : number
 \\:
 
 (package with-exit [sexp void maybe.t maybe.unsafe-get @some @none box.make box.unbox box.put with-exit features.cond]
@@ -46,15 +47,17 @@
 
 (defmacro macro
   [with-exit ExitF Body] -> (features.cond
-                              shen/scheme [scm.call/1cc [lambda ExitF Body]] \\ TODO: validate arity of calls to ExitF in Body
+                              shen/scheme
+                                [scm.call/1cc [lambda ExitF Body]] \\ TODO: validate arity of calls to ExitF in Body
+
                               true
-                              (let BoxName (gensym (protect Box))
-                                   ExitName (str (gensym #exit--tag--))
-                                   ExitExpr (/. R [do [box.put BoxName [@some R]] [simple-error ExitName]])
-                                [let BoxName [box.make [@none]]
-                                     _ [trap-error [do [box.put BoxName [@some (subst-application ExitF ExitExpr Body)]] 1]
-                                         [guard-catch ExitName [lambda _ 1]]]
-                                  [maybe.unsafe-get [box.unbox BoxName]]])))
+                                (let BoxName (gensym (protect Box))
+                                     ExitName (str (gensym #exit--tag--))
+                                     ExitExpr (/. R [do [box.put BoxName [@some R]] [simple-error ExitName]])
+                                  [let BoxName [box.make [@none]]
+                                       _ [trap-error [do [box.put BoxName [@some (subst-application ExitF ExitExpr Body)]] 1]
+                                           [guard-catch ExitName [lambda _ 1]]]
+                                    [maybe.unsafe-get [box.unbox BoxName]]])))
 
 (preclude [t-internal])
 
