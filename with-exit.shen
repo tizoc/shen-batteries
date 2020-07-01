@@ -26,6 +26,8 @@
 \\:       (print "world!")))
 \\: \\ Prints only "Hello "
 \\:
+\\: The behaviour of letting the function bound by either `with-return` or `with-break`
+\\: escape the scope of the expression body is undefined.
 
 (package with-exit [sexp void maybe.t maybe.unsafe-get @some @none box.make box.unbox box.put with-return with-break features.cond]
 
