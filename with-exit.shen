@@ -3,18 +3,31 @@
 
 \\: = Early exits
 \\:
-\\: `(with-exit ExitF Body)` binds `ExitF` to a one-place function that when called
+\\: `(with-return ReturnF Body)` binds `ReturnF` to a one-place function that when called
 \\: interrupts the rest of the computation and returns from `with-exit` with the
 \\: value passed as an argument.
 \\:
 \\: Example:
 \\:
 \\: [source,shen]
-\\: (with-exit Exit (+ 3 4 (Exit 10) 5))
-\\: // Result: 10 : number
+\\: (with-return Return (+ 3 4 (Return 10) 5))
+\\: \\ Result: 10 : number
+\\:
+\\: `(with-break BreakF Body)` binds `BreakF` to a zero-place function that when called
+\\: interrupts the rest of the computation and returns from `with-exit` with `(void)`.
+\\: The result of a `with-break` expression is always the `void` object.
+\\:
+\\: Example:
+\\:
+\\: [source,shen]
+\\: (with-break Break
+\\:   (do (print "Hello ")
+\\:       (Break)
+\\:       (print "world!")))
+\\: \\ Prints only "Hello "
 \\:
 
-(package with-exit [sexp void maybe.t maybe.unsafe-get @some @none box.make box.unbox box.put with-exit features.cond]
+(package with-exit [sexp void maybe.t maybe.unsafe-get @some @none box.make box.unbox box.put with-return with-break features.cond]
 
 (features.cond
   shen/scheme
@@ -37,27 +50,52 @@
                            (Handler Err)
                            (simple-error S))))
 
-(define subst-application
+(define subst-return-application
   { symbol --> (sexp --> sexp) --> sexp --> sexp }
   Name F [Name Arg] -> (F Arg)
-  Name F [Name | Rest] -> (error "Exit function '~A' must be called with one argument, not ~A" Name (length Rest))
-  Name F [let Name Value Body] -> [let Name (subst-application Name F Value) Body]
-  Name F Z -> (map (/. W (subst-application Name F W)) Z)  where (cons? Z)
+  Name F [Name | Rest] -> (error "Return function '~A' must be called with one argument, not ~A" Name (length Rest))
+  Name F [let Name Value Body] -> [let Name (subst-return-application Name F Value) Body]
+  Name F Z -> (map (/. W (subst-return-application Name F W)) Z)  where (cons? Z)
+  _ _ Z -> Z)
+
+(define subst-break-application
+  { symbol --> sexp --> sexp --> sexp }
+  Name Subst [Name] -> Subst
+  Name Subst [Name | Rest] -> (error "Break function '~A' must be called with no arguments, not ~A" Name (length Rest))
+  Name Subst [let Name Value Body] -> [let Name (subst-break-application Name Subst Value) Body]
+  Name Subst Z -> (map (/. W (subst-break-application Name Subst W)) Z)  where (cons? Z)
   _ _ Z -> Z)
 
 (defmacro macro
-  [with-exit ExitF Body] -> (features.cond
-                              shen/scheme
-                                [scm.call/1cc [lambda ExitF Body]] \\ TODO: validate arity of calls to ExitF in Body
+  [with-break BreakF Body]
+    -> (features.cond
+         shen/scheme
+           [scm.call/1cc [lambda BreakF Body]] \\ TODO: validate arity of calls to BreakF in Body
 
-                              true
-                                (let BoxName (gensym (protect Box))
-                                     ExitName (str (gensym #exit--tag--))
-                                     ExitExpr (/. R [do [box.put BoxName [@some R]] [simple-error ExitName]])
-                                  [let BoxName [box.make [@none]]
-                                       _ [trap-error [do [box.put BoxName [@some (subst-application ExitF ExitExpr Body)]] 1]
-                                           [guard-catch ExitName [lambda _ 1]]]
-                                    [maybe.unsafe-get [box.unbox BoxName]]])))
+         true
+           (let ExitName (str (gensym #exit--tag--))
+                ExitExpr [simple-error ExitName]
+             [trap-error [do (subst-break-application BreakF ExitExpr Body) [void]]
+                [guard-catch ExitName [lambda _ [void]]]]))
+
+
+  [with-return ReturnF Body]
+    -> (features.cond
+         shen/scheme
+           [scm.call/1cc [lambda ReturnF Body]] \\ TODO: validate arity of calls to ReturnF in Body
+
+         true
+           (let BoxName (gensym (protect Box))
+                ResultVar (gensym (protect Result))
+                ExitName (str (gensym #exit--tag--))
+                ExitExpr (/. R [do [box.put BoxName [@some R]]
+                                   [simple-error ExitName]])
+             [let BoxName [box.make [@none]]
+                  _ [trap-error [let ResultVar (subst-return-application ReturnF ExitExpr Body)
+                                     _ [box.put BoxName [@some ResultVar]]
+                                  ignore]
+                      [guard-catch ExitName [lambda _ ignore]]]
+               [maybe.unsafe-get [box.unbox BoxName]]])))
 
 (preclude [t-internal])
 
