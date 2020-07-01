@@ -66,3 +66,10 @@
 
 (library.declare pipe-macro
   (loads "pipe-macro.shen"))
+
+(library.declare features
+  (loads tc+ "features.shen"))
+
+(library.declare with-exit
+  (requires box features maybe typ/void typ/sexp)
+  (loads tc+ "with-exit.shen"))
