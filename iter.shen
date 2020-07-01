@@ -15,14 +15,6 @@
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
-\\ Utils
-(define guard-catch
-  { string --> (exception --> A) --> exception --> A }
-  Tag Handler Err -> (let S (error-to-string Err)
-                       (if (= Tag S)          \\ FIXME: this is horrible, fix
-                           (Handler Err)      \\ once suspendable iters are implemented
-                           (simple-error S))))
-
 \\: == Creation
 
 \\: `(iter.from-lazy Frozen)`
@@ -376,21 +368,16 @@
                                     (Yield X)
                                     (Break))))))
 
-(define fold-while-consume-h
-  { (A --> B --> (A * boolean)) --> (box.t A) --> B --> void }
-  F State X -> (let (@p Acc Cont) (F (box.unbox State) X)
-                    _ (box.put State Acc)
-                 (if Cont
-                     (void)
-                     (error "exit-fold-while"))))
-
 \\: `(iter.fold-while F Init Iter)`
 (define fold-while
   { (A --> B --> (A * boolean)) --> A --> (iter.t B) --> A }
   F Init Iter -> (let State (box.make Init)
-                   (do (trap-error
-                         (Iter (fold-while-consume-h F State))
-                         (guard-catch "exit-fold-while" (/. _ (void))))
+                   (do (with-break Break
+                         (Iter (/. X (let (@p Acc Cont) (F (box.unbox State) X)
+                                          _ (box.put State Acc)
+                                       (if Cont
+                                           (void)
+                                           (Break))))))
                        (box.unbox State))))
 
 \\: `(iter.drop N Iter)`
