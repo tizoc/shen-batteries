@@ -6,7 +6,7 @@
 \\:  Boxes are mutable references to a value.
 
 
-(package box []
+(package box [void]
 
 (datatype t-internal
   ______________
@@ -40,7 +40,8 @@
 
 (define init-box
   { (t A) --> A --> (t A) }
-  Box X -> (box.put (address-> Box 0 #tag) X))
+  Box X -> (do (box.put (address-> Box 0 #tag) X)
+               Box))
 
 \\: === Predicates
 
@@ -62,27 +63,27 @@
 
 \\: `(box.put Box Value)` stores `Value` inside `Box`.
 (define box.put
-  { (t A) --> A --> (t A) }
-  Box X -> (address-> Box 1 X))
+  { (t A) --> A --> void }
+  Box X -> (do (address-> Box 1 X) (void)))
 
 \\: `(box.modify F Box)` stores the result of `(box.put (F (box.unbox Box)))` inside `Box`.
 (define modify
-  { (A --> A) --> (t A) --> (t A) }
+  { (A --> A) --> (t A) --> void }
   F Box -> (box.put Box (F (unbox Box))))
 
 \\: `(box.incr Box)` increments the number stored in `Box` by 1.
 (define box.incr
-  { (t number) --> (t number) }
+  { (t number) --> void }
   Box -> (box.put Box (+ (unbox Box) 1)))
 
 \\: `(box.decr Box)` decrements the number stored in `Box` by 1.
 (define box.decr
-  { (t number) --> (t number) }
+  { (t number) --> void }
   Box -> (box.put Box (- (unbox Box) 1)))
 
 \\: `(box.toggle Box)` replaces the contents of `Box` with `true` if it contains `false` or with `false` if it contains `true`.
 (define box.toggle
-  { (t boolean) --> (t boolean) }
+  { (t boolean) --> void }
   Box -> (box.put Box (not (unbox Box))))
 
 (define #tag

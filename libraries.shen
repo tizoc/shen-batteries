@@ -35,6 +35,7 @@
   (loads tc+ "nullable.shen"))
 
 (library.declare box
+  (requires typ/void)
   (loads tc+ "box.shen"))
 
 (library.declare lazy
