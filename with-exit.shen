@@ -43,20 +43,20 @@
   ____________________________
   (cons? X) : verified >> X : (list sexp);)
 
-(define guard-catch
-  { string --> (exception --> A) --> exception --> A }
-  Tag Handler Err -> (let S (error-to-string Err)
-                       (if (= Tag S)
-                           (Handler Err)
-                           (simple-error S))))
+ (define guard-catch
+   { string --> (exception --> A) --> exception --> A }
+   Tag Handler Err -> (let S (error-to-string Err)
+                        (if (= Tag S)
+                            (Handler Err)
+                            (simple-error S))))
 
-(define subst-return-application
-  { symbol --> (sexp --> sexp) --> sexp --> sexp }
-  Name F [Name Arg] -> (F Arg)
-  Name F [Name | Rest] -> (error "Return function '~A' must be called with one argument, not ~A" Name (length Rest))
-  Name F [let Name Value Body] -> [let Name (subst-return-application Name F Value) Body]
-  Name F Z -> (map (/. W (subst-return-application Name F W)) Z)  where (cons? Z)
-  _ _ Z -> Z)
+ (define subst-return-application
+   { symbol --> (sexp --> sexp) --> sexp --> sexp }
+   Name F [Name Arg] -> (F Arg)
+   Name F [Name | Rest] -> (error "Return function '~A' must be called with one argument, not ~A" Name (length Rest))
+   Name F [let Name Value Body] -> [let Name (subst-return-application Name F Value) Body]
+   Name F Z -> (map (/. W (subst-return-application Name F W)) Z)  where (cons? Z)
+   _ _ Z -> Z)
 
 (define subst-break-application
   { symbol --> sexp --> sexp --> sexp }
@@ -70,7 +70,10 @@
   [with-break BreakF Body]
     -> (features.cond
          shen/scheme
-           [scm.call/1cc [lambda BreakF Body]] \\ TODO: validate arity of calls to BreakF in Body
+           [scm.call/1cc
+             [lambda BreakF
+               [do (subst-break-application BreakF [BreakF [void]] Body)
+                   [void]]]]
 
          true
            (let ExitName (str (gensym #exit--tag--))
@@ -82,7 +85,9 @@
   [with-return ReturnF Body]
     -> (features.cond
          shen/scheme
-           [scm.call/1cc [lambda ReturnF Body]] \\ TODO: validate arity of calls to ReturnF in Body
+           [scm.call/1cc
+             [lambda ReturnF
+               (subst-return-application ReturnF (/. R [ReturnF R]) Body)]]
 
          true
            (let BoxName (gensym (protect Box))
