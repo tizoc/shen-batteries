@@ -317,7 +317,7 @@
   { A --> (iter.t A) --> (iter.t A) }
   Elt Iter Yield -> (let First (box.make true)
                       (Iter (/. X (do (if (box.unbox First)
-                                          (do (box.put First false) (void))
+                                          (box.put First false)
                                           (Yield Elt))
                                       (Yield X))))))
 
