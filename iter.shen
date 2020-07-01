@@ -11,7 +11,7 @@
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
 
-(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t with-return with-break]
+(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t with-return with-break mlist.of-iter mlist.to-iter]
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
@@ -328,7 +328,11 @@
 
 \\: == Caching
 
-\\ (define persistent { (iter.t A) --> (iter.t A) } )
+\\: `(iter.persistent Iter)`
+(define persistent
+  { (iter.t A) --> (iter.t A) }
+  Iter -> (mlist.to-iter (mlist.of-iter Iter)))
+
 \\ (define persistent-lazy { (iter.t A) --> (iter.t A) } )
 
 \\: == Misc
