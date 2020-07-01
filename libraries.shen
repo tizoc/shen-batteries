@@ -50,7 +50,7 @@
   (loads tc+ "seq.shen"))
 
 (library.declare iter
-  (requires typ/void maybe box let-match)
+  (requires typ/void maybe box let-match with-exit)
   (loads tc+ "iter.shen"))
 
 (library.declare seq-cexpr

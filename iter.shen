@@ -11,7 +11,7 @@
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
 
-(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t]
+(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t with-return with-break]
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
@@ -184,22 +184,20 @@
 \\: `(iter.for-all? Test Iter)`
 (define for-all?
   { (A --> boolean) --> (iter.t A) --> boolean }
-  Test Iter -> (trap-error
+  Test Iter -> (with-return Return
                  (do (Iter (/. X (if (not (Test X))
-                                     (error "exit-forall")
+                                     (Return false)
                                      (void))))
-                     true)
-                 (guard-catch "exit-forall" (/. _ false))))
+                     true)))
 
 \\: `(iter.exists? Test Iter)`
 (define exists?
   { (A --> boolean) --> (iter.t A) --> boolean }
-  Test Iter -> (trap-error
+  Test Iter -> (with-return Return
                  (do (Iter (/. X (if (Test X)
-                                     (error "exit-exists")
+                                     (Return true)
                                      (void))))
-                     false)
-                 (guard-catch "exit-exists" (/. _ true))))
+                     false)))
 
 \\: `(iter.element? X Iter)`
 (define iter.element?
@@ -214,28 +212,22 @@
 \\: `(iter.find-map F Iter)`
 (define find-map
   { (A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B) }
-  F Iter -> (let Result (box.make (@none))
-              (do (trap-error
-                    (Iter (/. X (let Maybe (F X)
-                                  (if (maybe.some? Maybe)
-                                      (do (box.put Result Maybe)
-                                          (simple-error "exit-findmap"))
-                                      (void)))))
-                    (guard-catch "exit-findmap" (/. _ (void))))
-                  (box.unbox Result))))
+  F Iter -> (with-return Return
+              (do (Iter (/. X (let Maybe (F X)
+                                (if (maybe.some? Maybe)
+                                    (Return Maybe)
+                                    (void)))))
+                  (@none))))
 
 \\: `(iter.find-mapi F Iter)`
 (define find-mapi { (number --> A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B) }
   F Iter -> (let Index (box.make 0)
-                 Result (box.make (@none))
-              (do (trap-error
-                    (Iter (/. X (let Maybe (F (box.unbox Index) X)
+              (with-return Return
+                (do (Iter (/. X (let Maybe (F (box.unbox Index) X)
                                   (if (maybe.some? Maybe)
-                                      (do (box.put Result Maybe)
-                                          (simple-error "exit-findmapi"))
+                                      (Return Maybe)
                                       (box.incr Index)))))
-                    (guard-catch "exit-findmapi" (/. _ (void))))
-                  (box.unbox Result))))
+                    (@none)))))
 
 \\: `(iter.find Test Iter)`
 (define find
@@ -259,10 +251,9 @@
 \\: `(iter.empty? Iter)`
 (define iter.empty?
   { (iter.t A) --> boolean }
-  Iter -> (trap-error
-            (do (Iter (/. _ (error "exit-empty")))
-                true)
-            (guard-catch "exit-empty" (/. _ false))))
+  Iter -> (with-return Return
+            (do (Iter (/. _ (Return false)))
+                true)))
 
 \\: == Transformation
 
@@ -355,13 +346,9 @@
 \\: `(iter.head Iter)`
 (define iter.head
   { (iter.t A) --> (maybe.t A) }
-  Iter -> (let R (box.make (@none))
-            (do
-              (trap-error
-                (Iter (/. X (do (box.put R (@some X))
-                                (error "exit-head"))))
-                (guard-catch "exit-head" (/. _ (void))))
-              (box.unbox R))))
+  Iter -> (with-return Return
+            (do (Iter (/. X (Return (@some X))))
+                (@none))))
 
 \\: `(iter.head-exn)`
 (define head-exn
@@ -375,21 +362,19 @@
 (define take
   { number --> (iter.t A) --> (iter.t A) }
   N Iter Yield -> (let Count (box.make 0)
-                    (trap-error
+                    (with-break Break
                       (Iter (/. X (if (= (box.unbox Count) N)
-                                      (error "exit-take")
+                                      (Break)
                                       (do (box.incr Count)
-                                          (Yield X)))))
-                      (guard-catch "exit-take" (/. _ (void))))))
+                                          (Yield X))))))))
 
 \\: `(iter.take-while P Iter)`
 (define take-while
   { (A --> boolean) --> (iter.t A) --> (iter.t A) }
-  P Iter Yield -> (trap-error
+  P Iter Yield -> (with-break Break
                     (Iter (/. X (if (P X)
                                     (Yield X)
-                                    (error "exit-take-while"))))
-                    (guard-catch "exit-take-while" (/. _ (void)))))
+                                    (Break))))))
 
 (define fold-while-consume-h
   { (A --> B --> (A * boolean)) --> (box.t A) --> B --> void }
