@@ -64,11 +64,23 @@
   F V N Stop -> (do (F (<-vector V N))
                     (vector-for-each F V (+ N 1) Stop)))
 
+(define vector-for-each-reverse
+  { (A --> void) --> (vector A) --> number --> void }
+  _ _ 0 -> (void)
+  F V N -> (do (F (<-vector V N))
+               (vector-for-each-reverse F V (- N 1))))
+
 (define for-each
   { (A --> void) --> (mlist.t A) --> void }
   _ MList -> (void) where (mlist.empty? MList)
   Yield (@p V N Next) -> (do (vector-for-each Yield V 1 (box.unbox N))
                              (for-each Yield (box.unbox Next))))
+
+(define for-each-reverse
+  { (A --> void) --> (mlist.t A) --> void }
+  _ MList -> (void) where (mlist.empty? MList)
+  Yield (@p V N Next) -> (do (for-each-reverse Yield (box.unbox Next))
+                             (vector-for-each-reverse Yield V (box.unbox N))))
 
 (define to-iter
   { (mlist.t A) --> (iter.t A) }

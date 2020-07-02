@@ -11,7 +11,7 @@
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
 
-(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t with-return with-break mlist.of-iter mlist.of-iter-with mlist.to-iter]
+(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t with-return with-break mlist.of-iter mlist.of-iter-with mlist.to-iter mlist.for-each-reverse]
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
@@ -413,7 +413,10 @@
                                             (Yield X)))
                                     (Yield X))))))
 \\ `(iter.reverse Iter)`
-\\ (define iter.reverse { (iter.t A) --> (iter.t A) } )
+(define iter.reverse
+  { (iter.t A) --> (iter.t A) }
+  Iter -> (let MList (mlist.of-iter Iter)
+            (/. Yield (mlist.for-each-reverse Yield MList))))
 
 \\: `(iter.enumerate Iter)`
 (define enumerate
