@@ -11,7 +11,13 @@
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
 
-(package iter [maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none void box.make box.unbox box.put box.modify box.incr box.toggle box.t with-return with-break mlist.of-iter mlist.of-iter-with mlist.to-iter mlist.for-each-reverse]
+(package iter [
+  maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none
+  void with-return with-break
+  box.make box.unbox box.put box.modify box.incr box.toggle box.t
+  mlist.length mlist.of-iter mlist.of-iter-with mlist.to-iter mlist.for-each-reverse mlist.for-each-enumerated
+  mlist.vector-for-each mlist.vector-for-each-enumerated
+]
 
 (synonyms (iter.t A) ((A --> void) --> void))
 
@@ -444,6 +450,37 @@
   [] Yield -> (void)
   [X | Rest] Yield -> (do (Yield X)
                           (of-list Rest)))
+
+\\: `(iter.convert-list F List)`
+(define convert-list
+  { ((iter.t A) --> (iter.t B)) --> (list A) --> (list B) }
+  F List -> (to-list (F (of-list List))))
+
+\\: `(iter.to-vector Iter)`
+(define to-vector
+  { (iter.t A) --> (vector A) }
+  Iter -> (let MList (mlist.of-iter Iter)
+               Limit (mlist.length MList)
+            (let Vector (vector Limit)
+                 _ (mlist.for-each-enumerated (/. (@p I X) (vector-> Vector I X)) MList)
+              Vector)))
+
+\\: `(iter.of-vector Vector)`
+(define of-vector
+  { (vector A) --> (iter.t A) }
+  Vector Yield -> (of-vector-range Vector 1 (limit Vector) Yield))
+
+\\: `(iter.of-vector-enumerated Vector)`
+(define of-vector-enumerated
+  { (vector A) --> (iter.t (number * A)) }
+  Vector Yield -> (mlist.vector-for-each-enumerated Yield Vector 1 (+ 1 (limit Vector))))
+
+\\: `(iter.of-vector-range Vector From To)`
+(define of-vector-range
+  { (vector A) --> number --> number --> (iter.t A) } \\ TODO: allow reverse ranges?
+  Vector From To _ -> (error "iter.of-vector-range: Invalid range for vector with limit ~A: From=~A To=~A" (limit Vector) From To)
+      where (or (< From 1) (> From To) (> To (limit Vector)))
+  Vector From To Yield -> (mlist.vector-for-each Yield Vector From (+ 1 To)))
 
 )
 

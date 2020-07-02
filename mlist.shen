@@ -58,11 +58,26 @@
                                             (box.put Cur (mlist.empty)))
                                         (void))))
 
+(define mlist.length
+  { (mlist.t A) --> number }
+  MList -> (mlist.length-h MList 0))
+
+(define mlist.length-h
+  { (mlist.t A) --> number --> number }
+  MList Acc -> Acc where (mlist.empty? MList)
+  (@p _ N Next) Acc -> (mlist.length-h (box.unbox Next) (+ Acc (box.unbox N))))
+
 (define vector-for-each
   { (A --> void) --> (vector A) --> number --> number --> void }
   _ _ N N -> (void)
   F V N Stop -> (do (F (<-vector V N))
                     (vector-for-each F V (+ N 1) Stop)))
+
+(define vector-for-each-enumerated
+  { ((number * A) --> void) --> (vector A) --> number --> number --> void }
+  _ _ N N -> (void)
+  F V N Stop -> (do (F (@p N (<-vector V N)))
+                    (vector-for-each-enumerated F V (+ N 1) Stop)))
 
 (define vector-for-each-reverse
   { (A --> void) --> (vector A) --> number --> void }
@@ -75,6 +90,12 @@
   _ MList -> (void) where (mlist.empty? MList)
   Yield (@p V N Next) -> (do (vector-for-each Yield V 1 (box.unbox N))
                              (for-each Yield (box.unbox Next))))
+
+(define for-each-enumerated
+  { ((number * A) --> void) --> (mlist.t A) --> void }
+  _ MList -> (void) where (mlist.empty? MList)
+  Yield (@p V N Next) -> (do (vector-for-each-enumerated Yield V 1 (box.unbox N))
+                             (for-each-enumerated Yield (box.unbox Next))))
 
 (define for-each-reverse
   { (A --> void) --> (mlist.t A) --> void }
