@@ -426,6 +426,25 @@
                                    _ (box.incr R)
                                 (Yield (@p N X)))))))
 
+\\: == Converters
+
+\\: `(iter.to-list Iter)`
+(define to-list
+  { (iter.t A) --> (list A) }
+  Iter -> (reverse (to-list-reverse Iter)))
+
+\\: `(iter.to-list-reverse Iter)`
+(define to-list-reverse
+  { (iter.t A) --> (list A) }
+  Iter -> (fold (/. Acc X [X | Acc]) [] Iter))
+
+\\: `(iter.to-list List)`
+(define of-list
+  { (list A) --> (iter.t A) }
+  [] Yield -> (void)
+  [X | Rest] Yield -> (do (Yield X)
+                          (of-list Rest)))
+
 )
 
 
