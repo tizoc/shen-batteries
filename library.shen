@@ -55,6 +55,7 @@
     disable-pattern-handlers
 ]
 
+(set *home* (value *home-directory*))
 (set *libraries* (shen.dict 100))
 (set *defaults* [
     [loaded | false]
@@ -78,12 +79,12 @@
                  (/. _ (error "Could not find a library named `~A`" Name))))
 
 (define set-default-props
-  Name [] -> Name
+  Name []                      -> Name
   Name [[Prop | Value] | Rest] -> (do (register-prop Name Prop Value)
                                       (set-default-props Name Rest)))
 
 (define for-each
-  F [] -> unit
+  F []         -> unit
   F [X | Rest] -> (do (F X) (for-each F Rest)))
 
 (defmacro library-macro
@@ -105,25 +106,25 @@
   )
 
 (define current-compiler-context
-  -> (let OriginalMacros (value *macros*)
-          OriginalMacroreg (value shen.*macroreg*)
-          OriginalDatatypes (value shen.*datatypes*)
-          OriginalAlldatatypes (value shen.*alldatatypes*)
-          OriginalPatternHandlers (value shen.x.programmable-pattern-matching.*pattern-handlers*)
+  -> (let OriginalMacros             (value *macros*)
+          OriginalMacroreg           (value shen.*macroreg*)
+          OriginalDatatypes          (value shen.*datatypes*)
+          OriginalAlldatatypes       (value shen.*alldatatypes*)
+          OriginalPatternHandlers    (value shen.x.programmable-pattern-matching.*pattern-handlers*)
           OriginalPatternHandlersReg (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*)
-       [OriginalMacros OriginalMacroreg
+       [OriginalMacros    OriginalMacroreg
         OriginalDatatypes OriginalAlldatatypes
         OriginalPatternHandlers OriginalPatternHandlersReg]))
 
 (define restore-compiler-context
-  [OriginalMacros OriginalMacroreg
+  [OriginalMacros    OriginalMacroreg
    OriginalDatatypes OriginalAlldatatypes
    OriginalPatternHandlers OriginalPatternHandlersReg]
-    -> (do (set *macros* OriginalMacros)
-           (set shen.*macroreg* OriginalMacroreg)
-           (set shen.*datatypes* OriginalDatatypes)
-           (set shen.*alldatatypes* OriginalAlldatatypes)
-           (set shen.x.programmable-pattern-matching.*pattern-handlers* OriginalPatternHandlers)
+    -> (do (set *macros*             OriginalMacros)
+           (set shen.*macroreg*      OriginalMacroreg)
+           (set shen.*datatypes*     OriginalDatatypes)
+           (set shen.*alldatatypes*  OriginalAlldatatypes)
+           (set shen.x.programmable-pattern-matching.*pattern-handlers*     OriginalPatternHandlers)
            (set shen.x.programmable-pattern-matching.*pattern-handlers-reg* OriginalPatternHandlersReg)))
 
 (define remove-#type-suffix
@@ -137,18 +138,18 @@
 
 (define register-compiler-context-diff
   Name [OriginalMacros OriginalMacroreg OriginalDatatypes OriginalAlldatatypes OriginalPatternHandlers OriginalPatternHandlersReg]
-    -> (let MacroRegDiff (difference (value shen.*macroreg*) OriginalMacroreg)
-            DatatypesDiff (difference (value shen.*datatypes*) OriginalDatatypes)
+    -> (let MacroRegDiff           (difference (value shen.*macroreg*) OriginalMacroreg)
+            DatatypesDiff          (difference (value shen.*datatypes*) OriginalDatatypes)
             PatternHandlersRegDiff (difference (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*) OriginalPatternHandlersReg)
-          (do (register-prop Name provides-macros MacroRegDiff)
-              (register-prop Name provides-types (remove-#type-suffix DatatypesDiff))
+          (do (register-prop Name provides-macros           MacroRegDiff)
+              (register-prop Name provides-types            (remove-#type-suffix DatatypesDiff))
               (register-prop Name provides-pattern-handlers PatternHandlersRegDiff))))
 
 (define remove-internal-types
   [_ _ OriginalDatatypes OriginalAllDatatypes _ _]
-    -> (let DatatypesDiff (difference (value shen.*datatypes*) OriginalDatatypes)
+    -> (let DatatypesDiff    (difference (value shen.*datatypes*)    OriginalDatatypes)
             AllDatatypesDiff (difference (value shen.*alldatatypes*) OriginalAllDatatypes)
-            InternalTypes (difference AllDatatypesDiff DatatypesDiff)
+            InternalTypes    (difference AllDatatypesDiff            DatatypesDiff)
          (set shen.*alldatatypes* (difference (value shen.*alldatatypes*) InternalTypes))))
 
 (define remove-pattern-handlers
@@ -158,16 +159,20 @@
               PatternHandlersRegDiff)))
 
 (define use-one
+  Name -> (do (require-one Name)
+              (use-one Name))
+      where (not (defined? Name))
   Name -> Name where (get-prop Name active)
-  Name -> (let Require (require-one Name)
-               Macros (get-prop Name provides-macros)
-               PatternHandlers (get-prop Name provides-pattern-handlers)
-               Types (get-prop Name provides-types)
-               EnableMacros (for-each (/. M (shen.add-macro M)) (reverse Macros))
-               EnablePatternHandlers (for-each (/. H (shen.x.programmable-pattern-matching.register-handler H))
-                                               (reverse PatternHandlers))
-               EnableTypes (include Types)
-               MarkActive (register-prop Name active true)
+  Name -> (let Require           (require-one Name)
+               Macros            (get-prop Name provides-macros)
+               PatternHandlers   (get-prop Name provides-pattern-handlers)
+               Types             (get-prop Name provides-types)
+               EnableMacros      (for-each (/. M (shen.add-macro M)) (reverse Macros))
+               EnablePatternHandlers
+                                 (for-each (/. H (shen.x.programmable-pattern-matching.register-handler H))
+                                           (reverse PatternHandlers))
+               EnableTypes       (include Types)
+               MarkActive        (register-prop Name active true)
             Name))
 
 (define unuse-one
@@ -192,53 +197,83 @@
                         (get-prop Name disable-pattern-handlers))
               (preclude (get-prop Name preclude-types))))
 
+(define load-library
+  Name -> (trap-error (load (cn Name "/ShenLib.shen"))
+                      (/. E (error "Library ~A not found in path: ~A" Name (error-to-string E)))))
+
+(define defined?
+  Name -> (trap-error
+            (do (shen.<-dict (value *libraries*) Name)
+                true)
+            (/. _ false)))
+
+(define with-cd
+  Path F -> (let Current (value *home-directory*)
+              (do (trap-error
+                    (do (cd Path)
+                        (F Path)
+                        (cd Current))
+                  (/. E (do (cd Current)
+                            (error (error-to-string E))))))))
+
 (define require-one
+  Name -> (let SName (str Name)
+            (with-cd (value *home*)
+              (/. Path
+                (do (load-library SName)
+                    (cd (@s Path "/" SName))
+                    (require-one Name)))))
+      where (not (defined? Name))
   Name -> Name where (get-prop Name loaded)
-  Name -> (let Requires (get-prop Name requires)
-               _ (require Requires)
+  Name -> (let Requires     (get-prop Name requires)
+               _            (require Requires)
                InactiveLibs (inactive-libraries Requires)
-               _ (use InactiveLibs)
-               Loads (get-prop Name loads)
-               OriginalTC (if (tc?) + -)
-               OriginalContext (current-compiler-context)
-               _ (tc -)
-               _ (apply-filters Name)
-               _ (trap-error (handle-loads Loads)
-                   (/. E (do (tc OriginalTC)
-                             (unuse InactiveLibs)
-                             (restore-compiler-context OriginalContext)
-                             (error (error-to-string E)))))
-               _ (register-compiler-context-diff Name OriginalContext)
-               _ (remove-internal-types OriginalContext)
-               _ (remove-pattern-handlers OriginalContext)
-               _ (tc OriginalTC)
-               _ (unuse [Name | InactiveLibs])
-               _ (register-prop Name loaded true)
+               _            (use InactiveLibs)
+               Loads        (get-prop Name loads)
+               OrigTC       (if (tc?) + -)
+               OrigCtx      (current-compiler-context)
+               _            (tc -)
+               _            (apply-filters Name)
+               _            (trap-error (handle-loads Loads)
+                              (/. E (do (tc OrigTC)
+                                        (unuse InactiveLibs)
+                                        (restore-compiler-context OrigCtx)
+                                        (error (error-to-string E)))))
+               _            (register-compiler-context-diff Name OrigCtx)
+               _            (remove-internal-types OrigCtx)
+               _            (remove-pattern-handlers OrigCtx)
+               _            (tc OrigTC)
+               _            (unuse [Name | InactiveLibs])
+               _            (register-prop Name loaded true)
             Name))
 
 (define handle-loads
   [] -> []
-  [tc+ | Rest] -> (do (tc +) (handle-loads Rest))
-  [tc- | Rest] -> (do (tc -) (handle-loads Rest))
+  [tc+  | Rest] -> (do (tc +)      (handle-loads Rest))
+  [tc-  | Rest] -> (do (tc -)      (handle-loads Rest))
   [File | Rest] -> (do (load File) (handle-loads Rest)))
 
 (define use
-  [] -> unit
+  []            -> unit
   [Name | Rest] -> (do (use-one Name)
                        (use Rest)))
 
 (define unuse
-  [] -> unit
+  []            -> unit
   [Name | Rest] -> (do (unuse-one Name)
                        (unuse Rest)))
 
 (define require
-  [] -> unit
+  []            -> unit
   [Name | Rest] -> (do (require-one Name)
                        (require Rest)))
 
-(declare use [[list symbol] --> unit])
-(declare unuse [[list symbol] --> unit])
+(define set-home
+  Path -> (set *home* Path))
+
+(declare set-home [string --> unit])
+(declare use     [[list symbol] --> unit])
+(declare unuse   [[list symbol] --> unit])
 (declare require [[list symbol] --> unit])
 
 )
