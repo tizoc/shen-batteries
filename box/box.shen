@@ -3,7 +3,7 @@
 
 \\: = Boxes
 \\:
-\\:  Boxes are mutable references to a value.
+\\: Boxes are mutable references to a value.
 
 
 (package box [void]
