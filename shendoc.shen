@@ -6,11 +6,11 @@
 \\: Shendoc is a tool to generate documentation from special comments
 \\: embedded in Shen source code files.
 \\:
-\\: == Documentation comment syntax}
+\\: == Documentation comment syntax
 \\:
 \\: TODO
 \\:
-\\: == Usage}
+\\: == Usage
 \\:
 \\: TODO
 
