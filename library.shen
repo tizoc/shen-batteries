@@ -127,12 +127,12 @@
            (set shen.x.programmable-pattern-matching.*pattern-handlers-reg* OriginalPatternHandlersReg)))
 
 (define remove-#type-suffix
-  [] -> []
+  []         -> []
   [T | Rest] -> [(remove-#type-suffix-h T) | (remove-#type-suffix Rest)])
 
 (define remove-#type-suffix-h
-  Sym -> (intern (remove-#type-suffix-h (str Sym))) where (symbol? Sym)
-  "#type" -> ""
+  Sym         -> (intern (remove-#type-suffix-h (str Sym))) where (symbol? Sym)
+  "#type"     -> ""
   (@s C Rest) -> (@s C (remove-#type-suffix-h Rest)))
 
 (define register-compiler-context-diff
@@ -208,12 +208,12 @@
 
 (define with-cd
   Path F -> (let Current (value *home-directory*)
-              (do (trap-error
-                    (do (cd Path)
-                        (F Path)
-                        (cd Current))
-                  (/. E (do (cd Current)
-                            (error (error-to-string E))))))))
+              (trap-error
+                (do (cd Path)
+                    (F Path)
+                    (cd Current))
+                (/. E (do (cd Current)
+                          (error (error-to-string E)))))))
 
 (define require-one
   Name -> (let SName (str Name)
