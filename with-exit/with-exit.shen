@@ -34,36 +34,25 @@
 \\: * It is only valid to pass it around to another function is it is wrapped in a lambda.
 \\:
 
-(package with-exit [sexp void maybe.t maybe.unsafe-get @some @none box.make box.unbox box.put with-return with-break features.cond shen/scheme scm.call/1cc]
+(package with-exit [sexp void with-return with-break scm.call/1cc]
 
-(features.cond
-  shen/scheme
-    (datatype t
-      Exit : (A --> B) >> Body : A;
-      ____________________________
-      ((foreign scm.call/1cc) (lambda Exit Body)) : A;)
-
-  true skip)
+(datatype t
+  Exit : (A --> B) >> Body : A;
+  ____________________________
+  ((foreign scm.call/1cc) (lambda Exit Body)) : A;)
 
 (datatype t-internal
   X : sexp;
   ____________________________
   (cons? X) : verified >> X : (list sexp);)
 
- (define guard-catch
-   { string --> (exception --> A) --> exception --> A }
-   Tag Handler Err -> (let S (error-to-string Err)
-                        (if (= Tag S)
-                            (Handler Err)
-                            (simple-error S))))
-
- (define subst-return-application
-   { symbol --> (sexp --> sexp) --> sexp --> sexp }
-   Name F [Name Arg] -> (F Arg)
-   Name F [Name | Rest] -> (error "Return function '~A' must be called with one argument, not ~A" Name (length Rest))
-   Name F [let Name Value Body] -> [let Name (subst-return-application Name F Value) Body]
-   Name F Z -> (map (/. W (subst-return-application Name F W)) Z)  where (cons? Z)
-   _ _ Z -> Z)
+(define subst-return-application
+  { symbol --> (sexp --> sexp) --> sexp --> sexp }
+  Name F [Name Arg] -> (F Arg)
+  Name F [Name | Rest] -> (error "Return function '~A' must be called with one argument, not ~A" Name (length Rest))
+  Name F [let Name Value Body] -> [let Name (subst-return-application Name F Value) Body]
+  Name F Z -> (map (/. W (subst-return-application Name F W)) Z)  where (cons? Z)
+  _ _ Z -> Z)
 
 (define subst-break-application
   { symbol --> sexp --> sexp --> sexp }
@@ -75,39 +64,15 @@
 
 (defmacro macro
   [with-break BreakF Body]
-    -> (features.cond
-         shen/scheme
-           [[foreign scm.call/1cc]
-             [lambda BreakF
-               [do (subst-break-application BreakF [BreakF [void]] Body)
-                   [void]]]]
-
-         true
-           (let ExitName (str (gensym #exit--tag--))
-                ExitExpr [simple-error ExitName]
-             [trap-error [do (subst-break-application BreakF ExitExpr Body) [void]]
-                [guard-catch ExitName [lambda _ [void]]]]))
-
+    -> [[foreign scm.call/1cc]
+        [lambda BreakF
+          [do (subst-break-application BreakF [BreakF [void]] Body)
+              [void]]]]
 
   [with-return ReturnF Body]
-    -> (features.cond
-         shen/scheme
-           [[foreign scm.call/1cc]
-             [lambda ReturnF
-               (subst-return-application ReturnF (/. R [ReturnF R]) Body)]]
-
-         true
-           (let BoxName (gensym (protect Box))
-                ResultVar (gensym (protect Result))
-                ExitName (str (gensym #exit--tag--))
-                ExitExpr (/. R [do [box.put BoxName [@some R]]
-                                   [simple-error ExitName]])
-             [let BoxName [box.make [@none]]
-                  _ [trap-error [let ResultVar (subst-return-application ReturnF ExitExpr Body)
-                                     _ [box.put BoxName [@some ResultVar]]
-                                  ignore]
-                      [guard-catch ExitName [lambda _ ignore]]]
-               [maybe.unsafe-get [box.unbox BoxName]]])))
+    -> [[foreign scm.call/1cc]
+        [lambda ReturnF
+          (subst-return-application ReturnF (/. R [ReturnF R]) Body)]])
 
 (preclude [t-internal])
 

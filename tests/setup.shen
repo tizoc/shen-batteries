@@ -2,6 +2,9 @@
 (set *test-typechecking* (tc?))
 
 (load "library.shen")
+(shen.x.features.cond-expand
+  shen/scheme (library.use [with-exit])
+  true skip)
 (library.use
   [features
    box
@@ -15,9 +18,6 @@
    pipe-macro
    cexpr])
 (library.use [box])
-(shen.x.features.cond-expand
-  shen/scheme (library.use [with-exit])
-  true skip)
 
 \\ Load the iterator cache independently while pattern matching is deferred.
 (let Typechecking (if (tc?) + -)
