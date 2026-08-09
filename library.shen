@@ -3,276 +3,252 @@
 
 \\: = Libraries loader
 \\:
-\\: Libraries for Shen.
-\\:
-\\: == Overview
-\\:
-\\: TODO
-\\:
-\\: == Declaring libraries
-\\:
-\\: Libraries are declared with the `library.declare` special form, with syntax:
-\\:
-\\: [source,shen]
-\\: (library.declare <LIBRARY-NAME> <LIBRARY-DIRECTIVE> ...)
-\\:
-\\: `<LIBRARY-NAME>` is a symbol, it must be unique, and will be used to reference this library.
-\\:
-\\: Each `<LIBRARY-DIRECTIVE>` is one of:
-\\:
-\\: - `(loads <TC-OR-FILE> ...)` declares which files to load when requiring this library.
-\\:   `<TC-OR-FILE>` is a string with the name of a file to load, `tc+` to enable type-checking before
-\\:   loading the files that come next, or [tc-] to disable type-checking before loading the files that come next.
-\\:   By default, [tc-] is assumed.
-\\: - `(requires <LIBRARY-NAME> ...)` declares the dependencies of this library.
-\\:   Each `<LIBRARY-NAME>` is the name of a library that will be required and activated before loading
-\\:   the files of the library being defined.
-\\: - `(provides-pattern-handlers <FUNCTION-NAME> ...)` declares any function defined in this library that
-\\:   will be activated to extend the pattern handler when this library is activated.
-\\:
-\\: == API
-\\:
-\\: === Loading libraries
-\\:
-\\: `(library.use [<LIBRARY-NAME> ...])` loads and activates every library named in the list.
-\\: Performing `library.use` on a library that is already active has no effect.
-\\:
-\\: `(library.require [<LIBRARY-NAME> ...])` loads every library named in the list without performing any activation.
-\\: Performing [library.require] on a library that has been required before has no effect.
-\\:
-\\: Most of the time `library.use` will be used in user code, with `library.required` reserved for special situations.
-\\:
-\\: === Deactivating libraries
-\\:
-\\: `(library.unuse [<LIBRARY-NAME> ...])` deactivates every library named in the list.
-\\: Performing [library.unuse] on a library that is not active has no effect.
+\\: Loads permanent, versioned `shen.module` declarations. Descriptors are
+\\: resolved as `<home>/<module-name>.shenmod`; source paths are relative to
+\\: the descriptor. Reusing a loaded module has no effect.
 
-(package library [
-    loads requires tc+ tc-
-    disable-macros
-    preclude-types
-    disable-pattern-handlers
-]
+(package library
+ [shen.module version name sources requires requires-features extension tc+ tc-]
 
 (set *home* (value *home-directory*))
-(set *libraries* (shen.dict 100))
-(set *defaults* [
-    [loaded | false]
-    [active | false]
-    [requires]
-    [provides-macros]
-    [provides-types]
-    [provides-pattern-handlers]
-    [preclude-types]
-    [disable-pattern-handlers]
-    [disable-macros]
-    [loads]
-])
+(set *loaded* [])
 
-(define register-prop
-  Name Prop Value -> (put Name Prop Value (value *libraries*)))
+(define read-file-unprocessed
+  File -> (let Bytes (read-file-as-bytelist File)
+            (trap-error
+             (compile (/. X (shen.<s-exprs> X)) Bytes)
+             (/. E (shen.reader-error (value shen.*residue*))))))
 
-(define get-prop
-  Name Prop -> (trap-error
-                 (get Name Prop (value *libraries*))
-                 (/. X (error "Could not find a library named `~A`" Name))))
+(define single-form
+  _ [Form] -> Form
+  Path [] -> (error "Module declaration ~A is empty" Path)
+  Path Forms -> (error "Module declaration ~A expected one form, got ~A"
+                       Path (length Forms)))
 
-(define set-default-props
-  Name []                      -> Name
-  Name [[Prop | Value] | Rest] -> (do (register-prop Name Prop Value)
-                                      (set-default-props Name Rest)))
+(define add-seen
+  Field Seen -> (if (element? Field Seen)
+                    (error "Module declaration has duplicate field: ~A" Field)
+                    [Field | Seen]))
 
-(define for-each
-  F []         -> unit
-  F [X | Rest] -> (do (F X) (for-each F Rest)))
+(define symbol-field
+  _ X -> X where (symbol? X)
+  Field X -> (error "Module declaration field ~A expected a symbol, got: ~S"
+                   Field X))
 
-(defmacro library-macro
-  [library.declare Name | Declarations]
-    -> (do (set-default-props Name (value *defaults*))
-           (for-each
-             (/. Declaration (process-declarations Name Declaration))
-             Declarations)
-           Name))
+(define symbol-list
+  _ [] -> []
+  Field [X | Xs] -> [X | (symbol-list Field Xs)] where (symbol? X)
+  Field Xs -> (error "Module declaration field ~A expected symbols, got: ~S"
+                    Field Xs))
 
-(define process-declarations
-  Name [requires | Libraries]     -> (register-prop Name requires Libraries)
-  Name [disable-macros | Macros]  -> (register-prop disable-macros Macros)
-  Name [preclude-types | Types]   -> (register-prop preclude-types Types)
-  Name [disable-pattern-handlers | Handlers]
-                                  -> (register-prop disable-pattern-handlers Handlers)
-  Name [loads | Loads]            -> (register-prop Name loads Loads)
-  Name Other -> (error "Invalid library declaration for ~A" Name)
-  )
+(define source-list
+  Sources -> (source-list-h Sources (fail) [] false))
 
-(define current-compiler-context
-  -> (let OriginalMacros             (value *macros*)
-          OriginalMacroreg           (value shen.*macroreg*)
-          OriginalDatatypes          (value shen.*datatypes*)
-          OriginalAlldatatypes       (value shen.*alldatatypes*)
-          OriginalPatternHandlers    (value shen.x.programmable-pattern-matching.*pattern-handlers*)
-          OriginalPatternHandlersReg (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*)
-       [OriginalMacros    OriginalMacroreg
-        OriginalDatatypes OriginalAlldatatypes
-        OriginalPatternHandlers OriginalPatternHandlersReg]))
+(define relative-source?
+  "" -> false
+  (@s "/" _) -> false
+  _ -> true)
 
-(define restore-compiler-context
-  [OriginalMacros    OriginalMacroreg
-   OriginalDatatypes OriginalAlldatatypes
-   OriginalPatternHandlers OriginalPatternHandlersReg]
-    -> (do (set *macros*             OriginalMacros)
-           (set shen.*macroreg*      OriginalMacroreg)
-           (set shen.*datatypes*     OriginalDatatypes)
-           (set shen.*alldatatypes*  OriginalAlldatatypes)
-           (set shen.x.programmable-pattern-matching.*pattern-handlers*     OriginalPatternHandlers)
-           (set shen.x.programmable-pattern-matching.*pattern-handlers-reg* OriginalPatternHandlersReg)))
+(define source-list-h
+  [] _ [] _ -> (error "Module declaration requires at least one source")
+  [] Mode _ true -> (error "Module source mode ~A must be followed by a source"
+                           Mode)
+  [] _ Out false -> (reverse Out)
+  [tc+ | _] Mode _ true
+  -> (error "Module source mode ~A must be followed by a source" Mode)
+  [tc- | _] Mode _ true
+  -> (error "Module source mode ~A must be followed by a source" Mode)
+  [tc+ | Rest] _ Out false -> (source-list-h Rest tc+ Out true)
+  [tc- | Rest] _ Out false -> (source-list-h Rest tc- Out true)
+  [Source | _] Mode _ _
+  -> (error "Module source ~S must follow tc+ or tc-" Source)
+    where (= Mode (fail))
+  [Source | Rest] Mode Out _
+  -> (source-list-h Rest Mode [[module-source Mode Source] | Out] false)
+    where (and (string? Source) (relative-source? Source))
+  [Source | _] _ _ _
+  -> (error "Module source must be relative, got: ~S" Source)
+    where (string? Source)
+  [Source | _] _ _ _
+  -> (error "Module source must be a string, got: ~S" Source))
 
-(define remove-#type-suffix
-  []         -> []
-  [T | Rest] -> [(remove-#type-suffix-h T) | (remove-#type-suffix Rest)])
+(define extension-id
+  [module-extension Id _] -> Id)
 
-(define remove-#type-suffix-h
-  Sym         -> (intern (remove-#type-suffix-h (str Sym))) where (symbol? Sym)
-  "#type"     -> ""
-  (@s C Rest) -> (@s C (remove-#type-suffix-h Rest)))
+(define extension-ids
+  Extensions -> (map (function extension-id) Extensions))
 
-(define register-compiler-context-diff
-  Name [OriginalMacros OriginalMacroreg OriginalDatatypes OriginalAlldatatypes OriginalPatternHandlers OriginalPatternHandlersReg]
-    -> (let MacroRegDiff           (difference (value shen.*macroreg*) OriginalMacroreg)
-            DatatypesDiff          (difference (value shen.*datatypes*) OriginalDatatypes)
-            PatternHandlersRegDiff (difference (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*) OriginalPatternHandlersReg)
-          (do (register-prop Name provides-macros           MacroRegDiff)
-              (register-prop Name provides-types            (remove-#type-suffix DatatypesDiff))
-              (register-prop Name provides-pattern-handlers PatternHandlersRegDiff))))
+(define add-extension
+  Id Body Extensions
+  -> (let Id (symbol-field extension Id)
+       (if (element? Id (extension-ids Extensions))
+           (error "Module declaration has duplicate extension: ~A" Id)
+           [[module-extension Id Body] | Extensions])))
 
-(define remove-internal-types
-  [_ _ OriginalDatatypes OriginalAllDatatypes _ _]
-    -> (let DatatypesDiff    (difference (value shen.*datatypes*)    OriginalDatatypes)
-            AllDatatypesDiff (difference (value shen.*alldatatypes*) OriginalAllDatatypes)
-            InternalTypes    (difference AllDatatypesDiff            DatatypesDiff)
-         (set shen.*alldatatypes* (difference (value shen.*alldatatypes*) InternalTypes))))
+(define parse-module
+  [shen.module | Fields]
+  -> (parse-fields Fields [] (fail) (fail) (fail) [] [] [])
+  Form -> (error "Module declaration expected shen.module form, got: ~S" Form))
 
-(define remove-pattern-handlers
-  [_ _ _ _ _ OriginalPatternHandlersReg]
-    -> (let PatternHandlersRegDiff (difference (value shen.x.programmable-pattern-matching.*pattern-handlers-reg*) OriginalPatternHandlersReg)
-         (map (/. Handler (shen.x.programmable-pattern-matching.unregister-handler Handler))
-              PatternHandlersRegDiff)))
+(define parse-fields
+  [] _ V N Ss Rs RFs Extensions
+  -> (finalize-module V N Ss Rs RFs (reverse Extensions))
+  [[version V] | Fields] Seen _ N Ss Rs RFs Extensions
+  -> (parse-fields Fields (add-seen version Seen)
+                   V N Ss Rs RFs Extensions)
+  [[name N] | Fields] Seen V _ Ss Rs RFs Extensions
+  -> (parse-fields Fields (add-seen name Seen)
+                   V N Ss Rs RFs Extensions)
+  [[sources | Ss] | Fields] Seen V N _ Rs RFs Extensions
+  -> (parse-fields Fields (add-seen sources Seen)
+                   V N Ss Rs RFs Extensions)
+  [[requires | Rs] | Fields] Seen V N Ss _ RFs Extensions
+  -> (parse-fields Fields (add-seen requires Seen)
+                   V N Ss Rs RFs Extensions)
+  [[requires-features | RFs] | Fields] Seen V N Ss Rs _ Extensions
+  -> (parse-fields Fields (add-seen requires-features Seen)
+                   V N Ss Rs RFs Extensions)
+  [[extension Id | Body] | Fields] Seen V N Ss Rs RFs Extensions
+  -> (parse-fields Fields Seen V N Ss Rs RFs
+                   (add-extension Id Body Extensions))
+  [Field | _] _ _ _ _ _ _ _
+  -> (error "Module declaration has unknown or malformed field: ~S" Field))
 
-(define use-one
-  Name -> (do (require-one Name)
-              (use-one Name))
-      where (not (defined? Name))
-  Name -> Name where (get-prop Name active)
-  Name -> (let Require           (require-one Name)
-               Macros            (get-prop Name provides-macros)
-               PatternHandlers   (get-prop Name provides-pattern-handlers)
-               Types             (get-prop Name provides-types)
-               EnableMacros      (for-each (/. M (shen.add-macro M)) (reverse Macros))
-               EnablePatternHandlers
-                                 (for-each (/. H (shen.x.programmable-pattern-matching.register-handler H))
-                                           (reverse PatternHandlers))
-               EnableTypes       (include Types)
-               MarkActive        (register-prop Name active true)
-            Name))
+(define finalize-module
+  V _ _ _ _ _ -> (error "Module declaration requires (version 1)")
+    where (not (= V 1))
+  _ N _ _ _ _ -> (error "Module declaration requires a name field")
+    where (= N (fail))
+  _ _ Ss _ _ _ -> (error "Module declaration requires a sources field")
+    where (= Ss (fail))
+  _ N Ss Rs RFs Extensions
+  -> [module-declaration
+      (symbol-field name N)
+      (source-list Ss)
+      (symbol-list requires Rs)
+      (symbol-list requires-features RFs)
+      Extensions])
 
-(define unuse-one
-  Name -> Name where (not (get-prop Name active))
-  Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. X skip)))
-                        (get-prop Name provides-macros))
-              (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. X skip)))
-                        (get-prop Name provides-pattern-handlers))
-              (preclude (get-prop Name provides-types))
-              (register-prop Name active false)
-              Name))
+(define module-name
+  [module-declaration Name _ _ _ _] -> Name)
 
-(define inactive-libraries
-  [] -> []
-  [Name | Rest] -> (inactive-libraries Rest) where (get-prop Name active)
-  [Name | Rest] -> [Name | (inactive-libraries Rest)])
+(define module-sources
+  [module-declaration _ Sources _ _ _] -> Sources)
 
-(define apply-filters
-  Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. X skip)))
-                        (get-prop Name disable-macros))
-              (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. X skip)))
-                        (get-prop Name disable-pattern-handlers))
-              (preclude (get-prop Name preclude-types))))
+(define module-requires
+  [module-declaration _ _ Requires _ _] -> Requires)
 
-(define load-library
-  Name -> (trap-error (load (cn Name "/ShenLib.shen"))
-                      (/. E (error "Library ~A not found in path: ~A" Name (error-to-string E)))))
+(define module-required-features
+  [module-declaration _ _ _ Features _] -> Features)
 
-(define defined?
-  Name -> (trap-error
-            (do (shen.<-dict (value *libraries*) Name)
-                true)
-            (/. X false)))
+(define ends-in-slash?
+  "" -> false
+  "/" -> true
+  Path -> (ends-in-slash? (tlstr Path)))
 
-(define with-cd
-  Path F -> (let Current (value *home-directory*)
+(define home-prefix
+  "" -> ""
+  Home -> Home where (ends-in-slash? Home)
+  Home -> (@s Home "/"))
+
+(define module-parent
+  Name -> (module-parent-h (str Name) "" ""))
+
+(define module-parent-h
+  "" Parent _ -> Parent
+  (@s C Rest) Parent Path
+  -> (let Next (@s Path C)
+       (module-parent-h Rest
+                        (if (= C "/") Next Parent)
+                        Next)))
+
+(define with-home
+  Home F -> (let Original (value *home-directory*)
               (trap-error
-                (do (cd Path)
-                    (F Path)
-                    (cd Current))
-                (/. E (do (cd Current)
+               (let Set (set *home-directory* Home)
+                    Result (F)
+                 (do (set *home-directory* Original)
+                     Result))
+               (/. E (do (set *home-directory* Original)
                           (error (error-to-string E)))))))
 
-(define require-one
-  Name -> (let SName (str Name)
-            (with-cd (value *home*)
-              (/. Path
-                (do (load-library SName)
-                    (cd (@s Path "/" SName))
-                    (require-one Name)))))
-      where (not (defined? Name))
-  Name -> Name where (get-prop Name loaded)
-  Name -> (let Requires     (get-prop Name requires)
-               _            (require Requires)
-               InactiveLibs (inactive-libraries Requires)
-               _            (use InactiveLibs)
-               Loads        (get-prop Name loads)
-               OrigTC       (if (tc?) + -)
-               OrigCtx      (current-compiler-context)
-               _            (tc -)
-               _            (apply-filters Name)
-               _            (trap-error (handle-loads Loads)
-                              (/. E (do (tc OrigTC)
-                                        (unuse InactiveLibs)
-                                        (restore-compiler-context OrigCtx)
-                                        (error (error-to-string E)))))
-               _            (register-compiler-context-diff Name OrigCtx)
-               _            (remove-internal-types OrigCtx)
-               _            (remove-pattern-handlers OrigCtx)
-               _            (tc OrigTC)
-               _            (unuse [Name | InactiveLibs])
-               _            (register-prop Name loaded true)
-            Name))
+(define with-typechecking-state
+  F -> (let Original (if (tc?) + -)
+        (trap-error
+         (let Result (F)
+           (do (tc Original)
+               Result))
+         (/. E (do (tc Original)
+                    (error (error-to-string E)))))))
 
-(define handle-loads
-  [] -> []
-  [tc+  | Rest] -> (do (tc +)      (handle-loads Rest))
-  [tc-  | Rest] -> (do (tc -)      (handle-loads Rest))
-  [File | Rest] -> (do (load File) (handle-loads Rest)))
+(define read-module
+  Name -> (let Path (@s (str Name) ".shenmod")
+               Root (home-prefix (value *home*))
+               Module (with-home Root
+                        (freeze
+                         (parse-module
+                          (single-form Path
+                           (read-file-unprocessed Path)))))
+            (if (= Name (module-name Module))
+                Module
+                (error "Module ~A declares the name ~A"
+                       Name (module-name Module)))))
+
+(define current-features
+  -> (trap-error (shen.x.features.current) (/. E [])))
+
+(define require-features
+  [] -> skip
+  [Feature | Features]
+  -> (if (element? Feature (current-features))
+         (require-features Features)
+         (error "Module requires unavailable feature: ~A" Feature)))
+
+(define load-source
+  [module-source tc+ File] -> (do (tc +) (load File))
+  [module-source tc- File] -> (do (tc -) (load File)))
+
+(define load-sources
+  Base Sources
+  -> (with-home Base (freeze (load-sources-h Sources))))
+
+(define load-sources-h
+  [] -> skip
+  [Source | Sources] -> (do (load-source Source)
+                            (load-sources-h Sources)))
+
+(define use-one
+  Name _ -> Name where (element? Name (value *loaded*))
+  Name Stack -> (error "Module dependency cycle includes: ~A" Name)
+    where (element? Name Stack)
+  Name Stack -> (let Module (read-module Name)
+                     Features (module-required-features Module)
+                     CheckFeatures (require-features Features)
+                     Dependencies (module-requires Module)
+                     LoadDependencies (use-h Dependencies [Name | Stack])
+                     Base (@s (home-prefix (value *home*))
+                              (module-parent Name))
+                     LoadSources (load-sources Base (module-sources Module))
+                  (do (set *loaded* [Name | (value *loaded*)])
+                      Name)))
+
+(define use-h
+  [] _ -> unit
+  [Name | Names] Stack -> (do (use-one Name Stack)
+                              (use-h Names Stack)))
 
 (define use
-  []            -> unit
-  [Name | Rest] -> (do (use-one Name)
-                       (use Rest)))
-
-(define unuse
-  []            -> unit
-  [Name | Rest] -> (do (unuse-one Name)
-                       (unuse Rest)))
-
-(define require
-  []            -> unit
-  [Name | Rest] -> (do (require-one Name)
-                       (require Rest)))
+  Names -> (with-typechecking-state
+            (freeze (use-h Names []))))
 
 (define set-home
-  Path -> (set *home* Path))
+  Path -> (do (set *home* Path) unit)
+    where (= [] (value *loaded*))
+  _ -> (error "Module home cannot change after loading a module"))
 
 (declare set-home [string --> unit])
-(declare use     [[list symbol] --> unit])
-(declare unuse   [[list symbol] --> unit])
-(declare require [[list symbol] --> unit])
+(declare use [[list symbol] --> unit])
+(declare read-module [symbol --> A])
+(declare module-requires [A --> [list symbol]])
 
 )

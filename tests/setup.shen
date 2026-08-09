@@ -1,17 +1,20 @@
+(set *test-home-directory* (value *home-directory*))
+(set *test-typechecking* (tc?))
+
 (load "library.shen")
-(load "features/features.shen")
-(load "typ/void/void.shen")
-(load "box/box.shen")
-(load "lazy/lazy.shen")
-(load "dict/dict.shen")
-(load "typ/or/or.shen")
-(load "typ/sexp/sexp.shen")
-(load "typ/verified-objects/verified-objects.shen")
-(load "typ/verified-and-head/verified-and-head.shen")
-(load "let-match/let-match.shen")
-(load "pipe-macro/pipe-macro.shen")
-(load "cexpr/cexpr.shen")
+(library.use
+  [features
+   box
+   lazy
+   dict
+   typ/or
+   typ/sexp
+   typ/verified-objects
+   typ/verified-and-head
+   let-match
+   pipe-macro
+   cexpr])
+(library.use [box])
 (shen.x.features.cond-expand
-  shen/scheme (load "with-exit/with-exit.shen")
+  shen/scheme (library.use [with-exit])
   true skip)
-(load "seq/cexpr/ShenLib.shen")

@@ -1,0 +1,6 @@
+(shen.module
+  (version 1)
+  (name iter)
+  (requires typ/void maybe box let-match with-exit)
+  (requires-features shen/scheme)
+  (sources tc+ "iter/mlist.shen" "iter/iter.shen"))

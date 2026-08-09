@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name typ/verified-if)
+  (sources tc+ "verified-if/verified-if.shen"))

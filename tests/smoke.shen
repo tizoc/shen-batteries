@@ -75,6 +75,16 @@
   (arity library.use))
 
 (test.assert-equal
+  "loader restores the home directory"
+  (value *test-home-directory*)
+  (value *home-directory*))
+
+(test.assert-equal
+  "loader restores typechecking"
+  (value *test-typechecking*)
+  (tc?))
+
+(test.assert-equal
   "seq cexpr declares its runtime dependency"
   [seq typ/sexp cexpr]
-  (library.get-prop seq/cexpr requires))
+  (library.module-requires (library.read-module seq/cexpr)))

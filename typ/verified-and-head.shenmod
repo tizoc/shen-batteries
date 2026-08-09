@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name typ/verified-and-head)
+  (sources tc+ "verified-and-head/verified-and-head.shen"))

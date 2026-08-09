@@ -31,6 +31,23 @@
   ___________________
   (function (get cexpr.builders N)) : ((list sexp) --> sexp);)
 
+(declare cexpr.register [symbol --> [symbol --> void]])
+(declare cexpr.unregister [symbol --> void])
+(declare cexpr.builder [symbol --> [[list sexp] --> sexp]])
+(declare cexpr.default-builder [symbol --> [[list sexp] --> sexp]])
+(declare cexpr.build-combine
+  [[[list sexp] --> sexp] --> [sexp --> [[list sexp] --> sexp]]])
+(declare cexpr.build-monadic
+  [[[list sexp] --> sexp] --> [[list sexp] --> sexp]])
+(declare fail-catch [[lazy sexp] --> sexp])
+(declare cexpr.collect-bindings
+  [[list sexp] -->
+   [[list [sexp * sexp]] --> [[list [sexp * sexp]] * sexp]]])
+(declare cexpr.build-applicative
+  [[[list sexp] --> sexp] --> [[list sexp] --> sexp]])
+(declare cexpr.build
+  [[[list sexp] --> sexp] --> [[list sexp] --> sexp]])
+
 (define cexpr.register
   { symbol --> symbol --> void }
   Name FName -> (put cexpr.builders Name FName))

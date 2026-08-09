@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name cexpr)
+  (requires typ/sexp typ/void let-match)
+  (sources tc- "cexpr/cexpr.shen"))

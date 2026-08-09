@@ -29,6 +29,17 @@
   ______________
   (<-address Box 1) : A;)
 
+(declare make [A --> [t A]])
+(declare init-box [[t A] --> [A --> [t A]]])
+(declare box? [A --> boolean])
+(declare unbox [[t A] --> A])
+(declare box.put [[t A] --> [A --> void]])
+(declare modify [[A --> A] --> [[t A] --> void]])
+(declare box.incr [[t number] --> void])
+(declare box.decr [[t number] --> void])
+(declare box.toggle [[t boolean] --> void])
+(declare #tag [[t A] --> string])
+
 \\: == API
 
 \\: === Construction

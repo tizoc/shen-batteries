@@ -18,6 +18,8 @@
   ____________________
   X : (mode void -);)
 
+(declare void [--> void])
+
 (define void
   { --> void}
   -> (shen.x.features.cond-expand
