@@ -86,10 +86,14 @@
   { (t A) --> string }
   X -> (make-string "(@some ~S)" (unsafe-get X)))
 
-(defpattern maybe.pattern-handler
+(define maybe.pattern-handler
+  { sexp --> (sexp --> void) --> (sexp --> sexp --> void) --> sexp --> void }
   Self Is? Assign [@none]   -> (Is? [none? Self])
   Self Is? Assign [@some X] -> (do (Is? [some? Self])
-                                   (Assign X [unsafe-get Self])))
+                                   (Assign X [unsafe-get Self]))
+  _ _ _ _ -> (fail))
+
+(shen.x.programmable-pattern-matching.register-handler maybe.pattern-handler)
 
 (preclude [t-internal])
 

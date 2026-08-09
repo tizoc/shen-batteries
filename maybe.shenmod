@@ -1,5 +1,5 @@
 (shen.module
   (version 1)
   (name maybe)
-  (requires typ/void typ/sexp defpattern)
+  (requires typ/void typ/sexp)
   (sources tc+ "maybe/maybe.shen"))

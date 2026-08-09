@@ -1,7 +1,7 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package nullable [@just @null null? void sexp defpattern]
+(package nullable [@just @null null? void sexp]
 
 (datatype t-internal
   ________________
@@ -36,10 +36,14 @@
   { (t A) --> boolean }
   X -> (= X @null_value_))
 
-(defpattern nullable.pattern-handler
+(define nullable.pattern-handler
+  { sexp --> (sexp --> void) --> (sexp --> sexp --> void) --> sexp --> void }
   Self Is? Assign [@null]   -> (Is? [null? Self])
   Self Is? Assign [@just X] -> (do (Is? [not [null? Self]])
-                                   (Assign X Self)))
+                                   (Assign X Self))
+  _ _ _ _ -> (fail))
+
+(shen.x.programmable-pattern-matching.register-handler nullable.pattern-handler)
 
 (preclude [t-internal])
 

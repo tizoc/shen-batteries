@@ -8,7 +8,11 @@
   _________________
   (freeze X) : (lazy A) >> P;)
 
-(defpattern lazy-pattern.pattern-handler
-  Self Is? Assign [freeze X] -> (Assign X [thaw Self]))
+(define lazy-pattern.pattern-handler
+  { sexp --> (sexp --> void) --> (sexp --> sexp --> void) --> sexp --> void }
+  Self Is? Assign [freeze X] -> (Assign X [thaw Self])
+  _ _ _ _ -> (fail))
+
+(shen.x.programmable-pattern-matching.register-handler lazy-pattern.pattern-handler)
 
 )
