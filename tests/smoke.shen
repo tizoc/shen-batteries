@@ -36,6 +36,17 @@
   (=> 2 (+ 3) (* 4)))
 
 (test.assert-equal
+  "doto returns the updated value"
+  3
+  (let Box (doto (box.make 1) (box.incr) (box.incr))
+    (box.unbox Box)))
+
+(test.assert-equal
+  "doto accepts no operations"
+  7
+  (doto 7))
+
+(test.assert-equal
   "let list destructuring"
   3
   (let [A | B] [1 2]

@@ -14,8 +14,10 @@
   [=>> Exp Op | Rest] -> [=>> [Op Exp] | Rest])
 
 (defmacro doto-macro
+  [doto Val] -> Val
   [doto Val | Ops] -> (let V (gensym (protect V))
                         [let V Val
-                          [do | (map (/. Op [(head Op) V | (tail Op)]) Ops)]
-                          V]))
+                          [do | (append
+                                  (map (/. Op [(head Op) V | (tail Op)]) Ops)
+                                  [V])]]))
 )
