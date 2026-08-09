@@ -1,3 +1,25 @@
+(define test.list-iter
+  [] _ -> (void)
+  [X | Xs] Yield -> (do (Yield X)
+                        (test.list-iter Xs Yield)))
+
+(define test.collect-mlist
+  MList -> (let Values (box.make [])
+                 _ (mlist.for-each-enumerated
+                    (/. X (box.put Values [X | (box.unbox Values)]))
+                    MList)
+              (reverse (box.unbox Values))))
+
+(define test.collect-mlist-reverse
+  MList -> (let Values (box.make [])
+                 _ (mlist.for-each-reverse
+                    (/. X (box.put Values [X | (box.unbox Values)]))
+                    MList)
+              (reverse (box.unbox Values))))
+
+(define test.mlist
+  -> (mlist.of-iter (test.list-iter [1 2 3 4 5 6 7 8 9 10])))
+
 (test.assert-true
   "feature list is nonempty"
   (cons? (shen.x.features.current)))
@@ -83,6 +105,22 @@
   "loader restores typechecking"
   (value *test-typechecking*)
   (tc?))
+
+(test.assert-equal
+  "mlist length spans chunks"
+  10
+  (mlist.length (test.mlist)))
+
+(test.assert-equal
+  "mlist enumeration spans chunks"
+  [(@p 1 1) (@p 2 2) (@p 3 3) (@p 4 4) (@p 5 5)
+   (@p 6 6) (@p 7 7) (@p 8 8) (@p 9 9) (@p 10 10)]
+  (test.collect-mlist (test.mlist)))
+
+(test.assert-equal
+  "mlist reverse traversal skips unused slots"
+  [10 9 8 7 6 5 4 3 2 1]
+  (test.collect-mlist-reverse (test.mlist)))
 
 (test.assert-equal
   "seq cexpr declares its runtime dependency"

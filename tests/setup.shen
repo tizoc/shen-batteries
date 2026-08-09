@@ -18,3 +18,9 @@
 (shen.x.features.cond-expand
   shen/scheme (library.use [with-exit])
   true skip)
+
+\\ Load the iterator cache independently while pattern matching is deferred.
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "iter/mlist.shen")
+      (tc Typechecking)))

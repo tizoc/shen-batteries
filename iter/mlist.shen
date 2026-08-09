@@ -65,7 +65,8 @@
 (define mlist.length-h
   { (mlist.t A) --> number --> number }
   MList Acc -> Acc where (mlist.empty? MList)
-  (@p _ N Next) Acc -> (mlist.length-h (box.unbox Next) (+ Acc (box.unbox N))))
+  (@p _ N Next) Acc -> (mlist.length-h (box.unbox Next)
+                                       (+ Acc (- (box.unbox N) 1))))
 
 (define vector-for-each
   { (A --> void) --> (vector A) --> number --> number --> void }
@@ -93,15 +94,18 @@
 
 (define for-each-enumerated
   { ((number * A) --> void) --> (mlist.t A) --> void }
-  _ MList -> (void) where (mlist.empty? MList)
-  Yield (@p V N Next) -> (do (vector-for-each-enumerated Yield V 1 (box.unbox N))
-                             (for-each-enumerated Yield (box.unbox Next))))
+  Yield MList -> (let Index (box.make 1)
+                   (for-each
+                    (/. X (let I (box.unbox Index)
+                                _ (box.incr Index)
+                             (Yield (@p I X))))
+                    MList)))
 
 (define for-each-reverse
   { (A --> void) --> (mlist.t A) --> void }
   _ MList -> (void) where (mlist.empty? MList)
   Yield (@p V N Next) -> (do (for-each-reverse Yield (box.unbox Next))
-                             (vector-for-each-reverse Yield V (box.unbox N))))
+                             (vector-for-each-reverse Yield V (- (box.unbox N) 1))))
 
 (define to-iter
   { (mlist.t A) --> (iter.t A) }
