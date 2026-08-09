@@ -123,6 +123,33 @@
   (test.collect-mlist-reverse (test.mlist)))
 
 (test.assert-equal
+  "shendoc preserves comments, source forms, and packages"
+  "= Fixture
+
+Intro.
+
+== API
+
+==== `sample.make` : `(sample.t A) --> external`
+
+Documents a private typed function.
+
+==== `public`
+
+Documents an external untyped function.
+
+==== `sample.<token>`
+
+Documents a grammar rule.
+
+A detached note.
+
+A final note.
+
+"
+  (shendoc.generate "tests/fixtures/shendoc-input.shen"))
+
+(test.assert-equal
   "seq cexpr declares its runtime dependency"
   [seq typ/sexp cexpr]
   (library.module-requires (library.read-module seq/cexpr)))

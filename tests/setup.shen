@@ -16,7 +16,8 @@
    typ/verified-and-head
    let-match
    pipe-macro
-   cexpr])
+   cexpr
+   shendoc])
 (library.use [box])
 
 \\ Load the iterator cache independently while pattern matching is deferred.
