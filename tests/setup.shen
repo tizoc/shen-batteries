@@ -11,4 +11,7 @@
 (load "let-match/let-match.shen")
 (load "pipe-macro/pipe-macro.shen")
 (load "cexpr/cexpr.shen")
+(shen.x.features.cond-expand
+  shen/scheme (load "with-exit/with-exit.shen")
+  true skip)
 (load "seq/cexpr/ShenLib.shen")

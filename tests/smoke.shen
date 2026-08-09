@@ -1,6 +1,6 @@
 (test.assert-true
-  "Shen/Scheme feature is available"
-  (element? shen/scheme (shen.x.features.current)))
+  "feature list is nonempty"
+  (cons? (shen.x.features.current)))
 
 (test.assert-equal
   "void composes with do"
@@ -45,6 +45,23 @@
   "doto accepts no operations"
   7
   (doto 7))
+
+(shen.x.features.cond-expand
+  shen/scheme
+    (do (test.assert-equal
+          "with-return exits early"
+          7
+          (with-return Return (+ 1 (Return 7))))
+        (test.assert-equal
+          "with-break exits early"
+          1
+          (let Count (box.make 0)
+            (do (with-break Break
+                  (do (box.incr Count)
+                      (Break)
+                      (box.incr Count)))
+                (box.unbox Count)))))
+  true skip)
 
 (test.assert-equal
   "let list destructuring"
