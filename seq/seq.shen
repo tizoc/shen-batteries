@@ -183,7 +183,7 @@
 
 (define of-string-h
   { string --> number --> (node string) }
-  S N -> (let Char (trap-error (pos S N) (/. _ ""))
+  S N -> (let Char (trap-error (pos S N) (/. X ""))
            (if (= Char "")
                []
                [Char | (freeze (of-string-h S (+ N 1)))])))
@@ -283,7 +283,7 @@
 \\: elements will be discarded.
 (define drain
   { (seq.t A) --> void }
-  Seq -> (for-each (/. _ (void)) Seq))
+  Seq -> (for-each (/. X (void)) Seq))
 
 \\: `(seq.fold-left F Acc Seq)` consumes the sequence `Seq`, combining each of it's elements with
 \\: the accumulator `Acc` by calling `(F Acc Elt)`. The result of each call to `F` is a new `NewAcc`

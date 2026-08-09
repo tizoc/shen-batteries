@@ -21,7 +21,7 @@
 (define void
   { --> void}
   -> (shen.x.features.cond-expand
-       shen/scheme (scm.void)
+       shen/scheme ((foreign scm.void))
        true -void-))
 
 (preclude [typ/void.internal-t])

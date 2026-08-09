@@ -75,7 +75,7 @@
 (define get-prop
   Name Prop -> (trap-error
                  (get Name Prop (value *libraries*))
-                 (/. _ (error "Could not find a library named `~A`" Name))))
+                 (/. X (error "Could not find a library named `~A`" Name))))
 
 (define set-default-props
   Name []                      -> Name
@@ -176,9 +176,9 @@
 
 (define unuse-one
   Name -> Name where (not (get-prop Name active))
-  Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. _ skip)))
+  Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. X skip)))
                         (get-prop Name provides-macros))
-              (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. _ skip)))
+              (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. X skip)))
                         (get-prop Name provides-pattern-handlers))
               (preclude (get-prop Name provides-types))
               (register-prop Name active false)
@@ -190,9 +190,9 @@
   [Name | Rest] -> [Name | (inactive-libraries Rest)])
 
 (define apply-filters
-  Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. _ skip)))
+  Name -> (do (for-each (/. Macro (trap-error (undefmacro Macro) (/. X skip)))
                         (get-prop Name disable-macros))
-              (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. _ skip)))
+              (for-each (/. H (trap-error (shen.x.programmable-pattern-matching.unregister-handler H) (/. X skip)))
                         (get-prop Name disable-pattern-handlers))
               (preclude (get-prop Name preclude-types))))
 
@@ -204,7 +204,7 @@
   Name -> (trap-error
             (do (shen.<-dict (value *libraries*) Name)
                 true)
-            (/. _ false)))
+            (/. X false)))
 
 (define with-cd
   Path F -> (let Current (value *home-directory*)

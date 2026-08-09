@@ -48,7 +48,7 @@
 \\: `(box.box? X)` returns `true` if `X` is a box, `false` otherwise.
 (define box?
   { A --> boolean}
-  X -> (trap-error (= (<-address X 0) #tag) (/. _ false))
+  X -> (trap-error (= (<-address X 0) #tag) (/. X false))
     where (absvector? X)
   _ -> false)
 

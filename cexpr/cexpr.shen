@@ -43,7 +43,7 @@
   { symbol --> ((list sexp) --> sexp) }
   Name -> (trap-error
             (function (get cexpr.builders Name))
-            (/. _ (error "Unknown cexpr: ~A" Name))))
+            (/. X (error "Unknown cexpr: ~A" Name))))
 
 (define cexpr.default-builder
   { symbol --> (list sexp) --> sexp }
@@ -77,7 +77,7 @@
 
 (define fail-catch
   { (lazy sexp) --> sexp }
-  L -> (trap-error (thaw L) (/. _ (fail))))
+  L -> (trap-error (thaw L) (/. X (fail))))
 
 (define cexpr.collect-bindings
   { (list sexp) --> (list (sexp * sexp)) --> ((list (sexp * sexp)) * sexp) }

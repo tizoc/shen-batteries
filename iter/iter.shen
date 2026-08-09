@@ -37,7 +37,7 @@
 \\: `(iter.empty)`
 (define empty
   { --> (iter.t A) }
-  -> (/. _ (void)))
+  -> (/. X (void)))
 
 \\: `(iter.singleton X)`
 (define singleton
@@ -243,14 +243,14 @@
 \\: `(iter.length Iter)`
 (define iter.length { (iter.t A) --> number }
   Iter -> (let R (box.make 0)
-               _ (Iter (/. _ (box.incr R)))
+               _ (Iter (/. X (box.incr R)))
             (box.unbox R)))
 
 \\: `(iter.empty? Iter)`
 (define iter.empty?
   { (iter.t A) --> boolean }
   Iter -> (with-return Return
-            (do (Iter (/. _ (Return false)))
+            (do (Iter (/. X (Return false)))
                 true)))
 
 \\: == Transformation
@@ -483,5 +483,3 @@
   Vector From To Yield -> (mlist.vector-for-each Yield Vector From (+ 1 To)))
 
 )
-
-

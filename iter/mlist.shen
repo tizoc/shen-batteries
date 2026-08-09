@@ -25,7 +25,7 @@
 
 (define of-iter
   { (iter.t A) --> (mlist.t A) }
-  Iter -> (of-iter-with Iter (/. _ (void))))
+  Iter -> (of-iter-with Iter (/. X (void))))
 
 (define of-iter-with
   { (iter.t A) --> (A --> void) --> (mlist.t A) }
