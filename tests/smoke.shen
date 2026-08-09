@@ -56,3 +56,8 @@
   "loader API is present"
   1
   (arity library.use))
+
+(test.assert-equal
+  "seq cexpr declares its runtime dependency"
+  [seq typ/sexp cexpr]
+  (library.get-prop seq/cexpr requires))

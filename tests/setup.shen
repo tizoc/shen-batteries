@@ -11,3 +11,4 @@
 (load "let-match/let-match.shen")
 (load "pipe-macro/pipe-macro.shen")
 (load "cexpr/cexpr.shen")
+(load "seq/cexpr/ShenLib.shen")
