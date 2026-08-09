@@ -9,8 +9,7 @@
 \\: Example: `(if (number? X) (+ X 2) 0)` for an `X` of unknown type would not typecheck
 \\: without this rule, but `X -> (+ X 2) where (number? X)` would.
 
-(specialise if)
-(destroy if)
+(specialise if 1)
 
 (datatype typ/verified-if.t
   !;
