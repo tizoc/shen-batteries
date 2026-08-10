@@ -1,4 +1,4 @@
 (shen.module
   (version 1)
   (name typ/void)
-  (sources tc- "void/void.shen"))
+  (sources tc+ "void/void.shen"))

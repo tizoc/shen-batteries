@@ -9,8 +9,6 @@
   _____________
   #not-thawed#7907# : A;)
 
-(declare memo [[lazy A] --> [lazy A]])
-
 \\: `(lazy.memo Frozen)` returns a memoized version of `Frozen` that will produce the same
 \\: result as `(thaw Frozen)` when thawed but performing the computation only once
 \\: the first time it is thawed, and reusing the initial result every other time.

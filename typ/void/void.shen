@@ -11,14 +11,12 @@
 
 (datatype typ/void.internal-t
   ____________________
-  X : (mode void -);)
+  X : (- void);)
 
 (datatype typ/void.t
   X : A;
   ____________________
-  X : (mode void -);)
-
-(declare void [--> void])
+  X : (- void);)
 
 (define void
   { --> void}

@@ -2,4 +2,4 @@
   (version 1)
   (name lazy)
   (requires box)
-  (sources tc- "lazy/lazy.shen"))
+  (sources tc+ "lazy/lazy.shen"))

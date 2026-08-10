@@ -2,4 +2,4 @@
   (version 1)
   (name box)
   (requires typ/void)
-  (sources tc- "box/box.shen"))
+  (sources tc+ "box/box.shen"))
