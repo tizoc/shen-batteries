@@ -16,30 +16,30 @@
 
 (datatype t-internal
   ______________________
-  [] : (mode (node A) -);
+  [] : (- (node A));
 
   X : A;
   Seq : (seq.t A);
   ===================
-  (cons X Seq) : (mode (node A) -);
+  (cons X Seq) : (- (node A));
 
   Node : (node A);
   ______________________
-  (freeze Node) : (mode (seq.t A) -);
+  (freeze Node) : (- (seq.t A));
 
   Seq : (seq.t A);
   ______________________
-  (lazy.memo Seq) : (mode (seq.t A) -);
+  (lazy.memo Seq) : (- (seq.t A));
 
   Seq : (seq.t A);
   ______________________
   (thaw Seq) : (node A);
 
   ______________________
-  (list? X) : verified >> X : (mode (list A) -);
+  (list? X) : verified >> X : (- (list A));
 
   ______________________
-  (vector? X) : verified >> X : (mode (vector A) -);
+  (vector? X) : verified >> X : (- (vector A));
   )
 
 \\: == API

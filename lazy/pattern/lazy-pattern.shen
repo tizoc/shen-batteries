@@ -1,18 +1,15 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package lazy-pattern [sexp void | (external lazy)]
+(package lazy-pattern [defpattern | (external lazy)]
 
 (datatype t
-  X : A >> P;
-  _________________
-  (freeze X) : (lazy A) >> P;)
+  X : A;
+  =================================================
+  (@p shen.custom-pattern (freeze X)) : (lazy A);)
 
-(define lazy-pattern.pattern-handler
-  { sexp --> (sexp --> void) --> (sexp --> sexp --> void) --> sexp --> void }
-  Self Is? Assign [freeze X] -> (Assign X [thaw Self])
-  _ _ _ _ -> (fail))
-
-(shen.x.programmable-pattern-matching.register-handler lazy-pattern.pattern-handler)
+(defpattern lazy-pattern.pattern-handler
+  Self Is? Assign [freeze X] -> (do (Assign X [thaw Self])
+                                    handled))
 
 )

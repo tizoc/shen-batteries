@@ -9,6 +9,9 @@
   [features
    box
    lazy
+   maybe
+   nullable
+   lazy/pattern
    dict
    typ/or
    typ/sexp
@@ -21,10 +24,11 @@
    shendoc])
 (library.use [box])
 
-\\ Exercise automatic registration and same-file pattern use.
+\\ Exercise checked custom patterns and same-file automatic registration.
 (let Typechecking (if (tc?) + -)
-  (do (tc -)
+  (do (tc +)
       (load "tests/fixtures/defpattern-input.shen")
+      (load "tests/fixtures/pattern-input.shen")
       (tc Typechecking)))
 
 \\ Load the iterator cache independently while pattern matching is deferred.

@@ -8,8 +8,8 @@
 (datatype typ/or.t
   X : A;
   ______________________
-  X : (mode (or A B) -);
+  X : (- (or A B));
 
   X : B;
   ______________________
-  X : (mode (or A B) -);)
+  X : (- (or A B));)

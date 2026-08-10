@@ -1,14 +1,14 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package maybe [@some @none void sexp]
+(package maybe [@some @none void defpattern]
 
 (datatype t-internal
   ______________
-  @none_value_ : (mode (t A) -);
+  @none_value_ : (- (t A));
 
   ______________
-  (absvector 2) : (mode (t A) -);
+  (absvector 2) : (- (t A));
 
   MaybeX : (t A);
   ______________
@@ -30,11 +30,11 @@
 (datatype t
   \\ For pattern matching
   ______________
-  (@none) : (t A);
+  (@p shen.custom-pattern (@none)) : (t A);
 
   X : A;
   ==============
-  (@some X) : (t A);)
+  (@p shen.custom-pattern (@some X)) : (t A);)
 
 (define @none
   { --> (t A) }
@@ -52,13 +52,13 @@
   { (t A) --> boolean }
   X -> (= X @none_value_))
 
-(define some?
+(define maybe.some?
   { (t A) --> boolean }
   X -> (not (none? X)))
 
 (define maybe.get
   { (t A) --> A }
-  X -> (<-address X 1) where (some? X)
+  X -> (<-address X 1) where (maybe.some? X)
   _ -> (error "Not a @some value"))
 
 (define unsafe-get
@@ -67,33 +67,31 @@
 
 (define get/or
   { (t A) --> (lazy A) --> A }
-  X _ -> (<-address X 1) where (some? X)
+  X _ -> (<-address X 1) where (maybe.some? X)
   _ F -> (thaw F))
 
 (define maybe.map
   { (A --> B) --> (t A) --> (t B) }
-  F X -> (@some (F (maybe.get X))) where (some? X)
+  F X -> (@some (F (maybe.get X))) where (maybe.some? X)
   _ X -> (@none))
 
 (define for-each
   { (A --> B) --> (t A) --> void }
   F X -> (do (F (maybe.get X))
              (void))
-      where (some? X)
+      where (maybe.some? X)
   _ X -> (void))
 
 (define #tag#some
   { (t A) --> string }
   X -> (make-string "(@some ~S)" (unsafe-get X)))
 
-(define maybe.pattern-handler
-  { sexp --> (sexp --> void) --> (sexp --> sexp --> void) --> sexp --> void }
-  Self Is? Assign [@none]   -> (Is? [none? Self])
-  Self Is? Assign [@some X] -> (do (Is? [some? Self])
-                                   (Assign X [unsafe-get Self]))
-  _ _ _ _ -> (fail))
-
-(shen.x.programmable-pattern-matching.register-handler maybe.pattern-handler)
+(defpattern maybe.pattern-handler
+  Self Is? Assign [@none]   -> (do (Is? [none? Self])
+                                   handled)
+  Self Is? Assign [@some X] -> (do (Is? [maybe.some? Self])
+                                   (Assign X [unsafe-get Self])
+                                   handled))
 
 (preclude [t-internal])
 

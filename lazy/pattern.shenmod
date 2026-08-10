@@ -1,5 +1,5 @@
 (shen.module
   (version 1)
   (name lazy/pattern)
-  (requires typ/void typ/sexp lazy)
+  (requires defpattern lazy)
   (sources tc+ "pattern/lazy-pattern.shen"))

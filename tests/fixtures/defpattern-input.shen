@@ -1,14 +1,19 @@
 (package defpattern-fixture [defpattern]
 
-(defpattern two-handler
-  Self Is? Assign [two A B]
+(defpattern pair-handler
+  Self Is? Assign [paired P]
     -> (do (Is? [tuple? Self])
-           (Assign A [fst Self])
-           (Assign B [snd Self])))
+           (Assign P Self)
+           handled))
+
+(datatype pair-pattern
+  P : A;
+  =================================================
+  (@p shen.custom-pattern (paired P)) : A;)
 
 (define match
-  { (A * B) --> (A * B) }
-  [two A B] -> (@p A B)
-  _ -> no)
+  { A --> A }
+  [paired P] -> P
+  _ -> (error "not a pair"))
 
 )

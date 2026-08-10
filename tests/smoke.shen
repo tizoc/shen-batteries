@@ -97,6 +97,21 @@
   (defpattern-fixture.match (@p 1 2)))
 
 (test.assert-equal
+  "maybe patterns use defpattern"
+  1
+  (test.match-maybe (@some 1)))
+
+(test.assert-equal
+  "nullable patterns use defpattern"
+  2
+  (test.match-nullable (@just 2)))
+
+(test.assert-equal
+  "lazy patterns use defpattern"
+  3
+  (test.match-lazy (freeze (+ 1 2))))
+
+(test.assert-equal
   "loader API is present"
   1
   (arity library.use))
