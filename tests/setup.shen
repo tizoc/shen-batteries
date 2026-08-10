@@ -14,11 +14,18 @@
    typ/sexp
    typ/verified-objects
    typ/verified-and-head
+   defpattern
    let-match
    pipe-macro
    cexpr
    shendoc])
 (library.use [box])
+
+\\ Exercise automatic registration and same-file pattern use.
+(let Typechecking (if (tc?) + -)
+  (do (tc -)
+      (load "tests/fixtures/defpattern-input.shen")
+      (tc Typechecking)))
 
 \\ Load the iterator cache independently while pattern matching is deferred.
 (let Typechecking (if (tc?) + -)

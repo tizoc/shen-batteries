@@ -5,12 +5,13 @@
 
 (defmacro defpattern-macro
   [defpattern Name | Body] ->
-    (do
-      (shen.update-symbol-table Name 4)
-      (shen.x.programmable-pattern-matching.register-handler Name)
+    (let Definition
       (append [define Name { sexp --> [sexp --> void] --> [sexp --> sexp --> void] --> sexp --> void }]
-                Body
-                [_ _ _ _ -> [fail]])))
+              Body
+              [_ _ _ _ -> [fail]])
+      [package null []
+        Definition
+        [shen.x.programmable-pattern-matching.register-handler Name]]))
 
 (define undef
   { symbol --> symbol }

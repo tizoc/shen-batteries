@@ -92,6 +92,11 @@
     (+ A (hd B))))
 
 (test.assert-equal
+  "defpattern registers before following definitions"
+  (@p 1 2)
+  (defpattern-fixture.match (@p 1 2)))
+
+(test.assert-equal
   "loader API is present"
   1
   (arity library.use))
