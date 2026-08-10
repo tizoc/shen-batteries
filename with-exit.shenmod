@@ -3,4 +3,4 @@
   (name with-exit)
   (requires typ/void typ/sexp)
   (requires-features shen/scheme)
-  (sources tc- "with-exit/with-exit.shen"))
+  (sources tc+ "with-exit/with-exit.shen"))
