@@ -36,6 +36,14 @@ make test SHEN=/absolute/path/to/shen
 
 The current reference runtime is Shen 41.3 on Shen/Scheme 0.46.
 
+Shen/Scheme 0.46 can also compile and load the native module smoke graph:
+
+```sh
+make test-native SHEN=/absolute/path/to/shen-scheme
+```
+
+This target is intentionally separate from the portable source-loader tests.
+
 Regenerate the tracked API documentation from source comments with:
 
 ```sh

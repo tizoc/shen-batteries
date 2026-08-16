@@ -1,0 +1,10 @@
+(shen.module
+  (version 1)
+  (name batteries.native-test)
+  (requires maybe)
+  (requires-features shen/scheme)
+  (sources tc+ "maybe-pattern.shen")
+  (extension shen/scheme
+    (mode sealed)
+    (exports batteries-native-test.answer)
+    (metadata runtime compiletime)))

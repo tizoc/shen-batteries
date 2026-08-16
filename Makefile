@@ -2,10 +2,17 @@ ifndef SHEN
 $(error SHEN must be specified)
 endif
 
-.PHONY: test docs
+.PHONY: test test-native docs
 test:
 	"$(SHEN)" script tests/run.shen
 	"$(SHEN)" script tests/run-verified-if.shen
+
+test-native:
+	mkdir -p _build
+	"$(SHEN)" build-module-app tests/native/maybe-pattern.shenmod --module-dir . -o _build/native-test.so
+	"$(SHEN)" eval -q \
+		-e '(shen-scheme.load-compiled "_build/native-test.so")' \
+		-e '(if (= (batteries-native-test.answer) 42) ok (error "native module smoke test failed"))'
 
 docs:
 	"$(SHEN)" script shendoc.shen box/box.shen docs/box.adoc
