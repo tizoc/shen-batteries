@@ -228,14 +228,14 @@
                     (@none)))))
 
 \\: `(iter.find Test Iter)`
-(define find
+(define iter.find
   { (A --> boolean) --> (iter.t A) --> (maybe.t A) }
   Test Iter -> (find-map (/. X (if (Test X) (@some X) (@none))) Iter))
 
 \\: `(iter.find-exn Test Iter)`
 (define find-exn
   { (A --> boolean) --> (iter.t A) --> A }
-  Test Iter -> (let R (find Test Iter)
+  Test Iter -> (let R (iter.find Test Iter)
                  (if (maybe.some? R)
                      (maybe.unsafe-get R)
                      (error "find-exn: value not found"))))
@@ -256,7 +256,7 @@
 \\: == Transformation
 
 \\: `(iter.filter F Iter)`
-(define filter
+(define iter.filter
   { (A --> boolean) --> (iter.t A) --> (iter.t A) }
   F Iter Yield -> (Iter (/. X (if (F X)
                                   (Yield X)
@@ -371,7 +371,7 @@
                 (error "iter.head-exn called on emtpy iter"))))
 
 \\: `(iter.take N Iter)`
-(define take
+(define iter.take
   { number --> (iter.t A) --> (iter.t A) }
   N Iter Yield -> (let Count (box.make 0)
                     (with-break Break
@@ -401,7 +401,7 @@
                        (box.unbox State))))
 
 \\: `(iter.drop N Iter)`
-(define drop
+(define iter.drop
   { number --> (iter.t A) --> (iter.t A) }
   N Iter Yield -> (let Count (box.make 0)
                     (Iter (/. X (if (>= (box.unbox Count) N)
@@ -449,7 +449,7 @@
   { (list A) --> (iter.t A) }
   [] Yield -> (void)
   [X | Rest] Yield -> (do (Yield X)
-                          (of-list Rest)))
+                          (of-list Rest Yield)))
 
 \\: `(iter.convert-list F List)`
 (define convert-list
@@ -462,7 +462,9 @@
   Iter -> (let MList (mlist.of-iter Iter)
                Limit (mlist.length MList)
             (let Vector (vector Limit)
-                 _ (mlist.for-each-enumerated (/. (@p I X) (vector-> Vector I X)) MList)
+                 _ (mlist.for-each-enumerated
+                    (/. Pair (vector-> Vector (fst Pair) (snd Pair)))
+                    MList)
               Vector)))
 
 \\: `(iter.of-vector Vector)`

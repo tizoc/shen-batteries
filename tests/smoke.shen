@@ -98,7 +98,27 @@
                   (do (box.incr Count)
                       (Break)
                       (box.incr Count)))
-                (box.unbox Count)))))
+                (box.unbox Count))))
+        (test.assert-equal
+          "iter loads through its descriptor"
+          [1 2 3]
+          (iter.to-list (iter.of-list [1 2 3])))
+        (test.assert-equal
+          "iter Shen 41 compatibility APIs"
+          [(@some 3) [3 4]]
+          (let Iter (iter.of-list [1 2 3 4 5])
+            [(iter.find (= 3) Iter)
+             (iter.to-list
+               (iter.take 2
+                 (iter.drop 1
+                   (iter.filter (/. X (> X 1)) Iter))))]))
+        (test.assert-equal
+          "iter.to-vector spans cache chunks"
+          [1 2 3 4 5 6 7 8 9 10]
+          (iter.to-list
+            (iter.of-vector
+              (iter.to-vector
+                (iter.of-list [1 2 3 4 5 6 7 8 9 10]))))))
   true skip)
 
 (test.assert-equal

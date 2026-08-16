@@ -40,8 +40,11 @@
           (tc Typechecking)))
   true skip)
 
-\\ Load the iterator cache independently while pattern matching is deferred.
-(let Typechecking (if (tc?) + -)
-  (do (tc +)
-      (load "iter/mlist.shen")
-      (tc Typechecking)))
+\\ `iter` is Shen/Scheme-only; retain portable cache coverage on other ports.
+(shen.x.features.cond-expand
+  shen/scheme (library.use [iter])
+  true
+    (let Typechecking (if (tc?) + -)
+      (do (tc +)
+          (load "iter/mlist.shen")
+          (tc Typechecking))))
