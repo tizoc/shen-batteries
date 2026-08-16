@@ -67,7 +67,7 @@
 
 \\: `(dict.delete Dict Key)` deletes the value associated with `Key` in `Dict`.
 (define dict.delete
-  { (dict.t K V) --> Key --> Key }
+  { (dict.t K V) --> K --> K }
   Dict Key -> (shen.dict-rm Dict Key))
 
 \\: === Traversal

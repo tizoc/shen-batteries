@@ -31,7 +31,7 @@ Raises an error if no value associated with `Key` is found.
 
 `(dict.set Dict Key Value)` associates `Value` with `Key` in `Dict`.
 
-==== `dict.delete` : `(dict.t K V) --> Key --> Key`
+==== `dict.delete` : `(dict.t K V) --> K --> K`
 
 `(dict.delete Dict Key)` deletes the value associated with `Key` in `Dict`.
 

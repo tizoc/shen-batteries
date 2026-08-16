@@ -53,6 +53,14 @@
         (dict.get Dict answer))))
 
 (test.assert-equal
+  "dict delete returns and removes its key"
+  [answer missing]
+  (let Dict (dict.make 4)
+    (do (dict.set Dict answer 42)
+        [(dict.delete Dict answer)
+         (trap-error (dict.get Dict answer) (/. X missing))])))
+
+(test.assert-equal
   "pipe-first macro"
   20
   (=> 2 (+ 3) (* 4)))
