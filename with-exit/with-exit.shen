@@ -39,7 +39,7 @@
 (datatype t
   Exit : (A --> B) >> Body : A;
   ____________________________
-  ((foreign scm.call/1cc) (lambda Exit Body)) : A;)
+  (scm.call/1cc (lambda Exit Body)) : A;)
 
 (datatype t-internal
   X : sexp;

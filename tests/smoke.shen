@@ -79,6 +79,14 @@
 (shen.x.features.cond-expand
   shen/scheme
     (do (test.assert-equal
+          "with-return typechecks"
+          7
+          (test-with-exit.return))
+        (test.assert-equal
+          "with-break typechecks"
+          ok
+          (do (test-with-exit.break) ok))
+        (test.assert-equal
           "with-return exits early"
           7
           (with-return Return (+ 1 (Return 7))))

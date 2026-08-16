@@ -32,6 +32,14 @@
       (load "tests/fixtures/pattern-input.shen")
       (tc Typechecking)))
 
+(shen.x.features.cond-expand
+  shen/scheme
+    (let Typechecking (if (tc?) + -)
+      (do (tc +)
+          (load "tests/fixtures/with-exit-input.shen")
+          (tc Typechecking)))
+  true skip)
+
 \\ Load the iterator cache independently while pattern matching is deferred.
 (let Typechecking (if (tc?) + -)
   (do (tc +)
