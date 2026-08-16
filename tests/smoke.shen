@@ -170,6 +170,24 @@ A final note.
   (shendoc.generate "tests/fixtures/shendoc-input.shen"))
 
 (test.assert-equal
-  "seq cexpr declares its runtime dependency"
-  [seq typ/sexp cexpr]
-  (library.module-requires (library.read-module seq/cexpr)))
+  "seq loads through its descriptor"
+  [1 2 3]
+  (seq.to-list (seq.range 1 3)))
+
+(test.assert-equal
+  "seq Shen 41 compatibility APIs"
+  [3 4]
+  (seq.to-list
+    (seq.take 2
+      (seq.drop 1
+        (seq.filter (/. X (> X 1)) (seq.range 1 5))))))
+
+(test.assert-equal
+  "seq find uses its package API"
+  (@some 3)
+  (seq.find (/. X (= X 3)) (seq.range 1 5)))
+
+(test.assert-equal
+  "seq cexpr loads its runtime dependency"
+  [1 2]
+  (seq.to-list (:seq yield 1 yield 2)))

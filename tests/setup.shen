@@ -21,6 +21,7 @@
    let-match
    pipe-macro
    cexpr
+   seq/cexpr
    shendoc])
 (library.use [box])
 

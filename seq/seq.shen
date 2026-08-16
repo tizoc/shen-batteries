@@ -372,7 +372,7 @@
 
 \\: `(seq.find Test Seq)` returns the first element in `Seq` for which `(Test Elt)` is `true`
 \\: wrapped as `(@some Elt)` or `@none` otherwise.
-(define find
+(define seq.find
   { (A --> boolean) --> (seq.t A) --> (maybe.t A) }
   F S -> (find-h F (thaw S)))
 
@@ -441,7 +441,7 @@
 
 \\: `(seq.filter Test Seq)` returns a new sequence with all the elements in `Seq` for which
 \\: `(Test Elt)` is `false` removed.
-(define filter
+(define seq.filter
   { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (filter-h F (thaw S))))
 
@@ -539,7 +539,7 @@
 \\: `(seq.take N Seq)` returns a sequence containing the first `N` elements of `Seq`.
 \\: An error will be thrown when traversing the new sequence if the original sequence
 \\: had fewer than `N` elements.
-(define take
+(define seq.take
   { number --> (seq.t A) --> (seq.t A) }
   N _ -> (error "cannot take a negative amount from a seq") where (< N 0)
   N S -> (freeze (take-h N (thaw S))))
@@ -548,12 +548,12 @@
   { number --> (node A) --> (node A) }
   0 _ -> []
   N [] -> (error "failure to take from sequence that ended abruptly")
-  N [X | Seq] -> [X | (take (- N 1) Seq)])
+  N [X | Seq] -> [X | (seq.take (- N 1) Seq)])
 
 \\: `(seq.drop N Seq)` returns a sequence with the elements from `Seq` with the first `N` elements removed.
 \\: An error will be thrown when traversing the new sequence if the original sequence
 \\: had fewer than `N` elements.
-(define drop
+(define seq.drop
   { number --> (seq.t A) --> (seq.t A) }
   0 S -> S
   N _ -> (error "cannot drop a negative amount from a seq") where (< N 0)
