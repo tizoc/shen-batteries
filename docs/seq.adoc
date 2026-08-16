@@ -42,8 +42,8 @@ everything contained in sequence `S`.
 ==== `seq.unfold` : `(B --> (maybe.t (A * B))) --> B --> (seq.t A)`
 
 `(seq.unfold F Seed)` produces a sequence of values constructed from the results of `(F Seed)`.
-`F` must return `(@none)` to signal the end of the production of elements, and `(@some Elt NewSeed)`
-to produce a new sequence element `Elt`. `NewSeed` will be passed to `F` the next time a sequence
+`F` must return `(@none)` to signal the end of the production of elements, or
+`(@some (@p Elt NewSeed))` to produce `Elt`. `NewSeed` will be passed to `F` the next time a sequence
 element has to be produced.
 
 ==== `seq.range-step` : `number --> number --> number --> (seq.t number)`
@@ -72,7 +72,7 @@ is either a list, or a vector.
 
 ==== `seq.of-vector-reversed` : `(vector A) --> (seq.t A)`
 
-`(seq.of-vector Vector)` produces a sequence containing all elements in the vector `Vector` in reverse order.
+`(seq.of-vector-reversed Vector)` produces a sequence containing all elements in the vector `Vector` in reverse order.
 
 ==== `seq.of-string` : `string --> (seq.t string)`
 
@@ -93,7 +93,7 @@ that means that the operation succeeded without the `Seq` sequence ending premat
 
 ==== `seq.to-string` : `(seq.t string) --> string`
 
-`(seq.to-string Seq)` constructs a list that is the concatenation of every string produced by the sequence `Seq`.
+`(seq.to-string Seq)` constructs a string that is the concatenation of every string produced by the sequence `Seq`.
 
 ==== `seq.forever` : `(lazy A) --> (seq.t A)`
 
@@ -166,7 +166,7 @@ by the traversal of `Seq`. `Seq` is only consumed until `(Test Elt)` is `true`.
 
 ==== `seq.element-cmp?` : `(A --> B --> boolean) --> A --> (seq.t B) --> boolean`
 
-`(seq.element? Cmp X Seq)` is equivalent to `(seq.exists? (Cmp X) Seq)`.
+`(seq.element-cmp? Cmp X Seq)` is equivalent to `(seq.exists? (Cmp X) Seq)`.
 
 ==== `seq.find` : `(A --> boolean) --> (seq.t A) --> (maybe.t A)`
 
@@ -185,6 +185,20 @@ wrapped as `(@some Elt)` or `@none` otherwise.
 `(seq.map F Seq)` returns a new sequence with all the elements in `Seq` transformed
 with `(F Elt)`.
 
+==== `seq.map2` : `(A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C)`
+
+`(seq.map2 F SeqA SeqB)` returns a new sequence containing elements that are the results
+of `(F EltA EltB)`, with `EltA` and `EltB` being elements resulting from the parallel
+traversal of the sequences `SeqA` and `SeqB`. The resulting sequence is as long as
+the shortest of the two input sequences.
+
+==== `seq.map3` : `(A --> B --> C --> D) --> (seq.t A) --> (seq.t B) --> (seq.t C) --> (seq.t D)`
+
+`(seq.map3 F SeqA SeqB SeqC)` returns a new sequence containing elements that are the results
+of `(F EltA EltB EltC)`, with `EltA`, `EltB` and `EltC` being elements resulting from the parallel
+traversal of the sequences `SeqA`, `SeqB` and `SeqC`. The resulting sequence is as long as
+the shortest of the three input sequences.
+
 ==== `seq.filter` : `(A --> boolean) --> (seq.t A) --> (seq.t A)`
 
 `(seq.filter Test Seq)` returns a new sequence with all the elements in `Seq` for which
@@ -192,7 +206,7 @@ with `(F Elt)`.
 
 ==== `seq.filter-map` : `(A --> (maybe.t B)) --> (seq.t A) --> (seq.t B)`
 
-`(seq.filter F Seq)` returns a new sequence with all the elements in `Seq` for which
+`(seq.filter-map F Seq)` returns a new sequence with all the elements in `Seq` for which
 `(F Elt)` is `(@none)` removed, and for which the result is `(@some NewElt)` replaced by
 `NewElt`.
 

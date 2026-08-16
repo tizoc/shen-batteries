@@ -66,7 +66,7 @@
   { (t A) --> A --> void }
   Box X -> (do (address-> Box 1 X) (void)))
 
-\\: `(box.modify F Box)` stores the result of `(box.put (F (box.unbox Box)))` inside `Box`.
+\\: `(box.modify F Box)` stores the result of `(F (box.unbox Box))` inside `Box`.
 (define modify
   { (A --> A) --> (t A) --> void }
   F Box -> (box.put Box (F (unbox Box))))

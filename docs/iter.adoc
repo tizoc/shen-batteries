@@ -1,7 +1,7 @@
 = Iter
 
 The type `(iter.t A)` represents an iterator that produces values of type `A`.
-When applied to a function of type `A --> void`, the function will be aplied
+When applied to a function of type `A --> void`, the function will be applied
 to every value produced by the iterator until it is consumed or an exception
 is raised.
 
@@ -40,7 +40,7 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.iterate` : `(A --> A) --> A --> (iter.t A)`
 
-`(iterate F X)`
+`(iter.iterate F X)`
 
 ==== `iter.forever` : `(lazy A) --> (iter.t A)`
 
@@ -52,7 +52,7 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.unfoldr` : `(B --> (maybe.t (A * B))) --> B --> (iter.t A)`
 
-`(iter.unfoldr X F Init)`
+`(iter.unfoldr F X)`
 
 ==== `iter.scan` : `(B --> A --> B) --> B --> (iter.t A) --> (iter.t B)`
 
@@ -62,11 +62,11 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.for-each` : `(A --> void) --> (iter.t A) --> void`
 
-`(for-each F Iter)`
+`(iter.for-each F Iter)`
 
 ==== `iter.for-eachi` : `(number --> A --> void) --> (iter.t A) --> void`
 
-`(for-eachi F Iter)`
+`(iter.for-eachi F Iter)`
 
 ==== `iter.fold` : `(A --> B --> A) --> A --> (iter.t B) --> A`
 
@@ -92,7 +92,9 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 `(iter.mapi F Iter)`
 
-`(iter.map-by-2 F Iter)`
+==== `iter.for-all?` : `(A --> boolean) --> (iter.t A) --> boolean`
+
+`(iter.for-all? Test Iter)`
 
 ==== `iter.exists?` : `(A --> boolean) --> (iter.t A) --> boolean`
 
@@ -132,7 +134,131 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 == Transformation
 
+==== `iter.filter` : `(A --> boolean) --> (iter.t A) --> (iter.t A)`
+
+`(iter.filter F Iter)`
+
+==== `iter.append` : `(iter.t A) --> (iter.t A) --> (iter.t A)`
+
+`(iter.append IterL IterR)`
+
+==== `iter.concat` : `(list (iter.t A)) --> (iter.t A)`
+
+`(iter.concat IterList)`
+
+==== `iter.flatten` : `(iter.t (iter.t A)) --> (iter.t A)`
+
+`(iter.flatten ItersIter)`
+
+==== `iter.flat-map` : `(A --> (iter.t B)) --> (iter.t A) --> (iter.t B)`
+
+`(iter.flat-map F Iter)`
+
+==== `iter.flat-map-l` : `(A --> (list B)) --> (iter.t A) --> (iter.t B)`
+
+`(iter.flat-map-l F Iter)`
+
+==== `iter.filter-map` : `(A --> (maybe.t B)) --> (iter.t A) --> (iter.t B)`
+
+`(iter.filter-map F Iter)`
+
+==== `iter.filter-mapi` : `(number --> A --> (maybe.t B)) --> (iter.t A) --> (iter.t B)`
+
+`(iter.filter-mapi F Iter)`
+
+==== `iter.filter-count` : `(A --> boolean) --> (iter.t A) --> number`
+
+`(iter.filter-count F Iter)`
+
+==== `iter.intersperse` : `A --> (iter.t A) --> (iter.t A)`
+
+`(iter.intersperse Elt Iter)`
+
+==== `iter.keep-some` : `(iter.t (maybe.t A)) --> (iter.t A)`
+
+`(iter.keep-some Iter)`
+
+== Caching
+
+==== `iter.persistent` : `(iter.t A) --> (iter.t A)`
+
+`(iter.persistent Iter)`
+
+==== `iter.persistent-lazy` : `(iter.t A) --> (iter.t A)`
+
+`(iter.persistent-lazy Iter)`
+
 == Misc
 
 === List-like
+
+==== `iter.head` : `(iter.t A) --> (maybe.t A)`
+
+`(iter.head Iter)`
+
+==== `iter.head-exn` : `(iter.t A) --> A`
+
+`(iter.head-exn Iter)`
+
+==== `iter.take` : `number --> (iter.t A) --> (iter.t A)`
+
+`(iter.take N Iter)`
+
+==== `iter.take-while` : `(A --> boolean) --> (iter.t A) --> (iter.t A)`
+
+`(iter.take-while P Iter)`
+
+==== `iter.fold-while` : `(A --> B --> (A * boolean)) --> A --> (iter.t B) --> A`
+
+`(iter.fold-while F Init Iter)`
+
+==== `iter.drop` : `number --> (iter.t A) --> (iter.t A)`
+
+`(iter.drop N Iter)`
+
+==== `iter.drop-while` : `(A --> boolean) --> (iter.t A) --> (iter.t A)`
+
+`(iter.drop-while P Iter)`
+
+==== `iter.reverse` : `(iter.t A) --> (iter.t A)`
+
+`(iter.reverse Iter)`
+
+==== `iter.enumerate` : `(iter.t A) --> (iter.t (number * A))`
+
+`(iter.enumerate Iter)`
+
+== Converters
+
+==== `iter.to-list` : `(iter.t A) --> (list A)`
+
+`(iter.to-list Iter)`
+
+==== `iter.to-list-reverse` : `(iter.t A) --> (list A)`
+
+`(iter.to-list-reverse Iter)`
+
+==== `iter.of-list` : `(list A) --> (iter.t A)`
+
+`(iter.of-list List)`
+
+==== `iter.convert-list` : `((iter.t A) --> (iter.t B)) --> (list A) --> (list B)`
+
+`(iter.convert-list F List)`
+
+==== `iter.to-vector` : `(iter.t A) --> (vector A)`
+
+`(iter.to-vector Iter)`
+
+==== `iter.of-vector` : `(vector A) --> (iter.t A)`
+
+`(iter.of-vector Vector)`
+
+==== `iter.of-vector-enumerated` : `(vector A) --> (iter.t (number * A))`
+
+`(iter.of-vector-enumerated Vector)`
+
+==== `iter.of-vector-range` : `(vector A) --> number --> number --> (iter.t A)`
+
+`(iter.of-vector-range Vector From To)`
 

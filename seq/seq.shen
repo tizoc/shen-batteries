@@ -85,8 +85,8 @@
   N Elt -> (freeze [Elt | (make (- N 1) Elt)]))
 
 \\: `(seq.unfold F Seed)` produces a sequence of values constructed from the results of `(F Seed)`.
-\\: `F` must return `(@none)` to signal the end of the production of elements, and `(@some Elt NewSeed)`
-\\: to produce a new sequence element `Elt`. `NewSeed` will be passed to `F` the next time a sequence
+\\: `F` must return `(@none)` to signal the end of the production of elements, or
+\\: `(@some (@p Elt NewSeed))` to produce `Elt`. `NewSeed` will be passed to `F` the next time a sequence
 \\: element has to be produced.
 (define unfold
   { (B --> (maybe.t (A * B))) --> B --> (seq.t A) }
@@ -165,7 +165,7 @@
   _ N L -> (empty) where (> N L)
   V N L -> (freeze [(<-vector V N) | (of-vector-h V (+ N 1) L)]))
 
-\\: `(seq.of-vector Vector)` produces a sequence containing all elements in the vector `Vector` in reverse order.
+\\: `(seq.of-vector-reversed Vector)` produces a sequence containing all elements in the vector `Vector` in reverse order.
 (define of-vector-reversed
   { (vector A) --> (seq.t A) }
   V -> (of-vector-reversed-h V (limit V)))
@@ -225,7 +225,7 @@
                            (@p Seq 0))
   N Count Step V [X | Seq] -> (into-vector-h (+ N Step) (- Count 1) Step (vector-> V N X) (thaw Seq)))
 
-\\: `(seq.to-string Seq)` constructs a list that is the concatenation of every string produced by the sequence `Seq`.
+\\: `(seq.to-string Seq)` constructs a string that is the concatenation of every string produced by the sequence `Seq`.
 (define to-string
   { (seq.t string) --> string }
   S -> (to-string-h (thaw S)))
@@ -365,7 +365,7 @@
   { A --> (seq.t A) --> boolean }
   X S -> (exists? (= X) S))
 
-\\: `(seq.element? Cmp X Seq)` is equivalent to `(seq.exists? (Cmp X) Seq)`.
+\\: `(seq.element-cmp? Cmp X Seq)` is equivalent to `(seq.exists? (Cmp X) Seq)`.
 (define element-cmp?
   { (A --> B --> boolean) --> A --> (seq.t B) --> boolean }
   Cmp X S -> (exists? (Cmp X) S))
@@ -452,7 +452,7 @@
       where (F H)
   F [H | T] -> (filter-h F (thaw T)))
 
-\\: `(seq.filter F Seq)` returns a new sequence with all the elements in `Seq` for which
+\\: `(seq.filter-map F Seq)` returns a new sequence with all the elements in `Seq` for which
 \\: `(F Elt)` is `(@none)` removed, and for which the result is `(@some NewElt)` replaced by
 \\: `NewElt`.
 (define filter-map

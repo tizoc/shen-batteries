@@ -73,7 +73,7 @@
   N FN Yield -> (do (Yield (FN N))
                     (init-h (- N 1) FN Yield)))
 
-\\: `(iterate F X)`
+\\: `(iter.iterate F X)`
 (define iterate
   { (A --> A) --> A --> (iter.t A) }
   F X Yield -> (do (Yield X)
@@ -91,7 +91,7 @@
   Iter Yield -> (do (Iter Yield)
                     (cycle Iter Yield)))
 
-\\: `(iter.unfoldr X F Init)`
+\\: `(iter.unfoldr F X)`
 (define unfoldr
   { (B --> (maybe.t (A * B))) --> B --> (iter.t A) }
   F X Yield -> (unfoldr-h F (F X) Yield))
@@ -174,7 +174,7 @@
                     (Iter (/. X (do (Yield (F (box.unbox Index) X))
                                     (box.incr Index))))))
 
-\\: `(iter.map-by-2 F Iter)`
+\\ `(iter.map-by-2 F Iter)`
 \\(define map-by-2
 \\  { (A --> A --> A) --> (iter.t A) --> (iter.t A) }
 \\  F Iter Yield -> )
@@ -362,7 +362,7 @@
             (do (Iter (/. X (Return (@some X))))
                 (@none))))
 
-\\: `(iter.head-exn)`
+\\: `(iter.head-exn Iter)`
 (define head-exn
   { (iter.t A) --> A }
   Iter -> (let R (iter.head Iter)
@@ -418,7 +418,7 @@
                                         (do (box.toggle Drop)
                                             (Yield X)))
                                     (Yield X))))))
-\\ `(iter.reverse Iter)`
+\\: `(iter.reverse Iter)`
 (define iter.reverse
   { (iter.t A) --> (iter.t A) }
   Iter -> (let MList (mlist.of-iter Iter)
@@ -444,7 +444,7 @@
   { (iter.t A) --> (list A) }
   Iter -> (fold (/. Acc X [X | Acc]) [] Iter))
 
-\\: `(iter.to-list List)`
+\\: `(iter.of-list List)`
 (define of-list
   { (list A) --> (iter.t A) }
   [] Yield -> (void)

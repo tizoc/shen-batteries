@@ -34,6 +34,14 @@ Provide the Shen executable explicitly:
 make test SHEN=/absolute/path/to/shen
 ```
 
+The current reference runtime is Shen 41.3 on Shen/Scheme 0.46.
+
+Regenerate the tracked API documentation from source comments with:
+
+```sh
+make docs SHEN=/absolute/path/to/shen
+```
+
 License
 -------
 
