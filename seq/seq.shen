@@ -510,15 +510,16 @@
   [S | Ss] -> (seq.append S (seq.concat Ss)))
 
 \\: `(seq.flatten SeqOfSeqs)` returns a sequence that produces every element produced
-\\: by each subsequence produced by `SeqOfSeqs`.
+\\: by each subsequence produced by `SeqOfSeqs`, consuming the outer sequence only
+\\: as its subsequences are needed.
 (define flatten
   { (seq.t (seq.t A)) --> (seq.t A) }
-  S -> (freeze (thaw (flatten-h (thaw S)))))
+  S -> (freeze (flatten-h (thaw S))))
 
 (define flatten-h
-  { (node (seq.t A)) --> (seq.t A) }
-  [] -> (empty)
-  [S | Ss] -> (seq.append S (flatten-h (thaw Ss))))
+  { (node (seq.t A)) --> (node A) }
+  [] -> []
+  [S | Ss] -> (append-h (thaw S) (flatten Ss)))
 
 \\: `(seq.cycle Seq)` returns an infinite sequence that produces all the elements from a
 \\: nonempty `Seq`, repeated from the beginning each time its end is reached. An empty

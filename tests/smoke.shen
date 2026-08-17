@@ -307,6 +307,17 @@ A final note.
     [Before Head (box.unbox Count)]))
 
 (test.assert-equal
+  "seq.flatten consumes outer sequences lazily"
+  [0 [1] 1]
+  (let Count (box.make 0)
+       Outer (seq.map (/. X (do (box.incr Count) (seq.singleton X)))
+                      (seq.of-list [1 2 3]))
+       Flattened (seq.flatten Outer)
+       Before (box.unbox Count)
+       Values (seq.to-list (seq.take 1 Flattened))
+    [Before Values (box.unbox Count)]))
+
+(test.assert-equal
   "seq.take zero consumes no source values"
   [0 []]
   (let Count (box.make 0)

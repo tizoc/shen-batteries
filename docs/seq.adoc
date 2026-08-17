@@ -229,7 +229,8 @@ in `Seq1` followed by all elements in `Seq2`, .... followed by all elements in `
 ==== `seq.flatten` : `(seq.t (seq.t A)) --> (seq.t A)`
 
 `(seq.flatten SeqOfSeqs)` returns a sequence that produces every element produced
-by each subsequence produced by `SeqOfSeqs`.
+by each subsequence produced by `SeqOfSeqs`, consuming the outer sequence only
+as its subsequences are needed.
 
 ==== `seq.cycle` : `(seq.t A) --> (seq.t A)`
 
