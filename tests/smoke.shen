@@ -28,7 +28,7 @@
 
 (test.assert-true
   "feature list is nonempty"
-  (cons? (shen.x.features.current)))
+  (cons? (features.current)))
 
 (test.assert-equal
   "void composes with do"
@@ -209,7 +209,7 @@
     (+ A (hd B))))
 
 (test.assert-equal
-  "defpattern registers before following definitions"
+  "defpattern registers for following files"
   (@p 1 2)
   (defpattern-fixture.match (@p 1 2)))
 

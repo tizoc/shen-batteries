@@ -6,7 +6,7 @@
 (datatype t
   X : A;
   =================================================
-  (@p shen.custom-pattern (freeze X)) : (lazy A);)
+  (freeze X) : (lazy A);)
 
 (defpattern lazy-pattern.pattern-handler
   Self Is? Assign [freeze X] -> (do (Assign X [thaw Self])

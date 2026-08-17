@@ -38,7 +38,8 @@ The current reference runtime is Shen 41.3 on Shen/Scheme built from `master`
 after 0.46. Shen/Scheme 0.46 itself predates its dictionary traversal
 compatibility fix.
 
-Shen/Scheme 0.46 can also compile and load the native module smoke graph:
+The same Shen/Scheme development build can also compile and load the native
+module smoke graph:
 
 ```sh
 make test-native SHEN=/absolute/path/to/shen-scheme

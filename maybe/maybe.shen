@@ -30,11 +30,11 @@
 (datatype t
   \\ For pattern matching
   ______________
-  (@p shen.custom-pattern (@none)) : (t A);
+  (@none) : (t A);
 
   X : A;
   ==============
-  (@p shen.custom-pattern (@some X)) : (t A);)
+  (@some X) : (t A);)
 
 (define @none
   { --> (t A) }

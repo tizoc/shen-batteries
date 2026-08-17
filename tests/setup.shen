@@ -25,10 +25,12 @@
    shendoc])
 (library.use [box])
 
-\\ Exercise checked custom patterns and same-file automatic registration.
+\\ Exercise checked custom patterns after automatic registration at a
+\\ file boundary.
 (let Typechecking (if (tc?) + -)
   (do (tc +)
       (load "tests/fixtures/defpattern-input.shen")
+      (load "tests/fixtures/defpattern-use.shen")
       (load "tests/fixtures/pattern-input.shen")
       (tc Typechecking)))
 

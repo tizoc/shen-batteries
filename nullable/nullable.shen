@@ -18,11 +18,11 @@
 
   \\ Pattern matching
   ______________
-  (@p shen.custom-pattern (@null)) : (t A);
+  (@null) : (t A);
 
   X : A;
   ==============
-  (@p shen.custom-pattern (@just X)) : (t A);)
+  (@just X) : (t A);)
 
 (define @null
   { --> (t A) }

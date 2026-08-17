@@ -3,11 +3,6 @@
 
 (package defpattern [defpattern sexp]
 
-(datatype t
-  F : symbol;
-  ___________________________________________________________________
-  (shen.x.programmable-pattern-matching.register-handler F) : symbol;)
-
 (defmacro defpattern-macro
   [defpattern Name | Body] ->
     (let Definition

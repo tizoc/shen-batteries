@@ -9,11 +9,6 @@
 (datatype pair-pattern
   P : A;
   =================================================
-  (@p shen.custom-pattern (paired P)) : A;)
-
-(define match
-  { A --> A }
-  [paired P] -> P
-  _ -> (error "not a pair"))
+  (paired P) : A;)
 
 )
