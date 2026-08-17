@@ -2,10 +2,40 @@ ifndef SHEN
 $(error SHEN must be specified)
 endif
 
-.PHONY: test test-native docs
-test:
+PRODUCTION_MODULES = \
+	box \
+	cexpr \
+	defpattern \
+	dict \
+	features \
+	iter \
+	lazy \
+	lazy/pattern \
+	let-match \
+	maybe \
+	nullable \
+	pipe-macro \
+	seq \
+	seq/cexpr \
+	shendoc \
+	typ/or \
+	typ/sexp \
+	typ/verified-and-head \
+	typ/verified-if \
+	typ/verified-objects \
+	typ/void \
+	with-exit
+
+.PHONY: test test-modules test-native docs
+test: test-modules
 	"$(SHEN)" script tests/run.shen
 	"$(SHEN)" script tests/run-verified-if.shen
+
+test-modules:
+	@set -e; \
+	for Module in $(PRODUCTION_MODULES); do \
+		"$(SHEN)" script tests/load-module.shen "$$Module"; \
+	done
 
 test-native:
 	mkdir -p _build
