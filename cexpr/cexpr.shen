@@ -102,7 +102,10 @@
   Mk Expr <- (cexpr.build-applicative Mk Expr)
   Mk Expr -> (cexpr.build-monadic Mk Expr))
 
+\\ Apply the builder's root boundary exactly once. Recursive computation
+\\ expression translation continues to use cexpr.build directly.
 (defmacro cexpr.macro
-  [:CX | CExpr] -> (cexpr.build (cexpr.builder CX) CExpr))
+  [:CX | CExpr] -> (let Mk (cexpr.builder CX)
+                     (Mk [run (Mk [delay (cexpr.build Mk CExpr)])])))
 
 (preclude [cexpr.t-internal])

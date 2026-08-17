@@ -25,6 +25,13 @@
    shendoc])
 (library.use [box])
 
+\\ Exercise a checked computation-expression builder after registration at a
+\\ file boundary.
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "tests/fixtures/cexpr-input.shen")
+      (tc Typechecking)))
+
 \\ Exercise checked custom patterns after automatic registration at a
 \\ file boundary.
 (let Typechecking (if (tc?) + -)

@@ -359,6 +359,11 @@ A final note.
   (seq.to-list (:seq yield 1 yield 2)))
 
 (test.assert-equal
+  "cexpr applies root delay and run once"
+  [root-run [delayed [combined [yielded 1] [delayed [yielded 2]]]]]
+  (:cexpr-trace yield 1 yield 2))
+
+(test.assert-equal
   "seq cexpr supports discarded monadic binds"
   [kept]
   (seq.to-list
