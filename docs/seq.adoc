@@ -240,18 +240,21 @@ nonempty `Seq`, repeated from the beginning each time its end is reached. An emp
 ==== `seq.truncate` : `number --> (seq.t A) --> (seq.t A)`
 
 `(seq.truncate N Seq)` returns a sequence containing at most the first `N` elements of `Seq`.
+Negative values of `N` are rejected.
 
 ==== `seq.take` : `number --> (seq.t A) --> (seq.t A)`
 
 `(seq.take N Seq)` returns a sequence containing the first `N` elements of `Seq`.
 An error will be thrown when traversing the new sequence if the original sequence
 had fewer than `N` elements.
+Negative values of `N` are rejected.
 
 ==== `seq.drop` : `number --> (seq.t A) --> (seq.t A)`
 
 `(seq.drop N Seq)` returns a sequence with the elements from `Seq` with the first `N` elements removed.
 An error will be thrown when traversing the new sequence if the original sequence
 had fewer than `N` elements.
+Negative values of `N` are rejected.
 
 ==== `seq.take-while` : `(A --> boolean) --> (seq.t A) --> (seq.t A)`
 

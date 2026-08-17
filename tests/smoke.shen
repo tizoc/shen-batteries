@@ -305,3 +305,54 @@ A final note.
        Before (box.unbox Count)
        Head (seq.head Cycled)
     [Before Head (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.take zero consumes no source values"
+  [0 []]
+  (let Count (box.make 0)
+       Source (seq.map (/. X (do (box.incr Count) X))
+                       (seq.forever (freeze 1)))
+       Values (seq.to-list (seq.take 0 Source))
+    [(box.unbox Count) Values]))
+
+(test.assert-equal
+  "seq.take consumes exactly its result"
+  [2 [1 1]]
+  (let Count (box.make 0)
+       Source (seq.map (/. X (do (box.incr Count) X))
+                       (seq.forever (freeze 1)))
+       Values (seq.to-list (seq.take 2 Source))
+    [(box.unbox Count) Values]))
+
+(test.assert-equal
+  "seq.truncate zero consumes no source values"
+  [0 []]
+  (let Count (box.make 0)
+       Source (seq.map (/. X (do (box.incr Count) X))
+                       (seq.forever (freeze 1)))
+       Values (seq.to-list (seq.truncate 0 Source))
+    [(box.unbox Count) Values]))
+
+(test.assert-equal
+  "seq.truncate consumes exactly its result"
+  [2 [1 1]]
+  (let Count (box.make 0)
+       Source (seq.map (/. X (do (box.incr Count) X))
+                       (seq.forever (freeze 1)))
+       Values (seq.to-list (seq.truncate 2 Source))
+    [(box.unbox Count) Values]))
+
+(test.assert-equal
+  "seq.take rejects negative counts"
+  rejected
+  (trap-error (seq.take -1 (seq.empty)) (/. X rejected)))
+
+(test.assert-equal
+  "seq.truncate rejects negative counts"
+  rejected
+  (trap-error (seq.truncate -1 (seq.empty)) (/. X rejected)))
+
+(test.assert-equal
+  "seq.drop rejects negative counts"
+  rejected
+  (trap-error (seq.drop -1 (seq.empty)) (/. X rejected)))

@@ -533,8 +533,10 @@
   S Node -> (append-h Node (cycle S)))
 
 \\: `(seq.truncate N Seq)` returns a sequence containing at most the first `N` elements of `Seq`.
+\\: Negative values of `N` are rejected.
 (define truncate
   { number --> (seq.t A) --> (seq.t A) }
+  0 _ -> (empty)
   N _ -> (error "cannot truncate a negative amount from a seq") where (< N 0)
   N S -> (freeze (truncate-h N (thaw S))))
 
@@ -547,8 +549,10 @@
 \\: `(seq.take N Seq)` returns a sequence containing the first `N` elements of `Seq`.
 \\: An error will be thrown when traversing the new sequence if the original sequence
 \\: had fewer than `N` elements.
+\\: Negative values of `N` are rejected.
 (define seq.take
   { number --> (seq.t A) --> (seq.t A) }
+  0 _ -> (empty)
   N _ -> (error "cannot take a negative amount from a seq") where (< N 0)
   N S -> (freeze (take-h N (thaw S))))
 
@@ -561,6 +565,7 @@
 \\: `(seq.drop N Seq)` returns a sequence with the elements from `Seq` with the first `N` elements removed.
 \\: An error will be thrown when traversing the new sequence if the original sequence
 \\: had fewer than `N` elements.
+\\: Negative values of `N` are rejected.
 (define seq.drop
   { number --> (seq.t A) --> (seq.t A) }
   0 S -> S
