@@ -79,8 +79,10 @@
   S V -> (seq.append S (singleton V)))
 
 \\: `(seq.make N Elt)` produces a sequence containing `N` times the value of `Elt`.
+\\: Negative values of `N` are rejected.
 (define make
   { number --> A --> (seq.t A) }
+  N _ -> (error "cannot make a negative amount of elements") where (< N 0)
   0 _ -> (empty)
   N Elt -> (freeze [Elt | (make (- N 1) Elt)]))
 
@@ -518,11 +520,17 @@
   [] -> (empty)
   [S | Ss] -> (seq.append S (flatten-h (thaw Ss))))
 
-\\: `(seq.cycle Seq)` returns an infinite sequence that produces all the elements from `Seq`
-\\: repeated from the beginning each time the end of the original sequence is reached.
+\\: `(seq.cycle Seq)` returns an infinite sequence that produces all the elements from a
+\\: nonempty `Seq`, repeated from the beginning each time its end is reached. An empty
+\\: `Seq` produces an empty sequence.
 (define cycle
   { (seq.t A) --> (seq.t A) }
-  S -> (freeze (thaw (seq.append S (cycle S)))))
+  S -> (freeze (cycle-h S (thaw S))))
+
+(define cycle-h
+  { (seq.t A) --> (node A) --> (node A) }
+  _ [] -> []
+  S Node -> (append-h Node (cycle S)))
 
 \\: `(seq.truncate N Seq)` returns a sequence containing at most the first `N` elements of `Seq`.
 (define truncate

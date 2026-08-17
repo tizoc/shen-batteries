@@ -20,6 +20,12 @@
 (define test.mlist
   -> (mlist.of-iter (test.list-iter [1 2 3 4 5 6 7 8 9 10])))
 
+(define test.counted-iter
+  [] _ _ -> (void)
+  [X | Xs] Count Yield -> (do (box.incr Count)
+                              (Yield X)
+                              (test.counted-iter Xs Count Yield)))
+
 (test.assert-true
   "feature list is nonempty"
   (cons? (shen.x.features.current)))
@@ -118,7 +124,53 @@
           (iter.to-list
             (iter.of-vector
               (iter.to-vector
-                (iter.of-list [1 2 3 4 5 6 7 8 9 10]))))))
+                (iter.of-list [1 2 3 4 5 6 7 8 9 10])))))
+        (test.assert-equal
+          "iter.init is infinite and zero-based"
+          [0 2 4 6]
+          (iter.to-list
+            (iter.take 4 (iter.init (/. N (* N 2))))))
+        (test.assert-equal
+          "cycling an empty iterator stays empty"
+          []
+          (iter.to-list (iter.cycle (iter.empty))))
+        (test.assert-equal
+          "iter.cycle repeats a nonempty iterator"
+          [1 2 1 2 1]
+          (iter.to-list
+            (iter.take 5 (iter.cycle (iter.of-list [1 2])))))
+        (test.assert-equal
+          "iter.take zero consumes no upstream values"
+          [0 []]
+          (let Count (box.make 0)
+               Values (iter.to-list
+                        (iter.take 0
+                          (test.counted-iter [1 2 3] Count)))
+            [(box.unbox Count) Values]))
+        (test.assert-equal
+          "iter.take consumes exactly its result"
+          [2 [1 2]]
+          (let Count (box.make 0)
+               Values (iter.to-list
+                        (iter.take 2
+                          (test.counted-iter [1 2 3] Count)))
+            [(box.unbox Count) Values]))
+        (test.assert-equal
+          "iter.take rejects negative counts"
+          rejected
+          (trap-error
+            (iter.to-list (iter.take -1 (iter.of-list [1 2 3])))
+            (/. X rejected)))
+        (test.assert-equal
+          "iter.drop rejects negative counts"
+          rejected
+          (trap-error
+            (iter.to-list (iter.drop -1 (iter.of-list [1 2 3])))
+            (/. X rejected)))
+        (test.assert-equal
+          "iter.of-vector accepts an empty vector"
+          []
+          (iter.to-list (iter.of-vector (vector 0)))))
   true skip)
 
 (test.assert-equal
@@ -227,3 +279,29 @@ A final note.
   "seq cexpr loads its runtime dependency"
   [1 2]
   (seq.to-list (:seq yield 1 yield 2)))
+
+(test.assert-equal
+  "seq.make rejects negative counts"
+  rejected
+  (trap-error (seq.make -1 x) (/. X rejected)))
+
+(test.assert-true
+  "cycling an empty sequence stays empty"
+  (seq.empty? (seq.cycle (seq.empty))))
+
+(test.assert-equal
+  "seq.cycle repeats a nonempty sequence"
+  [1 2 1 2 1]
+  (seq.to-list
+    (seq.take 5
+      (seq.cycle (seq.of-list [1 2])))))
+
+(test.assert-equal
+  "seq.cycle stays lazy until traversal"
+  [0 1 1]
+  (let Count (box.make 0)
+       Seq (seq.map (/. X (do (box.incr Count) X)) (seq.singleton 1))
+       Cycled (seq.cycle Seq)
+       Before (box.unbox Count)
+       Head (seq.head Cycled)
+    [Before Head (box.unbox Count)]))

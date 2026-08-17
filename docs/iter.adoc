@@ -36,7 +36,7 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.init` : `(number --> A) --> (iter.t A)`
 
-`(iter.init F)`
+`(iter.init F)` produces an infinite iterator containing `F 0`, `F 1`, and so on.
 
 ==== `iter.iterate` : `(A --> A) --> A --> (iter.t A)`
 
@@ -48,7 +48,8 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.cycle` : `(iter.t A) --> (iter.t A)`
 
-`(iter.cycle Iter)`
+`(iter.cycle Iter)` repeats every value produced by `Iter`. If `Iter` is
+empty, the resulting iterator is empty.
 
 ==== `iter.unfoldr` : `(B --> (maybe.t (A * B))) --> B --> (iter.t A)`
 
@@ -202,7 +203,8 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.take` : `number --> (iter.t A) --> (iter.t A)`
 
-`(iter.take N Iter)`
+`(iter.take N Iter)` produces at most the first `N` values from `Iter`.
+Negative values of `N` are rejected.
 
 ==== `iter.take-while` : `(A --> boolean) --> (iter.t A) --> (iter.t A)`
 
@@ -214,7 +216,8 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.drop` : `number --> (iter.t A) --> (iter.t A)`
 
-`(iter.drop N Iter)`
+`(iter.drop N Iter)` skips the first `N` values from `Iter`.
+Negative values of `N` are rejected.
 
 ==== `iter.drop-while` : `(A --> boolean) --> (iter.t A) --> (iter.t A)`
 

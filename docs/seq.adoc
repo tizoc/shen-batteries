@@ -38,6 +38,7 @@ everything contained in sequence `S`.
 ==== `seq.make` : `number --> A --> (seq.t A)`
 
 `(seq.make N Elt)` produces a sequence containing `N` times the value of `Elt`.
+Negative values of `N` are rejected.
 
 ==== `seq.unfold` : `(B --> (maybe.t (A * B))) --> B --> (seq.t A)`
 
@@ -232,8 +233,9 @@ by each subsequence produced by `SeqOfSeqs`.
 
 ==== `seq.cycle` : `(seq.t A) --> (seq.t A)`
 
-`(seq.cycle Seq)` returns an infinite sequence that produces all the elements from `Seq`
-repeated from the beginning each time the end of the original sequence is reached.
+`(seq.cycle Seq)` returns an infinite sequence that produces all the elements from a
+nonempty `Seq`, repeated from the beginning each time its end is reached. An empty
+`Seq` produces an empty sequence.
 
 ==== `seq.truncate` : `number --> (seq.t A) --> (seq.t A)`
 

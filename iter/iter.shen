@@ -62,16 +62,15 @@
   X Yield -> (do (Yield X)
                  (repeat X Yield)))
 
-\\: `(iter.init F)`
+\\: `(iter.init F)` produces an infinite iterator containing `F 0`, `F 1`, and so on.
 (define init
   { (number --> A) --> (iter.t A) }
   FN Yield -> (init-h 0 FN Yield))
 
 (define init-h
   { number --> (number --> A) --> (iter.t A) }
-  0 _ _ -> (void)
   N FN Yield -> (do (Yield (FN N))
-                    (init-h (- N 1) FN Yield)))
+                    (init-h (+ N 1) FN Yield)))
 
 \\: `(iter.iterate F X)`
 (define iterate
@@ -85,11 +84,16 @@
   X Yield -> (do (Yield (thaw X))
                  (forever X Yield)))
 
-\\: `(iter.cycle Iter)`
+\\: `(iter.cycle Iter)` repeats every value produced by `Iter`. If `Iter` is
+\\: empty, the resulting iterator is empty.
 (define cycle
   { (iter.t A) --> (iter.t A) }
-  Iter Yield -> (do (Iter Yield)
-                    (cycle Iter Yield)))
+  Iter Yield -> (let Produced (box.make false)
+                  (do (Iter (/. X (do (box.put Produced true)
+                                      (Yield X))))
+                      (if (box.unbox Produced)
+                          (cycle Iter Yield)
+                          (void)))))
 
 \\: `(iter.unfoldr F X)`
 (define unfoldr
@@ -370,15 +374,19 @@
                 (maybe.unsafe-get R)
                 (error "iter.head-exn called on emtpy iter"))))
 
-\\: `(iter.take N Iter)`
+\\: `(iter.take N Iter)` produces at most the first `N` values from `Iter`.
+\\: Negative values of `N` are rejected.
 (define iter.take
   { number --> (iter.t A) --> (iter.t A) }
+  N _ _ -> (error "cannot take a negative amount from an iter") where (< N 0)
+  0 _ _ -> (void)
   N Iter Yield -> (let Count (box.make 0)
                     (with-break Break
-                      (Iter (/. X (if (= (box.unbox Count) N)
-                                      (Break)
-                                      (do (box.incr Count)
-                                          (Yield X))))))))
+                      (Iter (/. X (do (box.incr Count)
+                                     (Yield X)
+                                     (if (= (box.unbox Count) N)
+                                         (Break)
+                                         (void))))))))
 
 \\: `(iter.take-while P Iter)`
 (define take-while
@@ -400,9 +408,11 @@
                                            (Break))))))
                        (box.unbox State))))
 
-\\: `(iter.drop N Iter)`
+\\: `(iter.drop N Iter)` skips the first `N` values from `Iter`.
+\\: Negative values of `N` are rejected.
 (define iter.drop
   { number --> (iter.t A) --> (iter.t A) }
+  N _ _ -> (error "cannot drop a negative amount from an iter") where (< N 0)
   N Iter Yield -> (let Count (box.make 0)
                     (Iter (/. X (if (>= (box.unbox Count) N)
                                     (Yield X)
@@ -470,6 +480,7 @@
 \\: `(iter.of-vector Vector)`
 (define of-vector
   { (vector A) --> (iter.t A) }
+  Vector _ -> (void) where (= 0 (limit Vector))
   Vector Yield -> (of-vector-range Vector 1 (limit Vector) Yield))
 
 \\: `(iter.of-vector-enumerated Vector)`
