@@ -61,7 +61,8 @@
 \\ - allow custom extensions?
 (define cexpr.build-monadic
   { ((list sexp) --> sexp) --> (list sexp) --> sexp }
-  Mk [do <--      Do       | Rest] -> (cexpr.build Mk [_ <-- Do | Rest])
+  Mk [do <--      Do       | Rest] -> (let X (gensym (protect X))
+                                        (cexpr.build Mk [X <-- Do | Rest]))
   Mk [do          Do       | Rest] -> (cexpr.build Mk [_     Do | Rest])
   Mk [Arr         Expr           ] -> (Mk [return Expr]) where (= Arr ->)
   Mk [return      Expr     | Rest] -> (cexpr.build-combine Mk (Mk [return Expr])             Rest)

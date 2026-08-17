@@ -337,6 +337,13 @@ A final note.
   (seq.to-list (:seq yield 1 yield 2)))
 
 (test.assert-equal
+  "seq cexpr supports discarded monadic binds"
+  [kept]
+  (seq.to-list
+    (:seq do <-- (seq.singleton ignored)
+          yield kept)))
+
+(test.assert-equal
   "seq.make rejects negative counts"
   rejected
   (trap-error (seq.make -1 x) (/. X rejected)))
