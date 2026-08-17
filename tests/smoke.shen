@@ -52,6 +52,16 @@
         (box.unbox Count))))
 
 (test.assert-equal
+  "lazy.memo caches every result value"
+  1
+  (let Count (box.make 0)
+       Lazy (lazy.memo
+              (freeze (do (box.incr Count) lazy.#not-thawed#7907#)))
+    (do (thaw Lazy)
+        (thaw Lazy)
+        (box.unbox Count))))
+
+(test.assert-equal
   "dict round trip"
   42
   (let Dict (dict.make 4)
