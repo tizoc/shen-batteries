@@ -51,6 +51,7 @@
   Name F [Name Arg] -> (F Arg)
   Name F [Name | Rest] -> (error "Return function '~A' must be called with one argument, not ~A" Name (length Rest))
   Name F [let Name Value Body] -> [let Name (subst-return-application Name F Value) Body]
+  Name _ [lambda Name Body] -> [lambda Name Body]
   Name F Z -> (map (/. W (subst-return-application Name F W)) Z)  where (cons? Z)
   _ _ Z -> Z)
 
@@ -59,6 +60,7 @@
   Name Subst [Name] -> Subst
   Name Subst [Name | Rest] -> (error "Break function '~A' must be called with no arguments, not ~A" Name (length Rest))
   Name Subst [let Name Value Body] -> [let Name (subst-break-application Name Subst Value) Body]
+  Name _ [lambda Name Body] -> [lambda Name Body]
   Name Subst Z -> (map (/. W (subst-break-application Name Subst W)) Z)  where (cons? Z)
   _ _ Z -> Z)
 

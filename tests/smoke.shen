@@ -135,6 +135,14 @@
                       (box.incr Count)))
                 (box.unbox Count))))
         (test.assert-equal
+          "nested with-break respects shadowing"
+          1
+          (test-with-exit.nested-break))
+        (test.assert-equal
+          "nested exit forms keep separate binders"
+          1
+          (test-with-exit.mixed-shadowing))
+        (test.assert-equal
           "iter loads through its descriptor"
           [1 2 3]
           (iter.to-list (iter.of-list [1 2 3])))
