@@ -47,7 +47,14 @@
 (define relative-source?
   "" -> false
   (@s "/" _) -> false
-  _ -> true)
+  (@s "c#92;" _) -> false
+  (@s _ (@s ":" _)) -> false
+  Path -> (backslash-free? Path))
+
+(define backslash-free?
+  "" -> true
+  (@s "c#92;" _) -> false
+  (@s _ Rest) -> (backslash-free? Rest))
 
 (define source-list-h
   [] _ [] _ -> (error "Module declaration requires at least one source")

@@ -234,6 +234,15 @@
   (arity library.use))
 
 (test.assert-equal
+  "module source paths are portable and relative"
+  [true false false false false]
+  [(library.relative-source? "dir/file.shen")
+   (library.relative-source? "/file.shen")
+   (library.relative-source? "c#92;file.shen")
+   (library.relative-source? (@s "dir" (@s "c#92;" "file.shen")))
+   (library.relative-source? "C:/file.shen")])
+
+(test.assert-equal
   "loader restores the home directory"
   (value *test-home-directory*)
   (value *home-directory*))
