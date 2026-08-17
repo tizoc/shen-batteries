@@ -34,7 +34,9 @@ Provide the Shen executable explicitly:
 make test SHEN=/absolute/path/to/shen
 ```
 
-The current reference runtime is Shen 41.3 on Shen/Scheme 0.46.
+The current reference runtime is Shen 41.3 on Shen/Scheme built from `master`
+after 0.46. Shen/Scheme 0.46 itself predates its dictionary traversal
+compatibility fix.
 
 Shen/Scheme 0.46 can also compile and load the native module smoke graph:
 

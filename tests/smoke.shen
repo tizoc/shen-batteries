@@ -77,6 +77,25 @@
          (trap-error (dict.get Dict answer) (/. X missing))])))
 
 (test.assert-equal
+  "dict traversal returns lists"
+  [2 true true 2 true true]
+  (let Dict (dict.make 4)
+       SetFirst (dict.set Dict 1 10)
+       SetSecond (dict.set Dict 2 20)
+       Keys (dict.keys Dict)
+       Values (dict.values Dict)
+    [(length Keys) (element? 1 Keys) (element? 2 Keys)
+     (length Values) (element? 10 Values) (element? 20 Values)]))
+
+(test.assert-equal
+  "dict fold threads its accumulator"
+  330
+  (let Dict (dict.make 4)
+    (do (dict.set Dict 1 10)
+        (dict.set Dict 2 20)
+        (dict.fold (/. K V Acc (+ Acc (+ (* K 100) V))) Dict 0))))
+
+(test.assert-equal
   "pipe-first macro"
   20
   (=> 2 (+ 3) (* 4)))
