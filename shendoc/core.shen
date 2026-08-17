@@ -8,6 +8,10 @@
 \\: block. A block immediately before a function documents that function; a
 \\: blank line makes the block standalone.
 \\:
+\\: Shendoc never evaluates the documented source. Package external
+\\: declarations must be literal symbol lists; computed declarations are
+\\: rejected.
+\\:
 \\: == Usage
 \\:
 \\: Write documentation to standard output:
@@ -97,7 +101,7 @@
   <rcurly> <s-exprs-withdocs>
       := [} | <s-exprs-withdocs>];
   <bar> <s-exprs-withdocs>
-      := [shen.bar! | <s-exprs-withdocs>];
+      := [bar! | <s-exprs-withdocs>];
   <semicolon> <s-exprs-withdocs>
       := [(intern ";") | <s-exprs-withdocs>];
   <colon> <equal> <s-exprs-withdocs>
@@ -128,14 +132,26 @@
 
 \\ Flatten package declarations and qualify their contents without expanding
 \\ macros. Documentation markers are strings, so package processing leaves
-\\ them untouched.
+\\ them untouched. External declarations are source metadata, so accept only
+\\ literal symbol lists rather than evaluating the documented file.
+(define package-externals
+  [] -> []
+  [cons Symbol Rest]
+    -> [Symbol | (package-externals Rest)] where (symbol? Symbol)
+  External
+    -> (error "unsupported package external declaration: ~R~%" External))
+
 (define flatten-packages
   [] -> []
   [[package null _ | Code] | Rest]
     -> (flatten-packages (append Code Rest))
   [[package P External | Code] | Rest]
     -> (flatten-packages
-        (append (shen.package-symbols (str P) (eval External) Code) Rest))
+        (append (shen.package-symbols
+                 (str P)
+                 (package-externals External)
+                 Code)
+                Rest))
   [Form | Rest] -> [Form | (flatten-packages Rest)])
 
 (define make-docs

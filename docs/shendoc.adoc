@@ -5,6 +5,10 @@ source files. Consecutive lines beginning with `\\:` form a documentation
 block. A block immediately before a function documents that function; a
 blank line makes the block standalone.
 
+Shendoc never evaluates the documented source. Package external
+declarations must be literal symbol lists; computed declarations are
+rejected.
+
 == Usage
 
 Write documentation to standard output:

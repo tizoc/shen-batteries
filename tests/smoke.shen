@@ -296,6 +296,24 @@ A final note.
   (shendoc.generate "tests/fixtures/shendoc-input.shen"))
 
 (test.assert-equal
+  "shendoc rejects computed package external declarations"
+  (@s "unsupported package external declaration: (external lazy)"
+      (n->string 10))
+  (trap-error
+    (shendoc.generate "tests/fixtures/shendoc-inherited-input.shen")
+    (/. E (error-to-string E))))
+
+(set test.*shendoc-package-probe* false)
+
+(test.assert-equal
+  "shendoc does not evaluate package external declarations"
+  [rejected false]
+  [(trap-error
+    (shendoc.generate "tests/fixtures/shendoc-unsafe-package.shen")
+    (/. X rejected))
+   (value test.*shendoc-package-probe*)])
+
+(test.assert-equal
   "seq loads through its descriptor"
   [1 2 3]
   (seq.to-list (seq.range 1 3)))
