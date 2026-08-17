@@ -6,7 +6,7 @@
 \\: `(void)` returns the void object. The void object represents an unspecified value, and
 \\: is useful as a result of side-effectful functions without a meaningful return value.
 \\:
-\\: Should not be used for anything else than to express that a return value should be ignored
+\\: Should not be used for anything other than to express that a return value should be ignored
 \\: and discarded.
 
 (datatype typ/void.internal-t

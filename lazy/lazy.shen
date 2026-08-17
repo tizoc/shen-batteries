@@ -14,9 +14,9 @@
   ============================
   [ready X] : (memo-state A);)
 
-\\: `(lazy.memo Frozen)` returns a memoized version of `Frozen` that will produce the same
-\\: result as `(thaw Frozen)` when thawed but performing the computation only once
-\\: the first time it is thawed, and reusing the initial result every other time.
+\\: `(lazy.memo Frozen)` returns a memoized version of `Frozen`. The first successful
+\\: thaw evaluates `Frozen` and caches its result; later thaws reuse that result. If
+\\: evaluating `Frozen` raises an error, a later thaw retries the evaluation.
 (define memo
   { (lazy A) --> (lazy A) }
   L -> (let Result (box.make [pending L])

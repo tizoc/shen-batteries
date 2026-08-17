@@ -36,9 +36,9 @@
 
 \\: === Construction
 
-\\: `(dict.make SizeHint)` creates a new dictionary. `SizeHint` is a size
-\\: hint for the underlying implementation, the recommended value is equal to the
-\\: expected amount values this dict will hold.
+\\: `(dict.make SizeHint)` creates a new dictionary. `SizeHint` must be a positive
+\\: integer and is a size hint for the underlying implementation. The recommended value is
+\\: the expected number of values this dictionary will hold, or `1` if no values are expected.
 (define dict.make
   { number --> (dict.t K V) }
   SizeHint -> (shen.dict SizeHint))
@@ -60,12 +60,15 @@
 
 \\: === Modification
 
-\\: `(dict.set Dict Key Value)` associates `Value` with `Key` in `Dict`.
+\\: `(dict.set Dict Key Value)` associates `Value` with `Key` in `Dict` and returns
+\\: `Value`.
 (define dict.set
   { (dict.t K V) --> K --> V --> V }
   Dict Key Value -> (shen.dict-> Dict Key Value))
 
-\\: `(dict.delete Dict Key)` deletes the value associated with `Key` in `Dict`.
+\\: `(dict.delete Dict Key)` deletes the value associated with `Key` in `Dict` and
+\\: returns `Key`. If `Key` is absent, the dictionary is unchanged and `Key` is
+\\: still returned.
 (define dict.delete
   { (dict.t K V) --> K --> K }
   Dict Key -> (shen.dict-rm Dict Key))
@@ -74,7 +77,7 @@
 
 \\: `(dict.fold F Dict Accum)` calls `(F Key Value Accum)` for each association in `Dict`.
 \\: The return value of each call to `F` is used as `Accum` in the next call.
-\\: Returns the last result of calling `F`.
+\\: Returns the final accumulator, or the initial accumulator if `Dict` is empty.
 (define dict.fold
   { (K --> V --> A --> A) --> (dict.t K V) --> A --> A }
   F Dict Seed -> (shen.dict-fold F Dict Seed))

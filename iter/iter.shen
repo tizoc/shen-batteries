@@ -372,7 +372,7 @@
   Iter -> (let R (iter.head Iter)
             (if (maybe.some? R)
                 (maybe.unsafe-get R)
-                (error "iter.head-exn called on emtpy iter"))))
+                (error "iter.head-exn called on empty iter"))))
 
 \\: `(iter.take N Iter)` produces at most the first `N` values from `Iter`.
 \\: Negative values of `N` are rejected.

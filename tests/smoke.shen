@@ -62,11 +62,11 @@
         (box.unbox Count))))
 
 (test.assert-equal
-  "dict round trip"
-  42
+  "dict set returns and stores its value"
+  [42 42]
   (let Dict (dict.make 4)
-    (do (dict.set Dict answer 42)
-        (dict.get Dict answer))))
+       Result (dict.set Dict answer 42)
+    [Result (dict.get Dict answer)]))
 
 (test.assert-equal
   "dict delete returns and removes its key"
@@ -75,6 +75,15 @@
     (do (dict.set Dict answer 42)
         [(dict.delete Dict answer)
          (trap-error (dict.get Dict answer) (/. X missing))])))
+
+(test.assert-equal
+  "dict delete returns an absent key without changing the dictionary"
+  [missing 1 42]
+  (let Dict (dict.make 4)
+    (do (dict.set Dict keep 42)
+        [(dict.delete Dict missing)
+         (length (dict.keys Dict))
+         (dict.get Dict keep)])))
 
 (test.assert-equal
   "dict traversal returns lists"
@@ -94,6 +103,11 @@
     (do (dict.set Dict 1 10)
         (dict.set Dict 2 20)
         (dict.fold (/. K V Acc (+ Acc (+ (* K 100) V))) Dict 0))))
+
+(test.assert-equal
+  "dict fold returns its initial accumulator for an empty dictionary"
+  7
+  (dict.fold (/. K V Acc (+ Acc (+ K V))) (dict.make 1) 7))
 
 (test.assert-equal
   "pipe-first macro"

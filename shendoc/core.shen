@@ -8,8 +8,8 @@
 \\: block. A block immediately before a function documents that function; a
 \\: blank line makes the block standalone.
 \\:
-\\: Shendoc never evaluates the documented source. Package external
-\\: declarations must be literal symbol lists; computed declarations are
+\\: Shendoc never evaluates the documented source. External declarations on
+\\: named packages must be literal symbol lists; computed declarations are
 \\: rejected.
 \\:
 \\: == Usage
@@ -132,8 +132,8 @@
 
 \\ Flatten package declarations and qualify their contents without expanding
 \\ macros. Documentation markers are strings, so package processing leaves
-\\ them untouched. External declarations are source metadata, so accept only
-\\ literal symbol lists rather than evaluating the documented file.
+\\ them untouched. External declarations on named packages are source metadata,
+\\ so accept only literal symbol lists rather than evaluating the documented file.
 (define package-externals
   [] -> []
   [cons Symbol Rest]

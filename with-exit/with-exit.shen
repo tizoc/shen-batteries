@@ -4,7 +4,7 @@
 \\: = Early exits
 \\:
 \\: `(with-return ReturnF Body)` binds `ReturnF` to a one-place function that when called
-\\: interrupts the rest of the computation and returns from `with-exit` with the
+\\: interrupts the rest of the computation and returns from `with-return` with the
 \\: value passed as an argument.
 \\:
 \\: Example:
@@ -14,7 +14,7 @@
 \\: \\ Result: 10 : number
 \\:
 \\: `(with-break BreakF Body)` binds `BreakF` to a zero-place function that when called
-\\: interrupts the rest of the computation and returns from `with-exit` with `(void)`.
+\\: interrupts the rest of the computation and returns from `with-break` with `(void)`.
 \\: The result of a `with-break` expression is always the `void` object.
 \\:
 \\: Example:
@@ -31,7 +31,7 @@
 \\:
 \\: * The behaviour of letting the function bound by either `with-return` or `with-break` escape the scope of the expression body is undefined.
 \\: * The behaviour of rebinding the function to another name is undefined.
-\\: * It is only valid to pass it around to another function is it is wrapped in a lambda.
+\\: * It is only valid to pass it around to another function if it is wrapped in a lambda.
 \\:
 
 (package with-exit [sexp void with-return with-break scm.call/1cc]
