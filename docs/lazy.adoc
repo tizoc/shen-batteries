@@ -1,0 +1,24 @@
+= Utilities for lazy computations
+
+Shen's `freeze` creates a delayed computation and `thaw` runs it.
+`lazy.memo` adds successful-result caching when the same computation may
+be thawed more than once.
+
+== API
+
+==== `lazy.memo` : `(lazy A) --> (lazy A)`
+
+`(lazy.memo Frozen)` returns a new lazy computation. Its first successful
+thaw evaluates `Frozen` and caches the result; later thaws return that
+result without evaluating `Frozen` again. If evaluation raises an error,
+nothing is cached and a later thaw retries it.
+
+[source,shen]
+----
+(let Count (box.make 0)
+     Delayed (lazy.memo (freeze (do (box.incr Count) 42)))
+  (do (thaw Delayed)
+      (thaw Delayed)
+      (box.unbox Count)))
+\\ Result: 1
+----

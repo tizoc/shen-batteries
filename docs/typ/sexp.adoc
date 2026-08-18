@@ -1,4 +1,3 @@
 == `typ/sexp.t`
 
 `sexp` is the type inhabited by S-expressions.
-

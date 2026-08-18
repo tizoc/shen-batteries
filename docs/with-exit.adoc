@@ -1,0 +1,45 @@
+= Early exits
+
+`with-return` and `with-break` provide lexically scoped early exits on
+Shen/Scheme ports.
+
+== API
+
+=== `with-return`
+
+`(with-return ReturnF Body)` binds `ReturnF` to a one-place exit. Calling
+it interrupts the rest of `Body` and makes the whole `with-return`
+expression produce the supplied value.
+
+[source,shen]
+----
+(with-return Return
+  (do (Return 10)
+      20))
+\\ Result: 10 : number
+----
+
+=== `with-break`
+
+`(with-break BreakF Body)` binds `BreakF` to a zero-place exit. Calling it
+interrupts the rest of `Body`. Whether or not the exit is called, the
+whole `with-break` expression returns `(void)`.
+
+[source,shen]
+----
+(with-break Break
+  (do (print "Hello ")
+      (Break)
+      (print "world!")))
+\\ Prints only "Hello "
+----
+
+== Scope restrictions
+
+The name bound by either form is a syntactic construct rather than an
+ordinary reusable function value. Consequently:
+
+* letting it escape the expression body is undefined;
+* rebinding it to another name is undefined; and
+* passing it to another function is valid only when it is wrapped in a
+  lambda that calls it.

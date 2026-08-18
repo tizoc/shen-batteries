@@ -127,7 +127,7 @@
 (define parse-file
   File -> (let Bytes (read-file-as-bytelist File)
             (trap-error
-             (compile (function <s-exprs-withdocs>) Bytes)
+             (compile (fn <s-exprs-withdocs>) Bytes)
              (/. X (shen.reader-error (value shen.*residue*))))))
 
 \\ Flatten package declarations and qualify their contents without expanding
@@ -187,6 +187,7 @@
 
 (define render-lines
   [] -> ""
+  [""] -> ""
   [Line | Rest] -> (@s Line (n->string 10) (render-lines Rest)))
 
 (define function-heading
@@ -197,6 +198,11 @@
 
 (define render-docs
   [] -> ""
+  [[standalone | Lines]]
+    -> (render-lines Lines)
+  [[func Name Type | Lines]]
+    -> (@s (function-heading Name Type)
+           (render-lines Lines))
   [[standalone | Lines] | Rest]
     -> (@s (render-lines Lines) (n->string 10) (render-docs Rest))
   [[func Name Type | Lines] | Rest]

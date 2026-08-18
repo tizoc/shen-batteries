@@ -84,6 +84,17 @@ is either a list, or a vector.
 
 `(seq.to-list Seq)` constructs a list containing every element produced by the sequence `Seq`.
 
+==== `seq.length` : `(seq.t A) --> number`
+
+`(seq.length Seq)` consumes `Seq` and returns the number of elements it
+produces. It does not terminate for an infinite sequence.
+
+==== `seq.to-vector` : `(seq.t A) --> (vector A)`
+
+`(seq.to-vector Seq)` consumes a finite `Seq` once and constructs a vector
+containing its elements in traversal order. It does not terminate for an
+infinite sequence.
+
 ==== `seq.into-vector` : `number --> number --> (vector A) --> (seq.t A) --> ((seq.t A) * number)`
 
 `(seq.into-vector Start Count Vector Seq)` fills the vector `Vector` with elements produced by the sequence `Seq`.
@@ -283,8 +294,8 @@ as long as the shortest of the input sequences.
 ==== `seq.unzip` : `(seq.t (A * B)) --> ((seq.t A) * (seq.t B))`
 
 `(seq.unzip SeqA*B)` returns `(@p SeqA SeqB)`, where `SeqA*B` is a sequence
-of tuples `(@p A B)`, `SeqA` is `(seq.map (function fst) SeqA*B)` and `SeqB` is
-`(seq.map (function snd) SeqA*B)`.
+of tuples `(@p A B)`, `SeqA` is `(seq.map (fn fst) SeqA*B)` and `SeqB` is
+`(seq.map (fn snd) SeqA*B)`.
 
 ==== `seq.chunks` : `number --> (seq.t A) --> (seq.t (vector A))`
 
@@ -292,4 +303,3 @@ of tuples `(@p A B)`, `SeqA` is `(seq.map (function fst) SeqA*B)` and `SeqB` is
 each vector filled with the elements obtained from taking `N` elements
 from `Seq`. The last vector may have a size smaller than `N` if the
 sequence ends before it can be fully filled.
-

@@ -17,6 +17,7 @@ PRODUCTION_MODULES = \
 	nullable \
 	pipe-macro \
 	seq \
+	seq/dict \
 	seq/cexpr \
 	shendoc \
 	typ/or \
@@ -48,11 +49,24 @@ test-native:
 		-e '(if (= (batteries-native-test.seq-do-answer) [11 21 12 22]) ok (error "native seq.do smoke test failed"))'
 
 docs:
+	mkdir -p docs/lazy docs/maybe docs/seq
 	"$(SHEN)" script shendoc.shen box/box.shen docs/box.adoc
 	"$(SHEN)" script shendoc.shen cexpr/cexpr.shen docs/cexpr.adoc
+	"$(SHEN)" script shendoc.shen defpattern/defpattern.shen docs/defpattern.adoc
 	"$(SHEN)" script shendoc.shen dict/dict.shen docs/dict.adoc
+	"$(SHEN)" script shendoc.shen features/features.shen docs/features.adoc
 	"$(SHEN)" script shendoc.shen iter/iter.shen docs/iter.adoc
+	"$(SHEN)" script shendoc.shen lazy/lazy.shen docs/lazy.adoc
+	"$(SHEN)" script shendoc.shen lazy/pattern/lazy-pattern.shen docs/lazy/pattern.adoc
+	"$(SHEN)" script shendoc.shen let-match/let-match.shen docs/let-match.adoc
+	"$(SHEN)" script shendoc.shen library.shen docs/library.adoc
+	"$(SHEN)" script shendoc.shen maybe/maybe.shen docs/maybe.adoc
+	"$(SHEN)" script shendoc.shen maybe/cexpr/maybe-cexpr.shen docs/maybe/cexpr.adoc
+	"$(SHEN)" script shendoc.shen nullable/nullable.shen docs/nullable.adoc
+	"$(SHEN)" script shendoc.shen pipe-macro/pipe-macro.shen docs/pipe-macro.adoc
 	"$(SHEN)" script shendoc.shen seq/seq.shen docs/seq.adoc
+	"$(SHEN)" script shendoc.shen seq/cexpr/seq-cexpr.shen docs/seq/cexpr.adoc
+	"$(SHEN)" script shendoc.shen seq/dict/seq-dict.shen docs/seq/dict.adoc
 	"$(SHEN)" script shendoc.shen shendoc/core.shen docs/shendoc.adoc
 	"$(SHEN)" script shendoc.shen typ/or/or.shen docs/typ/or.adoc
 	"$(SHEN)" script shendoc.shen typ/sexp/sexp.shen docs/typ/sexp.adoc
@@ -60,3 +74,4 @@ docs:
 	"$(SHEN)" script shendoc.shen typ/verified-if/verified-if.shen docs/typ/verified-if.adoc
 	"$(SHEN)" script shendoc.shen typ/verified-objects/verified-objects.shen docs/typ/verified-objects.adoc
 	"$(SHEN)" script shendoc.shen typ/void/void.shen docs/typ/void.adoc
+	"$(SHEN)" script shendoc.shen with-exit/with-exit.shen docs/with-exit.adoc

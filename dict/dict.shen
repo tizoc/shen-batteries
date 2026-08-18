@@ -15,6 +15,9 @@
   (shen.dict? X) : boolean;
 
   ________________________
+  (shen.dict-count D) : number;
+
+  ________________________
   (shen.dict-> D K V) : Value;
 
   ________________________
@@ -49,6 +52,11 @@
 (define dict.is?
   { A --> boolean }
   Value -> (shen.dict? Value))
+
+\\: `(dict.count Dict)` returns the number of associations in `Dict`.
+(define dict.count
+  { (dict.t K V) --> number }
+  Dict -> (shen.dict-count Dict))
 
 \\: === Access
 

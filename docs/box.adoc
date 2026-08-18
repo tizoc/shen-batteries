@@ -43,4 +43,3 @@ Boxes are mutable references to a value.
 ==== `box.toggle` : `(box.t boolean) --> void`
 
 `(box.toggle Box)` replaces the contents of `Box` with `true` if it contains `false` or with `false` if it contains `true`.
-

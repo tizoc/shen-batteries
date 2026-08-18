@@ -14,4 +14,3 @@ Example:
 
 The above code doesn't typecheck by default, but if `typ/verified-and-head.t` and `typ/verified-objects.t`
 are enabled it does.
-

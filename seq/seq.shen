@@ -128,8 +128,6 @@
   Start End -> (range-step 1 Start End) where (>= End Start)
   Start End -> (range-step -1 Start End))
 
-\\ TODO: dict
-
 (define list?
   { (or A (list A)) --> boolean }
   [] -> true
@@ -191,8 +189,6 @@
                []
                [Char | (freeze (of-string-h S (+ N 1)))])))
 
-\\ TODO: dict
-
 \\: `(seq.to-list Seq)` constructs a list containing every element produced by the sequence `Seq`.
 (define to-list
   { (seq.t A) --> (list A) }
@@ -202,6 +198,33 @@
   { (node A) --> (list A) }
   [] -> []
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
+
+\\: `(seq.length Seq)` consumes `Seq` and returns the number of elements it
+\\: produces. It does not terminate for an infinite sequence.
+(define seq.length
+  { (seq.t A) --> number }
+  Seq -> (fold-left (/. Count Ignored (+ Count 1)) 0 Seq))
+
+\\: `(seq.to-vector Seq)` consumes a finite `Seq` once and constructs a vector
+\\: containing its elements in traversal order. It does not terminate for an
+\\: infinite sequence.
+(define to-vector
+  { (seq.t A) --> (vector A) }
+  Seq -> (let Values (to-list Seq)
+              Vector (vector (list-length Values))
+           (list-into-vector Values Vector 1)))
+
+(define list-length
+  { (list A) --> number }
+  [] -> 0
+  [_ | Xs] -> (+ 1 (list-length Xs)))
+
+(define list-into-vector
+  { (list A) --> (vector A) --> number --> (vector A) }
+  [] Vector _ -> Vector
+  [X | Xs] Vector Position -> (list-into-vector Xs
+                                                (vector-> Vector Position X)
+                                                (+ Position 1)))
 
 \\: `(seq.into-vector Start Count Vector Seq)` fills the vector `Vector` with elements produced by the sequence `Seq`.
 \\: If `Count` is positive, the vector slots from `Start` to `Start + Count - 1` are filled in increasing order.
@@ -633,12 +656,12 @@
   [X | XSeq] [Y | YSeq] -> [(@p X Y) | (zip XSeq YSeq)])
 
 \\: `(seq.unzip SeqA*B)` returns `(@p SeqA SeqB)`, where `SeqA*B` is a sequence
-\\: of tuples `(@p A B)`, `SeqA` is `(seq.map (function fst) SeqA*B)` and `SeqB` is
-\\: `(seq.map (function snd) SeqA*B)`.
+\\: of tuples `(@p A B)`, `SeqA` is `(seq.map (fn fst) SeqA*B)` and `SeqB` is
+\\: `(seq.map (fn snd) SeqA*B)`.
 (define unzip
   { (seq.t (A * B)) --> ((seq.t A) * (seq.t B)) }
-  S -> (@p (seq.map (function fst) S)
-           (seq.map (function snd) S)))
+  S -> (@p (seq.map (fn fst) S)
+           (seq.map (fn snd) S)))
 
 \\: `(seq.chunks N Seq)` returns a sequence of vectors of size `N`, with
 \\: each vector filled with the elements obtained from taking `N` elements

@@ -1,0 +1,86 @@
+= Optional values
+
+`(maybe.t A)` represents either a present value, constructed with
+`(@some Value)`, or absence, represented by `(@none)`. Unlike `nullable`,
+`@some` is tagged, so nested Maybe values remain distinct.
+
+Require the module with `(library.use [maybe])`. The constructors also act
+as programmable patterns:
+
+[source,shen]
+----
+(define maybe.default
+  Default (@none) -> Default
+  _ (@some Value) -> Value)
+----
+
+== Construction
+
+==== `@none` : `--> (maybe.t A)`
+
+`(@none)` returns the shared value representing absence.
+
+==== `@some` : `A --> (maybe.t A)`
+
+`(@some Value)` returns a tagged Maybe containing `Value`. The tag means
+`(@some (@none))` remains different from `(@none)`.
+
+== Predicates
+
+==== `maybe.none?` : `(maybe.t A) --> boolean`
+
+`(maybe.none? Maybe)` returns `true` exactly when `Maybe` is `(@none)`.
+
+==== `maybe.some?` : `(maybe.t A) --> boolean`
+
+`(maybe.some? Maybe)` returns `true` exactly when `Maybe` is an `@some`
+value.
+
+== Extraction
+
+==== `maybe.get` : `(maybe.t A) --> A`
+
+`(maybe.get Maybe)` returns the value inside `(@some Value)` and raises an
+error for `(@none)`.
+
+==== `maybe.unsafe-get` : `(maybe.t A) --> A`
+
+`(maybe.unsafe-get Maybe)` returns the value inside an `@some` without
+checking its tag. Call it only after `maybe.some?` has established that the
+value is present; applying it to `@none` is invalid.
+
+==== `maybe.get/or` : `(maybe.t A) --> (lazy A) --> A`
+
+`(maybe.get/or Maybe FrozenDefault)` returns the present value, or thaws
+`FrozenDefault` when `Maybe` is `@none`. The default is not evaluated for an
+`@some`, as in `(maybe.get/or Maybe (freeze (make-default)))`.
+
+== Transformation
+
+==== `maybe.map` : `(A --> B) --> (maybe.t A) --> (maybe.t B)`
+
+`(maybe.map F Maybe)` returns `(@some (F Value))` for an `@some` and
+returns `@none` without calling `F` otherwise.
+
+==== `maybe.bind` : `(maybe.t A) --> (A --> (maybe.t B)) --> (maybe.t B)`
+
+`(maybe.bind Maybe F)` calls `F` with the value inside `Maybe` when it is
+`(@some Value)`, and returns `(@none)` without calling `F` otherwise.
+`F` itself returns a Maybe, so `bind` does not add another `@some` layer.
+The value-first argument order follows the monadic bind convention; use
+`maybe.map` for a function-first non-monadic transformation.
+
+== Effects
+
+==== `maybe.for-each` : `(A --> B) --> (maybe.t A) --> void`
+
+`(maybe.for-each F Maybe)` calls `F` once with the present value and
+discards its result. It does not call `F` for `@none`; both cases return
+`void`.
+
+== Pattern matching
+
+`(@none)` matches absence. `(@some Pattern)` matches a present value and
+continues matching `Pattern` against its contents. These patterns work in
+definitions and other contexts supported by Shen's programmable pattern
+matching.

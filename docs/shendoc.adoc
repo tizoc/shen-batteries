@@ -24,4 +24,3 @@ Or write it directly to a file:
 ----
 shen-scheme script shendoc.shen INPUT OUTPUT
 ----
-

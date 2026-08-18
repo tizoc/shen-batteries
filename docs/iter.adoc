@@ -263,5 +263,6 @@ Negative values of `N` are rejected.
 
 ==== `iter.of-vector-range` : `(vector A) --> number --> number --> (iter.t A)`
 
-`(iter.of-vector-range Vector From To)`
-
+`(iter.of-vector-range Vector From To)` iterates over the inclusive range of
+vector positions from `From` to `To`. Positions increase when `From <= To`
+and decrease otherwise. Both endpoints must be valid positions in `Vector`.

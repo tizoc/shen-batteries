@@ -178,11 +178,6 @@
                     (Iter (/. X (do (Yield (F (box.unbox Index) X))
                                     (box.incr Index))))))
 
-\\ `(iter.map-by-2 F Iter)`
-\\(define map-by-2
-\\  { (A --> A --> A) --> (iter.t A) --> (iter.t A) }
-\\  F Iter Yield -> )
-
 \\: `(iter.for-all? Test Iter)`
 (define for-all?
   { (A --> boolean) --> (iter.t A) --> boolean }
@@ -488,11 +483,22 @@
   { (vector A) --> (iter.t (number * A)) }
   Vector Yield -> (mlist.vector-for-each-enumerated Yield Vector 1 (+ 1 (limit Vector))))
 
-\\: `(iter.of-vector-range Vector From To)`
+\\: `(iter.of-vector-range Vector From To)` iterates over the inclusive range of
+\\: vector positions from `From` to `To`. Positions increase when `From <= To`
+\\: and decrease otherwise. Both endpoints must be valid positions in `Vector`.
 (define of-vector-range
-  { (vector A) --> number --> number --> (iter.t A) } \\ TODO: allow reverse ranges?
+  { (vector A) --> number --> number --> (iter.t A) }
   Vector From To _ -> (error "iter.of-vector-range: Invalid range for vector with limit ~A: From=~A To=~A" (limit Vector) From To)
-      where (or (< From 1) (> From To) (> To (limit Vector)))
-  Vector From To Yield -> (mlist.vector-for-each Yield Vector From (+ 1 To)))
+      where (or (< From 1) (> From (limit Vector))
+                (< To 1) (> To (limit Vector)))
+  Vector From To Yield -> (mlist.vector-for-each Yield Vector From (+ 1 To))
+      where (<= From To)
+  Vector From To Yield -> (of-vector-range-descending-h Vector From To Yield))
+
+(define of-vector-range-descending-h
+  { (vector A) --> number --> number --> (A --> void) --> void }
+  Vector To To Yield -> (Yield (<-vector Vector To))
+  Vector Position To Yield -> (do (Yield (<-vector Vector Position))
+                                  (of-vector-range-descending-h Vector (- Position 1) To Yield)))
 
 )

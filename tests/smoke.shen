@@ -110,6 +110,29 @@
   (dict.fold (/. K V Acc (+ Acc (+ K V))) (dict.make 1) 7))
 
 (test.assert-equal
+  "dict count tracks insertions, replacements, and deletions"
+  [0 1 1 0]
+  (let Dict (dict.make 2)
+       Empty (dict.count Dict)
+       Insert (do (dict.set Dict key 1) (dict.count Dict))
+       Replace (do (dict.set Dict key 2) (dict.count Dict))
+       Delete (do (dict.delete Dict key) (dict.count Dict))
+    [Empty Insert Replace Delete]))
+
+(test.assert-equal
+  "maybe bind transforms present values"
+  (@some 42)
+  (maybe.bind (@some 41) (/. X (@some (+ X 1)))))
+
+(test.assert-equal
+  "maybe bind does not evaluate its function for an absent value"
+  [true 0]
+  (let Calls (box.make 0)
+       Result (maybe.bind (@none)
+                          (/. X (do (box.incr Calls) (@some X))))
+    [(maybe.none? Result) (box.unbox Calls)]))
+
+(test.assert-equal
   "pipe-first macro"
   20
   (=> 2 (+ 3) (* 4)))
@@ -221,7 +244,30 @@
         (test.assert-equal
           "iter.of-vector accepts an empty vector"
           []
-          (iter.to-list (iter.of-vector (vector 0)))))
+          (iter.to-list (iter.of-vector (vector 0))))
+        (test.assert-equal
+          "iter.of-vector-range includes ascending endpoints"
+          [two three four]
+          (iter.to-list
+            (iter.of-vector-range
+              (iter.to-vector (iter.of-list [one two three four]))
+              2 4)))
+        (test.assert-equal
+          "iter.of-vector-range includes descending endpoints"
+          [four three two]
+          (iter.to-list
+            (iter.of-vector-range
+              (iter.to-vector (iter.of-list [one two three four]))
+              4 2)))
+        (test.assert-equal
+          "iter.of-vector-range rejects out-of-bounds endpoints"
+          rejected
+          (trap-error
+            (iter.to-list
+              (iter.of-vector-range
+                (iter.to-vector (iter.of-list [one two]))
+                2 0))
+            (/. X rejected))))
   true skip)
 
 (test.assert-equal
@@ -313,7 +359,6 @@ Documents a grammar rule.
 A detached note.
 
 A final note.
-
 "
   (shendoc.generate "tests/fixtures/shendoc-input.shen"))
 
@@ -352,6 +397,51 @@ A final note.
   "seq find uses its package API"
   (@some 3)
   (seq.find (/. X (= X 3)) (seq.range 1 5)))
+
+(test.assert-equal
+  "seq length consumes a finite sequence"
+  5
+  (seq.length (seq.range 1 5)))
+
+(test.assert-equal
+  "seq.to-vector preserves order and traverses its source once"
+  [3 [one two three]]
+  (let Count (box.make 0)
+       Vector (seq.to-vector
+                (seq.map (/. X (do (box.incr Count) X))
+                         (seq.of-list [one two three])))
+    [(box.unbox Count) (seq.to-list (seq.of-vector Vector))]))
+
+(test.assert-equal
+  "seq.to-vector accepts an empty sequence"
+  0
+  (limit (seq.to-vector (seq.empty))))
+
+(test.assert-equal
+  "seq dictionary sources snapshot associations"
+  [1 true true true true true]
+  (let Dict (dict.make 3)
+       _ (dict.set Dict first 10)
+       Entries (seq.of-dict-entries Dict)
+       Keys (seq.of-dict-keys Dict)
+       Values (seq.of-dict-values Dict)
+       _ (dict.set Dict second 20)
+       EntryList (seq.to-list Entries)
+       KeyList (seq.to-list Keys)
+       ValueList (seq.to-list Values)
+    [(length EntryList)
+     (element? (@p first 10) EntryList)
+     (element? first KeyList)
+     (element? 10 ValueList)
+     (not (element? second KeyList))
+     (not (element? 20 ValueList))]))
+
+(test.assert-equal
+  "seq.to-dict keeps the last value for duplicate keys"
+  [2 20 30]
+  (let Dict (seq.to-dict
+              (seq.of-list [(@p key 10) (@p other 30) (@p key 20)]))
+    [(dict.count Dict) (dict.get Dict key) (dict.get Dict other)]))
 
 (test.assert-equal
   "seq cexpr loads its runtime dependency"

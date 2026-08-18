@@ -22,6 +22,7 @@
    pipe-macro
    cexpr
    maybe/cexpr
+   seq/dict
    seq/cexpr
    shendoc])
 (library.use [box])

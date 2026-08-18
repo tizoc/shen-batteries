@@ -5,4 +5,3 @@ is useful as a result of side-effectful functions without a meaningful return va
 
 Should not be used for anything other than to express that a return value should be ignored
 and discarded.
-

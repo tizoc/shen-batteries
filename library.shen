@@ -1,11 +1,23 @@
 \\ Copyright (c) 2020 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-\\: = Libraries loader
+\\: = Runtime module loader
 \\:
 \\: Loads permanent, versioned `shen.module` declarations. Descriptors are
 \\: resolved as `<home>/<module-name>.shenmod`; source paths are relative to
-\\: the descriptor. Reusing a loaded module has no effect.
+\\: the descriptor. Dependencies load before their dependents, and reusing an
+\\: already loaded module has no effect in the current Shen process.
+\\:
+\\: A typical application sets its module root before loading anything, then
+\\: requests one or more top-level modules:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (library.set-home "vendor")
+\\: (library.use [acme/app])
+\\: ----
+\\:
+\\: == API
 
 (package library
  [shen.module version name sources requires requires-features extension tc+ tc-]
@@ -83,7 +95,7 @@
   [module-extension Id _] -> Id)
 
 (define extension-ids
-  Extensions -> (map (function extension-id) Extensions))
+  Extensions -> (map (fn extension-id) Extensions))
 
 (define add-extension
   Id Body Extensions
@@ -142,6 +154,9 @@
 (define module-sources
   [module-declaration _ Sources _ _ _] -> Sources)
 
+\\: `(library.module-requires Module)` returns the descriptor's direct module
+\\: requirements in declaration order. Obtain `Module` with
+\\: `library.read-module`; dependencies are not loaded by this operation.
 (define module-requires
   [module-declaration _ _ Requires _ _] -> Requires)
 
@@ -188,6 +203,9 @@
          (/. E (do (tc Original)
                     (error (error-to-string E)))))))
 
+\\: `(library.read-module Name)` reads and validates `Name`'s descriptor below
+\\: the configured module home. It checks that the declaration has the
+\\: requested name, but does not load its dependencies or source files.
 (define read-module
   Name -> (let Path (@s (str Name) ".shenmod")
                Root (home-prefix (value *home*))
@@ -244,10 +262,18 @@
   [Name | Names] Stack -> (do (use-one Name Stack)
                               (use-h Names Stack)))
 
+\\: `(library.use Names)` loads every named module and its transitive
+\\: dependencies. Each module is loaded once, dependency cycles and missing
+\\: required features are rejected, and each source file uses the typechecking
+\\: mode declared by its descriptor. The caller's typechecking mode and home
+\\: directory are restored even if loading raises an error.
 (define use
   Names -> (with-typechecking-state
             (freeze (use-h Names []))))
 
+\\: `(library.set-home Path)` selects the directory below which module
+\\: descriptors are resolved. It must be called before any module has been
+\\: loaded; changing the root afterwards raises an error.
 (define set-home
   Path -> (do (set *home* Path) unit)
     where (= [] (value *loaded*))

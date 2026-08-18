@@ -3,36 +3,49 @@
 
 \\: = Early exits
 \\:
-\\: `(with-return ReturnF Body)` binds `ReturnF` to a one-place function that when called
-\\: interrupts the rest of the computation and returns from `with-return` with the
-\\: value passed as an argument.
+\\: `with-return` and `with-break` provide lexically scoped early exits on
+\\: Shen/Scheme ports.
 \\:
-\\: Example:
+\\: == API
+\\:
+\\: === `with-return`
+\\:
+\\: `(with-return ReturnF Body)` binds `ReturnF` to a one-place exit. Calling
+\\: it interrupts the rest of `Body` and makes the whole `with-return`
+\\: expression produce the supplied value.
 \\:
 \\: [source,shen]
-\\: (with-return Return (+ 3 4 (Return 10) 5))
+\\: ----
+\\: (with-return Return
+\\:   (do (Return 10)
+\\:       20))
 \\: \\ Result: 10 : number
+\\: ----
 \\:
-\\: `(with-break BreakF Body)` binds `BreakF` to a zero-place function that when called
-\\: interrupts the rest of the computation and returns from `with-break` with `(void)`.
-\\: The result of a `with-break` expression is always the `void` object.
+\\: === `with-break`
 \\:
-\\: Example:
+\\: `(with-break BreakF Body)` binds `BreakF` to a zero-place exit. Calling it
+\\: interrupts the rest of `Body`. Whether or not the exit is called, the
+\\: whole `with-break` expression returns `(void)`.
 \\:
 \\: [source,shen]
+\\: ----
 \\: (with-break Break
 \\:   (do (print "Hello ")
 \\:       (Break)
 \\:       (print "world!")))
 \\: \\ Prints only "Hello "
+\\: ----
 \\:
-\\: The variable bound by `with-return` and `with-break` is a syntactic construct, and not an actual function.
-\\: Because of that some care is needed to avoid unexpected situations:
+\\: == Scope restrictions
 \\:
-\\: * The behaviour of letting the function bound by either `with-return` or `with-break` escape the scope of the expression body is undefined.
-\\: * The behaviour of rebinding the function to another name is undefined.
-\\: * It is only valid to pass it around to another function if it is wrapped in a lambda.
+\\: The name bound by either form is a syntactic construct rather than an
+\\: ordinary reusable function value. Consequently:
 \\:
+\\: * letting it escape the expression body is undefined;
+\\: * rebinding it to another name is undefined; and
+\\: * passing it to another function is valid only when it is wrapped in a
+\\:   lambda that calls it.
 
 (package with-exit [sexp void with-return with-break scm.call/1cc]
 

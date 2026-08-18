@@ -18,6 +18,10 @@ the expected number of values this dictionary will hold, or `1` if no values are
 
 `(dict.is? X)` returns `true` if `X` is a dictionary, and `false` otherwise.
 
+==== `dict.count` : `(dict.t K V) --> number`
+
+`(dict.count Dict)` returns the number of associations in `Dict`.
+
 === Access
 
 ==== `dict.get` : `(dict.t K V) --> K --> V`
@@ -53,4 +57,3 @@ Returns the final accumulator, or the initial accumulator if `Dict` is empty.
 ==== `dict.values` : `(dict.t K V) --> (list V)`
 
 `(dict.values Dict)` returns a list of all values in `Dict`.
-

@@ -1,6 +1,48 @@
 \\ Copyright (c) 2020 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
+\\: = Defining programmable patterns
+\\:
+\\: `defpattern` defines and registers a handler for Shen's programmable
+\\: pattern-matching extension. It removes the registration boilerplate and
+\\: supplies the required catch-all `(fail)` clause automatically.
+\\:
+\\: == API
+\\:
+\\: === `defpattern`
+\\:
+\\: A declaration has the same clause syntax as `define`:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (defpattern paired-pattern
+\\:   Self Is? Assign [paired A B]
+\\:     -> (do (Is? [tuple? Self])
+\\:            (Assign A [fst Self])
+\\:            (Assign B [snd Self])
+\\:            handled))
+\\: ----
+\\:
+\\: `Self` is the source expression for the value being matched. Calling
+\\: `Is?` adds a run-time test for that value. Calling `Assign` associates a
+\\: variable or nested pattern with an expression that extracts its value.
+\\: Return `handled` after handling a pattern; if no clause applies, the
+\\: generated final clause returns `(fail)` so another registered handler can
+\\: try it.
+\\:
+\\: Once the declaration has been evaluated, later source files can use the
+\\: pattern like any built-in pattern:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (define swap-paired
+\\:   (paired A B) -> (@p B A))
+\\: ----
+\\:
+\\: Put uses in a following source file (or a dependent module): registering
+\\: the handler does not retroactively affect definitions compiled earlier in
+\\: the file that declares it.
+
 (package defpattern [defpattern sexp]
 
 (defmacro defpattern-macro

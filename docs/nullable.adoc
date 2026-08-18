@@ -1,0 +1,37 @@
+= Nullable values
+
+A `(nullable.t A)` is either `(@null)` or `(@just Value)`. The null case
+uses a private sentinel, while `@just` represents `Value` directly without
+allocating a wrapper. Consequently nested nullable layers collapse: this
+type is intended for APIs where one distinguished absence value is enough.
+
+== API
+
+==== `@null` : `--> (nullable.t A)`
+
+`(@null)` returns the distinguished null value.
+
+==== `@just` : `A --> (nullable.t A)`
+
+`(@just Value)` injects `Value` into the nullable representation. The value
+is represented directly, so construction does not allocate a wrapper; the
+nesting caveat described above still applies to the private null sentinel.
+
+==== `null?` : `(nullable.t A) --> boolean`
+
+`(null? Value)` returns `true` exactly when `Value` is `(@null)`.
+
+== Pattern matching
+
+`(@null)` matches the null sentinel. `(@just Pattern)` matches any
+non-null value and continues matching `Pattern` against that value.
+
+[source,shen]
+----
+(define nullable.default
+  Default (@null) -> Default
+  _ (@just Value) -> Value)
+
+(nullable.default "unknown" (@just "Ada"))
+\\ Result: "Ada"
+----

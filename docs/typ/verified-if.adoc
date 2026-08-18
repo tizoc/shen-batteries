@@ -5,4 +5,3 @@ is typechecked, any `verified` rules that result from `Test` are taken into acco
 
 Example: `(if (number? X) (+ X 2) 0)` for an `X` of unknown type would not typecheck
 without this rule, but `X -> (+ X 2) where (number? X)` would.
-
