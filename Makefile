@@ -13,6 +13,7 @@ PRODUCTION_MODULES = \
 	lazy/pattern \
 	let-match \
 	maybe \
+	maybe/cexpr \
 	nullable \
 	pipe-macro \
 	seq \
@@ -42,7 +43,9 @@ test-native:
 	"$(SHEN)" build-module-app tests/native/maybe-pattern.shenmod --module-dir . -o _build/native-test.so
 	"$(SHEN)" eval -q \
 		-e '(shen-scheme.load-compiled "_build/native-test.so")' \
-		-e '(if (= (batteries-native-test.answer) 42) ok (error "native module smoke test failed"))'
+		-e '(if (= (batteries-native-test.answer) 42) ok (error "native pattern smoke test failed"))' \
+		-e '(if (= (batteries-native-test.maybe-do-answer) 42) ok (error "native maybe.do smoke test failed"))' \
+		-e '(if (= (batteries-native-test.seq-do-answer) [11 21 12 22]) ok (error "native seq.do smoke test failed"))'
 
 docs:
 	"$(SHEN)" script shendoc.shen box/box.shen docs/box.adoc

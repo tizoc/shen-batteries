@@ -8,13 +8,115 @@ and applicative functors.
 
 == Overview
 
-TODO
+A computation module declares a statically named frontend with
+`(defcexpr Frontend Builder)`. For example,
+`(defcexpr seq.do seq.cexpr-builder)` defines `seq.do` as the frontend for
+the ordinary `seq.cexpr-builder` function. The declaration creates only a
+shallow outer macro; the ordinary, typed `cexpr` functions parse and lower
+the complete body.
+
+Frontends are namespaced and fixed by their defining source. There is no
+runtime builder registry or generic `:` dispatcher.
+
+A body is a sequence of parenthesized statements:
+
+* `(bind X Computation)` binds the result of a computation.
+* `(for X Source)` invokes the builder's `for` operation.
+* `(let X Expression)` makes an ordinary local Shen binding.
+* `(then Computation)` runs a computation and discards its result.
+* `(effect Expression)` evaluates an ordinary Shen expression and discards
+  its result.
+* `(return X)` and `(yield X)` lift a value; `(return-from M)` and
+  `(yield-from M)` use an existing computation.
+* `(if P Then Else)` selects between computation bodies. The else arm may
+  be omitted. Use Shen `do` with parenthesized statements for a
+  multi-statement arm.
+* `(and (bind X MX) (bind Y MY) ...)` combines independent computations
+  applicatively and binds all of their results for the remaining body.
+
+Lifted values and conditional results may be followed by more statements;
+the builder combines them with the delayed remainder of the body. At the
+outer boundary, `cexpr.expand` invokes `Run(Delay(Body))` exactly once.
+
+A declared frontend is guaranteed to be available to following source
+files and dependent modules, not to the source file containing its
+declaration. In a package, list the frontend name and any non-core syntax
+words used by the body among the package's external symbols. `bind`,
+`let`, `return`, `if`, `do`, and `and` are already Shen external symbols;
+`for`, `then`, `effect`, `return-from`, `yield`, and `yield-from` are not.
 
 == Examples
 
-TODO
+The `maybe/cexpr` module provides dependent optional computations without
+nested lambdas:
+
+[source,shen]
+----
+(maybe.do
+  (bind User (find-user UserId))
+  (bind Address (primary-address User))
+  (return (city Address)))
+----
+
+The `seq/cexpr` module exposes both monadic binding and generator forms:
+
+[source,shen]
+----
+(seq.do
+  (for X [1 2 3])
+  (if (> X 1)
+      (do (yield X)
+          (yield (* X 10))))
+  (yield done))
+----
+
+The meaning of each form belongs to the builder. For example, the `seq`
+builder interprets applicative sources as a shortest-sequence zip, while
+ordinary consecutive `bind` statements are dependent `flat-map`
+operations.
 
 == Implementing new computation expression types
 
-TODO
+A builder is an ordinary checked Shen function with type
+`(list sexp) --> sexp`. It receives an operation represented as source
+data and returns the Shen source tree that implements it. Declare the
+public frontend in the builder's source with, for example,
+`(defcexpr result.do result.cexpr-builder)`.
+
+A builder declared inside a Shen package uses a qualified frontend name,
+such as `result.do`, and lists `defcexpr`, any referenced `cexpr.*`
+helpers, and the non-core operation tags it pattern-matches as external
+symbols. This keeps its source-data patterns identical to the operations
+emitted by the common expander. A bare `do` remains Shen's core external
+symbol and is therefore not package-qualified.
+
+The common expander can send these operations:
+
+* `[]` for an empty computation (Zero).
+* `[bind M F]` and `[for Source F]`.
+* `[return X]`, `[return-from M]`, `[yield X]`, and `[yield-from M]`.
+* `[combine Left DelayedRight]`.
+* `[bind-return M F]`, an optional optimized Bind followed by Return.
+* `[merge-sources M1 M2 ...]` for applicative `and` bindings. The merged
+  result is attached to the remaining body with Bind, or with BindReturn
+  when the remainder is a single Return and the optimization is supported.
+* `[delay M]` and `[run M]`.
+
+Delegate unknown operations to `cexpr.default-builder`. It supplies
+identity implementations of Delay and Run. It reports `bind-return` as
+unsupported with Shen's `fail`, allowing the expander to use ordinary Bind
+and Return instead for both single and applicative bindings; an actual
+error raised by a builder is never swallowed. Other unsupported operations
+produce a descriptive error.
+
+`merge-sources` must preserve source order. Two results are represented as
+`(@p A B)`; three or more are right-nested, as in `(@p A (@p B C))`. The
+expander generates a hygienic one-argument lambda which destructures that
+representation, so applicative builders work with any number of sources. A
+builder may still recognize the generated BindReturn shape to provide
+specialized lowering.
+
+Delay is also applied to the remainder supplied to Combine. The single
+outer Run/Delay pair is separate: it lets a builder suspend, start, or
+finalize the complete computation without finalizing nested bodies.
 

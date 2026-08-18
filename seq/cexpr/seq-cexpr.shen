@@ -18,9 +18,18 @@
 
 (define seq.cexpr-builder-bind-return
   { sexp --> sexp --> sexp }
-  \\ TODO: higher counts can be handled by combining mapN with seq.zip
-  [/. [@p V1 V2 V3] Body] [seq.zip S1 [seq.zip S2 S3]] -> [seq.map3 [/. V1 V2 V3 Body] S1 S2 S3]
-  [/. [@p V1 V2] Body] [seq.zip S1 S2] -> [seq.map2 [/. V1 V2 Body] S1 S2]
+  [/. Tuple
+      [let V1 [fst Tuple]
+        [let Tail [snd Tuple]
+          [let V2 [fst Tail]
+            [let V3 [snd Tail] Body]]]]]
+    [seq.zip S1 [seq.zip S2 S3]]
+      -> [seq.map3 [/. V1 V2 V3 Body] S1 S2 S3]
+  [/. Tuple
+      [let V1 [fst Tuple]
+        [let V2 [snd Tuple] Body]]]
+    [seq.zip S1 S2]
+      -> [seq.map2 [/. V1 V2 Body] S1 S2]
   F Expr -> [seq.map F Expr])
 
-(cexpr.register seq seq.cexpr-builder)
+(defcexpr seq.do seq.cexpr-builder)

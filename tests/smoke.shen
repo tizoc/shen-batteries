@@ -356,19 +356,236 @@ A final note.
 (test.assert-equal
   "seq cexpr loads its runtime dependency"
   [1 2]
-  (seq.to-list (:seq yield 1 yield 2)))
+  (seq.to-list (seq.do (yield 1) (yield 2))))
 
 (test.assert-equal
-  "cexpr applies root delay and run once"
+  "cexpr applies root delay and run once and delays combined tails"
   [root-run [delayed [combined [yielded 1] [delayed [yielded 2]]]]]
-  (:cexpr-trace yield 1 yield 2))
+  (test.cexpr-trace.do (yield 1) (yield 2)))
+
+(test.assert-equal
+  "cexpr sends an empty body through the builder zero operation"
+  [root-run [delayed zero]]
+  (test.cexpr-trace.do))
+
+(test.assert-equal
+  "seq cexpr supports dependent monadic binds"
+  [11 21 12 22]
+  (seq.to-list
+    (seq.do
+      (bind X (seq.of-list [1 2]))
+      (bind Y (seq.of-list [10 20]))
+      (return (+ X Y)))))
+
+(test.assert-equal
+  "seq cexpr distinguishes return and return-from"
+  [[one] [one two]]
+  [(seq.to-list (seq.do (return one)))
+   (seq.to-list (seq.do (return-from (seq.of-list [one two]))))])
+
+(test.assert-equal
+  "seq cexpr combines yield and yield-from"
+  [one two three four]
+  (seq.to-list
+    (seq.do
+      (yield one)
+      (yield-from (seq.of-list [two three]))
+      (yield four))))
+
+(test.assert-equal
+  "seq cexpr converts sources for for-bindings"
+  [10 20]
+  (seq.to-list
+    (seq.do
+      (for X [1 2])
+      (return (* X 10)))))
 
 (test.assert-equal
   "seq cexpr supports discarded monadic binds"
   [kept]
   (seq.to-list
-    (:seq do <-- (seq.singleton ignored)
-          yield kept)))
+    (seq.do
+      (then (seq.singleton ignored))
+      (yield kept))))
+
+(test.assert-equal
+  "cexpr supports ordinary local bindings"
+  [42]
+  (seq.to-list
+    (seq.do
+      (let X 41)
+      (return (+ X 1)))))
+
+(test.assert-equal
+  "cexpr supports ordinary host effects"
+  [1 [kept]]
+  (let Count (box.make 0)
+       Values (seq.to-list
+                (seq.do
+                  (effect (box.incr Count))
+                  (yield kept)))
+    [(box.unbox Count) Values]))
+
+(test.assert-equal
+  "cexpr supports an else-less conditional followed by more statements"
+  [[after] [inside after]]
+  [(seq.to-list
+     (seq.do
+       (if false (yield inside))
+       (yield after)))
+   (seq.to-list
+     (seq.do
+       (if true (yield inside))
+       (yield after)))])
+
+(test.assert-equal
+  "cexpr supports conditional branches followed by more statements"
+  [else after]
+  (seq.to-list
+    (seq.do
+      (if false (yield then) (yield else))
+      (yield after))))
+
+(test.assert-equal
+  "cexpr supports full conditional bodies grouped with do"
+  [1 10 2 20]
+  (seq.to-list
+    (seq.do
+      (if true
+          (do (bind X (seq.of-list [1 2]))
+              (yield X)
+              (yield (* X 10)))
+          (yield 0)))))
+
+(test.assert-equal
+  "grouped conditional bodies preserve discarded monadic binds"
+  []
+  (seq.to-list
+    (seq.do
+      (if true
+          (do (then (seq.empty))
+              (yield kept))
+          (yield other)))))
+
+(test.assert-equal
+  "cexpr uses bind-return for a terminal bind and return"
+  [root-run [delayed [bind-return source source]]]
+  (test.cexpr-trace.do
+    (bind X source)
+    (return X)))
+
+(test.assert-equal
+  "cexpr falls back to bind and return when bind-return is unsupported"
+  42
+  (test.cexpr-monadic.do
+    (bind X 41)
+    (return (+ X 1))))
+
+(test.assert-equal
+  "applicative cexpr falls back to bind and return"
+  42
+  (test.cexpr-monadic.do
+    (and (bind X 40)
+         (bind Y 2))
+    (return (+ X Y))))
+
+(test.assert-equal
+  "cexpr propagates errors from a supported bind-return operation"
+  rejected
+  (trap-error
+    (cexpr.build (fn test.cexpr-broken-builder)
+                 [[bind X source] [return X]])
+    (/. E rejected)))
+
+(test.assert-equal
+  "applicative cexpr propagates bind-return errors"
+  rejected
+  (trap-error
+    (cexpr.build (fn test.cexpr-broken-builder)
+                 [[and [bind X 1] [bind Y 2]] [return (+ X Y)]])
+    (/. E rejected)))
+
+(test.assert-equal
+  "seq cexpr supports two applicative bindings"
+  [11 22]
+  (seq.to-list
+    (seq.do
+      (and (bind X (seq.of-list [1 2]))
+           (bind Y (seq.of-list [10 20])))
+      (return (+ X Y)))))
+
+(test.assert-equal
+  "applicative bindings scope over the remaining body"
+  [22 44]
+  (seq.to-list
+    (seq.do
+      (and (bind X (seq.of-list [1 2]))
+           (bind Y (seq.of-list [10 20])))
+      (let Sum (+ X Y))
+      (return (* Sum 2)))))
+
+(test.assert-equal
+  "seq cexpr supports three applicative bindings"
+  [111 222]
+  (seq.to-list
+    (seq.do
+      (and (bind X (seq.of-list [1 2]))
+           (bind Y (seq.of-list [10 20]))
+           (bind Z (seq.of-list [100 200])))
+      (return (+ X (+ Y Z))))))
+
+(test.assert-equal
+  "seq cexpr supports four or more applicative bindings"
+  [1111 2222]
+  (seq.to-list
+    (seq.do
+      (and (bind A (seq.of-list [1 2]))
+           (bind B (seq.of-list [10 20]))
+           (bind C (seq.of-list [100 200]))
+           (bind D (seq.of-list [1000 2000])))
+      (return (+ A (+ B (+ C D)))))))
+
+(test.assert-equal
+  "generic cexpr applicative lowering supports four sources"
+  10
+  (test.cexpr-applicative4 1 2 3 4))
+
+(test.assert-equal
+  "maybe cexpr binds present values"
+  (@some 5)
+  (test.cexpr-maybe-map (@some 4)))
+
+(test.assert-true
+  "maybe cexpr short-circuits absent values"
+  (maybe.none?
+    (maybe.do
+      (bind X (@none))
+      (return (+ X 1)))))
+
+(test.assert-equal
+  "maybe cexpr supports return-from"
+  (@some existing)
+  (maybe.do (return-from (@some existing))))
+
+(test.assert-equal
+  "seq cexpr expansion typechecks in a definition"
+  [2 3]
+  (seq.to-list (test.cexpr-seq-map (seq.of-list [1 2]))))
+
+(test.assert-equal
+  "cexpr generator syntax works inside packages"
+  [10 20]
+  (seq.to-list (test-cexpr-package.generate)))
+
+(test.assert-equal
+  "defcexpr declares builders inside packages"
+  42
+  (test.cexpr-packaged-builder))
+
+(test.assert-equal
+  "cexpr local bindings typecheck in a definition"
+  [4 6]
+  (seq.to-list (test.cexpr-seq-let (seq.of-list [1 2]))))
 
 (test.assert-equal
   "seq.make rejects negative counts"

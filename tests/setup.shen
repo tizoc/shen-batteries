@@ -21,15 +21,17 @@
    let-match
    pipe-macro
    cexpr
+   maybe/cexpr
    seq/cexpr
    shendoc])
 (library.use [box])
 
-\\ Exercise a checked computation-expression builder after registration at a
-\\ file boundary.
+\\ Exercise checked computation-expression builders after their frontend
+\\ declarations have become active at a file boundary.
 (let Typechecking (if (tc?) + -)
   (do (tc +)
       (load "tests/fixtures/cexpr-input.shen")
+      (load "tests/fixtures/cexpr-package-input.shen")
       (tc Typechecking)))
 
 \\ Exercise checked custom patterns after automatic registration at a
