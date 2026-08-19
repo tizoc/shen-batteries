@@ -39,6 +39,26 @@
   "feature list is nonempty"
   (cons? (features.current)))
 
+\\ Make a fixture-owned feature visible before the following source is expanded.
+(features.add shen-batteries/documented-examples)
+
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "tests/fixtures/documented-examples.shen")
+      (tc Typechecking)))
+
+(test.assert-equal
+  "documented compound feature conditions select in a following source"
+  [or-selected and-selected]
+  (test.documented-feature-selection))
+
+(test.assert-equal
+  "documented verified-and predicate typechecks and evaluates"
+  [true false false]
+  [(test.documented-positive-number? 1)
+   (test.documented-positive-number? -1)
+   (test.documented-positive-number? not-a-number)])
+
 (test.assert-equal
   "void composes with do"
   ok
@@ -140,6 +160,14 @@
        Result (maybe.bind (@none)
                           (/. X (do (box.incr Calls) (@some X))))
     [(maybe.none? Result) (box.unbox Calls)]))
+
+(test.assert-equal
+  "documented maybe map and bind preserve or join optional layers"
+  [(@some (@some 4)) (@some 4) true]
+  [(maybe.map (fn test.documented-below-ten) (@some 4))
+   (maybe.bind (@some 4) (fn test.documented-below-ten))
+   (maybe.none?
+     (maybe.bind (@some 12) (fn test.documented-below-ten)))])
 
 (test.assert-equal
   "maybe predicates preserve nested optional values"
@@ -307,6 +335,30 @@
           [0 2 4 6]
           (iter.to-list
             (iter.take 4 (iter.init (/. N (* N 2))))))
+        (test.assert-equal
+          "documented finite seq and iter pipelines agree"
+          [[30 40 50] [30 40 50]]
+          [(seq.to-list
+             (seq.map (/. X (* X 10))
+               (seq.filter (/. X (> X 2))
+                 (seq.range 1 5))))
+           (iter.to-list
+             (iter.map (/. X (* X 10))
+               (iter.filter (/. X (> X 2))
+                 (iter.of-list [1 2 3 4 5]))))])
+        (test.assert-equal
+          "documented infinite seq and iter pipelines terminate at a prefix"
+          [[0 2 4 6 8] [0 2 4 6 8]]
+          [(seq.to-list
+             (seq.truncate 5
+               (seq.map (/. N (* N 2))
+                 (seq.unfold
+                   (/. N (@some (@p N (+ N 1))))
+                   0))))
+           (iter.to-list
+             (iter.take 5
+               (iter.map (/. N (* N 2))
+                 (iter.init (/. N N)))))])
         (test.assert-equal
           "cycling an empty iterator stays empty"
           []
@@ -1024,6 +1076,12 @@ A final note.
   [(@some 14) true]
   [(test.cexpr-maybe-pipeline 4)
    (maybe.none? (test.cexpr-maybe-pipeline -1))])
+
+(test.assert-equal
+  "documented maybe cexpr pipeline supports dependent binds"
+  [(@some 14) true]
+  [(test.documented-maybe-pipeline 4)
+   (maybe.none? (test.documented-maybe-pipeline 8))])
 
 (test.assert-true
   "empty maybe cexpr produces absence"
