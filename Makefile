@@ -30,7 +30,34 @@ PRODUCTION_MODULES = \
 
 MODULE_CONFORMANCE_CASES = descriptors loading source-failure cycle feature
 
-.PHONY: test test-modules test-authoring-modules test-module-conformance test-native docs
+GENERATED_DOCS = \
+	docs/box.adoc \
+	docs/cexpr.adoc \
+	docs/defpattern.adoc \
+	docs/dict.adoc \
+	docs/features.adoc \
+	docs/iter.adoc \
+	docs/lazy.adoc \
+	docs/lazy/pattern.adoc \
+	docs/let-match.adoc \
+	docs/library.adoc \
+	docs/maybe.adoc \
+	docs/maybe/cexpr.adoc \
+	docs/nullable.adoc \
+	docs/pipe-macro.adoc \
+	docs/seq.adoc \
+	docs/seq/cexpr.adoc \
+	docs/seq/dict.adoc \
+	docs/shendoc.adoc \
+	docs/typ/or.adoc \
+	docs/typ/sexp.adoc \
+	docs/typ/verified-and-head.adoc \
+	docs/typ/verified-if.adoc \
+	docs/typ/verified-objects.adoc \
+	docs/typ/void.adoc \
+	docs/with-exit.adoc
+
+.PHONY: test test-modules test-authoring-modules test-module-conformance test-native docs check-docs
 test: test-modules test-authoring-modules test-module-conformance
 	"$(SHEN)" script tests/run.shen
 	"$(SHEN)" script tests/run-verified-if.shen
@@ -88,3 +115,6 @@ docs:
 	"$(SHEN)" script shendoc.shen typ/verified-objects/verified-objects.shen docs/typ/verified-objects.adoc
 	"$(SHEN)" script shendoc.shen typ/void/void.shen docs/typ/void.adoc
 	"$(SHEN)" script shendoc.shen with-exit/with-exit.shen docs/with-exit.adoc
+
+check-docs: docs
+	git diff --exit-code -- $(GENERATED_DOCS)

@@ -109,6 +109,13 @@ Regenerate the tracked API documentation from source comments with:
 make docs SHEN=/absolute/path/to/shen
 ```
 
+From a clean checkout, verify that the tracked pages match their source
+comments with:
+
+```sh
+make check-docs SHEN=/absolute/path/to/shen
+```
+
 License
 -------
 
