@@ -133,6 +133,65 @@
     [(maybe.none? Result) (box.unbox Calls)]))
 
 (test.assert-equal
+  "maybe predicates preserve nested optional values"
+  [true false false true false true]
+  [(maybe.none? (@none))
+   (maybe.some? (@none))
+   (maybe.none? (@some value))
+   (maybe.some? (@some value))
+   (maybe.none? (@some (@none)))
+   (maybe.some? (@some (@none)))])
+
+(test.assert-equal
+  "maybe checked and unchecked extraction agree for present values"
+  [42 42 rejected]
+  [(maybe.get (@some 42))
+   (maybe.unsafe-get (@some 42))
+   (trap-error (maybe.get (@none)) (/. Error rejected))])
+
+(test.assert-equal
+  "maybe.get/or evaluates its default only for absence"
+  [present 0 fallback 1]
+  (let Calls (box.make 0)
+       Present (maybe.get/or
+                 (@some present)
+                 (freeze (do (box.incr Calls) unused)))
+       AfterPresent (box.unbox Calls)
+       Absent (maybe.get/or
+                (@none)
+                (freeze (do (box.incr Calls) fallback)))
+    [Present AfterPresent Absent (box.unbox Calls)]))
+
+(test.assert-equal
+  "maybe.map calls its function only for a present value"
+  [(@some 2) true 1]
+  (let Calls (box.make 0)
+       F (/. X (do (box.incr Calls) (+ X 1)))
+       Present (maybe.map F (@some 1))
+       Absent (maybe.map F (@none))
+    [Present (maybe.none? Absent) (box.unbox Calls)]))
+
+(test.assert-equal
+  "maybe.for-each performs only the present effect and returns void"
+  [(void) (void) [value]]
+  (let Seen (box.make [])
+       Present (maybe.for-each
+                 (/. X (box.put Seen [X | (box.unbox Seen)]))
+                 (@some value))
+       Absent (maybe.for-each
+                (/. X (box.put Seen [unexpected | (box.unbox Seen)]))
+                (@none))
+    [Present Absent (box.unbox Seen)]))
+
+(test.assert-equal
+  "nullable values use an identity representation and collapse null nesting"
+  [value true true false]
+  [(@just value)
+   (= (@just value) value)
+   (null? (@just (@null)))
+   (null? (@just value))])
+
+(test.assert-equal
   "pipe-first macro"
   20
   (=> 2 (+ 3) (* 4)))
@@ -416,9 +475,24 @@
   (test.match-maybe (@some 1)))
 
 (test.assert-equal
+  "maybe patterns discriminate polymorphic values before extraction"
+  [present absent ordinary ordinary ordinary]
+  [(test.classify-maybe-pattern (@some value))
+   (test.classify-maybe-pattern (@none))
+   (test.classify-maybe-pattern value)
+   (test.classify-maybe-pattern (absvector 0))
+   (test.classify-maybe-pattern (@v value <>))])
+
+(test.assert-equal
   "nullable patterns use defpattern"
   2
   (test.match-nullable (@just 2)))
+
+(test.assert-equal
+  "nullable patterns distinguish present and absent values"
+  [present absent]
+  [(test.classify-nullable-pattern (@just value))
+   (test.classify-nullable-pattern (@null))])
 
 (test.assert-equal
   "lazy patterns use defpattern"
@@ -774,6 +848,16 @@ A final note.
   (@some 5)
   (test.cexpr-maybe-map (@some 4)))
 
+(test.assert-equal
+  "maybe cexpr typed pipelines bind, let, return, and short-circuit"
+  [(@some 14) true]
+  [(test.cexpr-maybe-pipeline 4)
+   (maybe.none? (test.cexpr-maybe-pipeline -1))])
+
+(test.assert-true
+  "empty maybe cexpr produces absence"
+  (maybe.none? (maybe.do)))
+
 (test.assert-true
   "maybe cexpr short-circuits absent values"
   (maybe.none?
@@ -785,6 +869,74 @@ A final note.
   "maybe cexpr supports return-from"
   (@some existing)
   (maybe.do (return-from (@some existing))))
+
+(test.assert-equal
+  "maybe cexpr return distinguishes lifting from forwarding"
+  [(@some (@some value)) (@some value)]
+  [(maybe.do (return (@some value)))
+   (maybe.do (return-from (@some value)))])
+
+(test.assert-equal
+  "maybe cexpr yield distinguishes lifting from forwarding"
+  [(@some (@some value)) (@some value)]
+  [(maybe.do (yield (@some value)))
+   (maybe.do (yield-from (@some value)))])
+
+(test.assert-equal
+  "maybe cexpr evaluates lifted computations from left to right"
+  [(@some second) [first second]]
+  (let Seen (box.make [])
+       Result (maybe.do
+                (yield (do (box.put Seen [first | (box.unbox Seen)]) first))
+                (yield (do (box.put Seen [second | (box.unbox Seen)]) second)))
+    [Result (reverse (box.unbox Seen))]))
+
+(test.assert-equal
+  "maybe cexpr then short-circuits effects after absence"
+  [(@some done) 1 true 1]
+  (let Calls (box.make 0)
+       Present (maybe.do
+                 (then (@some ignored))
+                 (effect (box.incr Calls))
+                 (return done))
+       AfterPresent (box.unbox Calls)
+       Absent (maybe.do
+                (then (@none))
+                (effect (box.incr Calls))
+                (return unreachable))
+    [Present AfterPresent (maybe.none? Absent) (box.unbox Calls)]))
+
+(test.assert-equal
+  "maybe cexpr effects discard ordinary results without short-circuiting"
+  (@some continued)
+  (maybe.do
+    (effect (@none))
+    (return continued)))
+
+(test.assert-equal
+  "maybe cexpr one-armed false conditionals stop the remainder"
+  [true 0]
+  (let Calls (box.make 0)
+       Result (maybe.do
+                (if false (return unreachable))
+                (effect (box.incr Calls))
+                (return also-unreachable))
+    [(maybe.none? Result) (box.unbox Calls)]))
+
+(test.assert-equal
+  "maybe cexpr selects a complete conditional branch"
+  (@some right)
+  (maybe.do
+    (if false
+        (return left)
+        (return right))))
+
+(test.assert-equal
+  "maybe cexpr present one-armed conditionals continue into the remainder"
+  (@some trailing)
+  (maybe.do
+    (if true (return branch))
+    (return trailing)))
 
 (test.assert-equal
   "seq cexpr expansion typechecks in a definition"

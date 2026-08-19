@@ -54,9 +54,9 @@ specification.
 | `lazy` | Memoization for frozen computations | `box` | [API](docs/lazy.adoc) |
 | `lazy/pattern` | Programmable matching of frozen computations | `defpattern`, `lazy` | [API](docs/lazy/pattern.adoc) |
 | `let-match` | List and tuple destructuring in `let` bindings | — | [API](docs/let-match.adoc) |
-| `maybe` | Tagged optional values and programmable patterns | `typ/void`, `defpattern` | [API](docs/maybe.adoc) |
-| `maybe/cexpr` | `maybe.do` computation-expression frontend | `maybe`, `typ/sexp`, `cexpr` | [API](docs/maybe/cexpr.adoc) |
-| `nullable` | Identity-represented nullable values and programmable patterns | `defpattern` | [API](docs/nullable.adoc) |
+| `maybe` | Tagged optional values and programmable patterns | `typ/void`, `defpattern` | [Guide](docs/working-with-optional-values.adoc), [API](docs/maybe.adoc) |
+| `maybe/cexpr` | `maybe.do` computation-expression frontend | `maybe`, `typ/sexp`, `cexpr` | [Guide](docs/working-with-optional-values.adoc), [API](docs/maybe/cexpr.adoc) |
+| `nullable` | Identity-represented nullable values and programmable patterns | `defpattern` | [Guide](docs/working-with-optional-values.adoc), [API](docs/nullable.adoc) |
 | `pipe-macro` | Thread-first, thread-last, and `doto` macros | — | [API](docs/pipe-macro.adoc) |
 | `seq` | Pull-based lazy sequences | `typ/void`, `typ/or`, `maybe`, `lazy` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/seq.adoc) |
 | `seq/cexpr` | `seq.do` computation-expression frontend | `seq`, `typ/sexp`, `cexpr` | [API](docs/seq/cexpr.adoc) |

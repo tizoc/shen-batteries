@@ -1,0 +1,253 @@
+= Working with optional values
+
+Shen Batteries provides two representations for a value that may be absent:
+tagged `Maybe` values from `maybe`, and identity-represented values from
+`nullable`. Choose the representation before choosing the syntax used to
+process it.
+
+[source,shen]
+----
+(load "library.shen")
+(library.set-home "/path/to/shen-batteries")
+(library.use [maybe nullable])
+----
+
+Loading `maybe/cexpr` instead of `maybe` also loads the generic `cexpr`
+support and defines `maybe.do`:
+
+[source,shen]
+----
+(library.use [maybe/cexpr])
+----
+
+== Choosing a representation
+
+[cols="1,2,2",options="header"]
+|===
+| Question
+| `maybe.t`
+| `nullable.t`
+
+| How is a present value represented?
+| `(@some Value)` is an explicit tagged wrapper.
+| `(@just Value)` is represented by `Value` itself.
+
+| How is absence represented?
+| The shared `(@none)` value.
+| The public `(@null)` constructor returns a private sentinel.
+
+| Can optional layers remain distinct?
+| Yes. `(@some (@none))` is a present value containing an absent value.
+| No. `(@just (@null))` is the same value as `(@null)`.
+
+| What processing operations are provided?
+| Predicates, checked and unchecked extraction, a lazy default, `map`, `bind`,
+  `for-each`, patterns, and `maybe.do` in the adapter module.
+| A null predicate and patterns. Ordinary non-null values need no extraction.
+|===
+
+Use `Maybe` as the general-purpose choice for optional computations. Its tag
+preserves the difference between an absent outer result and a present result
+whose payload is itself absent. This makes it suitable for nesting and for
+combinators such as `map` and `bind`.
+
+Use `Nullable` at a boundary where a distinguished null value is useful and a
+present value should retain its ordinary runtime representation. It avoids a
+present-value wrapper, but it cannot represent the null sentinel as a present
+payload. It is therefore a poor fit when optional layers carry different
+meaning.
+
+The nesting difference is observable through the public APIs:
+
+[source,shen]
+----
+(maybe.none? (@some (@none)))
+\\ Result: false
+
+(maybe.none? (maybe.get (@some (@none))))
+\\ Result: true
+
+(null? (@just (@null)))
+\\ Result: true
+----
+
+== Inspecting and extracting a Maybe
+
+Prefer patterns, `maybe.get/or`, `maybe.map`, or `maybe.bind` when absence is an
+expected case. `maybe.get` is a checked but partial extraction: it returns the
+payload of `@some` and raises an error for `@none`.
+
+`maybe.none?` and `maybe.some?` accept typed `maybe.t` values; they are not
+general probes for arbitrary Shen values. The programmable `@some` pattern,
+on the other hand, safely declines an unrelated scrutinee so another pattern
+clause can match it.
+
+[source,shen]
+----
+(maybe.get (@some 42))
+\\ Result: 42
+
+(trap-error
+  (maybe.get (@none))
+  (/. Error rejected))
+\\ Result: rejected
+----
+
+`maybe.unsafe-get` omits the tag check. Use it only when the surrounding logic
+has already established `maybe.some?`; it is not an alternative way to handle
+absence.
+
+[source,shen]
+----
+(let M (@some 42)
+  (if (maybe.some? M)
+      (maybe.unsafe-get M)
+      0))
+\\ Result: 42
+----
+
+`maybe.get/or` takes its fallback as a frozen computation. The fallback is
+thawed only for `@none`, so an expensive or failing default remains untouched
+when a payload is present:
+
+[source,shen]
+----
+(maybe.get/or (@none) (freeze 42))
+\\ Result: 42
+
+(maybe.get/or
+  (@some 42)
+  (freeze (simple-error "the fallback was evaluated")))
+\\ Result: 42
+----
+
+== Transforming and chaining Maybe values
+
+Use `maybe.map` when the function returns an ordinary value. It preserves
+absence and wraps a transformed present value in `@some`:
+
+[source,shen]
+----
+(maybe.map (/. X (+ X 1)) (@some 4))
+\\ Result: (@some 5)
+
+(maybe.map (/. X (+ X 1)) (@none))
+\\ Result: (@none)
+----
+
+Use `maybe.bind` when the function itself can return `@none`. `bind` joins the
+two optional layers, whereas mapping the same function retains both layers:
+
+[source,shen]
+----
+(define keep-positive
+  { number --> (maybe.t number) }
+  X -> (@some X) where (> X 0)
+  _ -> (@none))
+
+(maybe.map (fn keep-positive) (@some 4))
+\\ Result: (@some (@some 4))
+
+(maybe.bind (@some 4) (fn keep-positive))
+\\ Result: (@some 4)
+
+(maybe.bind (@some -1) (fn keep-positive))
+\\ Result: (@none)
+----
+
+Notice the argument order: `maybe.map` is function-first, while `maybe.bind`
+is value-first.
+
+For a one-off effect, `maybe.for-each` calls its function once for `@some` and
+does nothing for `@none`. It returns `void` in both cases.
+
+== Patterns
+
+Both representations provide programmable patterns. Maybe patterns expose the
+tagged alternatives; Nullable patterns divide the null sentinel from every
+ordinary non-null value:
+
+[source,shen]
+----
+(define maybe.label
+  { (maybe.t string) --> string }
+  (@none) -> "unknown"
+  (@some Name) -> Name)
+
+(define nullable.label
+  { (nullable.t string) --> string }
+  (@null) -> "unknown"
+  (@just Name) -> Name)
+
+(maybe.label (@some "Ada"))
+\\ Result: "Ada"
+
+(nullable.label (@just "Ada"))
+\\ Result: "Ada"
+----
+
+`@just` is useful as a pattern even though it is an identity operation as a
+constructor: the pattern rejects `@null` before matching its inner pattern.
+
+== Multi-step computations with `maybe.do`
+
+Nested `maybe.bind` calls are precise but can obscure a longer dependent
+pipeline. The `maybe/cexpr` adapter provides `maybe.do` as structured syntax
+for the same short-circuiting computation:
+
+[source,shen]
+----
+(library.use [maybe/cexpr])
+
+(define below-ten
+  { number --> (maybe.t number) }
+  X -> (@some X) where (< X 10)
+  _ -> (@none))
+
+(maybe.do
+  (bind X (below-ten 4))
+  (bind Y (below-ten (+ X 3)))
+  (return (* Y 2)))
+\\ Result: (@some 14)
+----
+
+Each `bind` runs only if the preceding computation returned `@some`. The first
+`@none` becomes the result of the whole expression, and the remaining body is
+not evaluated. Ordinary `let` introduces a value without unwrapping a Maybe;
+`effect` evaluates an ordinary expression only if control reaches it and
+discards its result. In particular, an `@none` returned by an `effect`
+expression does not short-circuit the body; use `then` for a Maybe computation
+whose absence should stop the remainder.
+
+[source,shen]
+----
+(maybe.do
+  (effect (print "before"))
+  (bind X (@none))
+  (effect (print "after"))
+  (return X))
+\\ Prints "before", then returns (@none).
+----
+
+`return` lifts an ordinary value into `@some`. `return-from` uses a Maybe that
+already exists, so the distinction matters when its expression is itself a
+Maybe:
+
+[source,shen]
+----
+(maybe.do
+  (return (@some 1)))
+\\ Result: (@some (@some 1))
+
+(maybe.do
+  (return-from (@some 1)))
+\\ Result: (@some 1)
+----
+
+Use `maybe.map` for a single total transformation, `maybe.bind` for a single
+optional step, and `maybe.do` when several dependent bindings, local values,
+conditionals, or effects read more clearly as a body. Its steps execute from
+left to right and stop at absence.
+
+See link:maybe.adoc[the Maybe API], link:nullable.adoc[the Nullable API], and
+link:maybe/cexpr.adoc[the `maybe.do` API] for the complete contracts.

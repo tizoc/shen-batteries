@@ -33,8 +33,9 @@ as programmable patterns:
 
 ==== `maybe.some?` : `(maybe.t A) --> boolean`
 
-`(maybe.some? Maybe)` returns `true` exactly when `Maybe` is an `@some`
-value.
+`(maybe.some? Maybe)` returns `true` exactly when the typed Maybe argument
+is an `@some` value. Like `maybe.none?`, it is a predicate over
+`(maybe.t A)`, not a run-time type test for arbitrary Shen values.
 
 == Extraction
 
@@ -83,4 +84,5 @@ discards its result. It does not call `F` for `@none`; both cases return
 `(@none)` matches absence. `(@some Pattern)` matches a present value and
 continues matching `Pattern` against its contents. These patterns work in
 definitions and other contexts supported by Shen's programmable pattern
-matching.
+matching. Unlike the typed predicates above, the `@some` pattern safely
+declines an unrelated scrutinee so a later fallback clause can match it.

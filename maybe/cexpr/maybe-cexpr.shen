@@ -10,10 +10,16 @@
 \\:
 \\: [source,shen]
 \\: ----
+\\: (define positive
+\\:   { number --> (maybe.t number) }
+\\:   X -> (@some X) where (> X 0)
+\\:   _ -> (@none))
+\\:
 \\: (maybe.do
-\\:   (bind User (find-user UserId))
-\\:   (bind Address (primary-address User))
-\\:   (return (city Address)))
+\\:   (bind X (positive 4))
+\\:   (let Y (+ X 3))
+\\:   (return (* Y 2)))
+\\: \\ Result: (@some 14)
 \\: ----
 \\:
 \\: `bind` and `then` short-circuit on `@none`. `return` and `yield` wrap a
@@ -24,8 +30,10 @@
 \\: returned. Empty computations produce `@none`.
 \\:
 \\: Ordinary `let`, `effect`, and computation-body `if` forms are supported.
-\\: An omitted else arm is `@none`, so a false one-armed conditional also
-\\: short-circuits any following statements. `maybe.do` does not support `for`
+\\: `effect` discards the result of an ordinary Shen expression; even an
+\\: `@none` result from that expression does not short-circuit the computation.
+\\: An omitted else arm is `@none`, so a false one-armed conditional does
+\\: short-circuit any following statements. `maybe.do` does not support `for`
 \\: or applicative `and` bindings. See the `cexpr` guide for the shared
 \\: structured syntax.
 

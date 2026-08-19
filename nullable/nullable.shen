@@ -8,6 +8,18 @@
 \\: allocating a wrapper. Consequently nested nullable layers collapse: this
 \\: type is intended for APIs where one distinguished absence value is enough.
 \\:
+\\: Require the module with `(library.use [nullable])`. Present values retain
+\\: their ordinary representation, so they need no extraction operation. Use
+\\: the programmable `@null` and `@just` patterns when both cases must be
+\\: handled explicitly:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (define nullable.default
+\\:   Default (@null) -> Default
+\\:   _ (@just Value) -> Value)
+\\: ----
+\\:
 \\: == API
 
 (package nullable [@just @null null? defpattern]
@@ -40,7 +52,8 @@
 
 \\: `(@just Value)` injects `Value` into the nullable representation. The value
 \\: is represented directly, so construction does not allocate a wrapper; the
-\\: nesting caveat described above still applies to the private null sentinel.
+\\: nesting caveat described above still applies to the private null sentinel:
+\\: `(@just (@null))` is the same value as `(@null)`.
 (define @just
   { A --> (t A) }
   X -> X)
@@ -57,10 +70,6 @@
 \\:
 \\: [source,shen]
 \\: ----
-\\: (define nullable.default
-\\:   Default (@null) -> Default
-\\:   _ (@just Value) -> Value)
-\\:
 \\: (nullable.default "unknown" (@just "Ada"))
 \\: \\ Result: "Ada"
 \\: ----

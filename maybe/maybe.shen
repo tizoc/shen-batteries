@@ -76,11 +76,23 @@
   { (t A) --> boolean }
   X -> (= X @none_value_))
 
-\\: `(maybe.some? Maybe)` returns `true` exactly when `Maybe` is an `@some`
-\\: value.
+\\: `(maybe.some? Maybe)` returns `true` exactly when the typed Maybe argument
+\\: is an `@some` value. Like `maybe.none?`, it is a predicate over
+\\: `(maybe.t A)`, not a run-time type test for arbitrary Shen values.
 (define maybe.some?
   { (t A) --> boolean }
   X -> (not (none? X)))
+
+\\ `some-representation?` safely rejects unrelated Shen values. Programmable
+\\ patterns can appear in polymorphic definitions, so their run-time
+\\ discriminator must not assume that the scrutinee already has a `maybe.t`
+\\ type. Keep the public `maybe.some?` predicate specialized to typed Maybe
+\\ values.
+(define some-representation?
+  { A --> boolean }
+  X -> (trap-error (= (<-address X 0) #tag#some) (/. Error false))
+    where (absvector? X)
+  _ -> false)
 
 \\: == Extraction
 
@@ -146,12 +158,13 @@
 \\: `(@none)` matches absence. `(@some Pattern)` matches a present value and
 \\: continues matching `Pattern` against its contents. These patterns work in
 \\: definitions and other contexts supported by Shen's programmable pattern
-\\: matching.
+\\: matching. Unlike the typed predicates above, the `@some` pattern safely
+\\: declines an unrelated scrutinee so a later fallback clause can match it.
 
 (defpattern maybe.pattern-handler
   Self Is? Assign [@none]   -> (do (Is? [none? Self])
                                    handled)
-  Self Is? Assign [@some X] -> (do (Is? [maybe.some? Self])
+  Self Is? Assign [@some X] -> (do (Is? [some-representation? Self])
                                    (Assign X [unsafe-get Self])
                                    handled))
 

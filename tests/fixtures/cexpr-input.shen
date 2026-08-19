@@ -53,6 +53,18 @@
          (bind X M)
          (return (+ X 1))))
 
+(define test.maybe-positive
+  { number --> (maybe.t number) }
+  X -> (@some X) where (> X 0)
+  _ -> (@none))
+
+(define test.cexpr-maybe-pipeline
+  { number --> (maybe.t number) }
+  N -> (maybe.do
+         (bind X (test.maybe-positive N))
+         (let Y (+ X 3))
+         (return (* Y 2))))
+
 (define test.cexpr-seq-map
   { (seq.t number) --> (seq.t number) }
   S -> (seq.do
