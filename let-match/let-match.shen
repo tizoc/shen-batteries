@@ -6,6 +6,7 @@
 \\: Loading `let-match` extends ordinary `let` binders with list-cons and
 \\: tuple destructuring. Non-variable input expressions are evaluated once
 \\: before their components are extracted.
+\\: Require it with `(library.use [let-match])`.
 \\:
 \\: [source,shen]
 \\: ----
@@ -23,6 +24,24 @@
 \\: fallback clause. For example, `[Head]` extracts the head but does not check
 \\: that the tail is empty. An input that an accessor cannot read raises that
 \\: accessor's usual error.
+\\:
+\\: This module extends `let` binders only. Anonymous functions still require
+\\: an ordinary variable binder; destructure that variable inside the body:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (/. Pair
+\\:   (let (@p Left Right) Pair
+\\:     (+ Left Right)))
+\\: ----
+\\:
+\\: Reusable functions can instead use Shen's native definition patterns:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (define add-pair
+\\:   (@p Left Right) -> (+ Left Right))
+\\: ----
 
 (package let-match []
 
@@ -50,10 +69,5 @@
                                 [let Tmp Exp
                                      F [fst Tmp]
                                      S [snd Tmp]
-                                  Body])
-
-  [/. [@p A B] Body] -> (let Tmp (gensym (protect V))
-                          [/. Tmp [let [@p A B] Tmp Body]])
-  [/. [cons A B] Body] -> (let Tmp (gensym (protect V))
-                            [/. Tmp [let [cons A B] Tmp Body]]))
+                                  Body]))
 )

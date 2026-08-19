@@ -274,6 +274,41 @@
     (+ A (hd B))))
 
 (test.assert-equal
+  "let tuple destructuring"
+  42
+  (let (@p A B) (@p 20 22)
+    (+ A B)))
+
+(test.assert-equal
+  "let destructuring supports discarded components"
+  [1 2]
+  [(let (@p A _) (@p 1 ignored) A)
+   (let [_ | Tail] [ignored 2] (hd Tail))])
+
+(test.assert-equal
+  "let destructuring evaluates its input once"
+  [1 42]
+  (let Count (box.make 0)
+    (let (@p A B) (do (box.incr Count) (@p 20 22))
+      [(box.unbox Count) (+ A B)])))
+
+(test.assert-equal
+  "lambdas destructure through an inner let"
+  42
+  ((/. Pair
+     (let (@p A B) Pair
+       (+ A B)))
+   (@p 20 22)))
+
+(test.assert-equal
+  "malformed destructuring reports an accessor error"
+  rejected
+  (trap-error
+    (let (@p A B) not-a-tuple
+      (+ A B))
+    (/. Error rejected)))
+
+(test.assert-equal
   "defpattern registers for following files"
   (@p 1 2)
   (defpattern-fixture.match (@p 1 2)))
