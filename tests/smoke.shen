@@ -26,6 +26,15 @@
                               (Yield X)
                               (test.counted-iter Xs Count Yield)))
 
+(define test.counted-seq
+  Values Count -> (seq.map (/. X (do (box.incr Count) X))
+                           (seq.of-list Values)))
+
+(define test.delayed-error-seq
+  Count -> (seq.map (/. X (do (box.incr Count)
+                              (simple-error "later sequence was forced")))
+                   (seq.singleton ignored)))
+
 (test.assert-true
   "feature list is nonempty"
   (cons? (features.current)))
@@ -597,6 +606,84 @@ A final note.
         (seq.filter (/. X (> X 1)) (seq.range 1 5))))))
 
 (test.assert-equal
+  "seq.map2 does not force its second source when the first is empty"
+  [[] 0]
+  (let Pulls (box.make 0)
+       Result (trap-error
+                (seq.to-list
+                  (seq.map2 (/. X Y [X Y])
+                            (seq.empty)
+                            (test.delayed-error-seq Pulls)))
+                (/. Error later-source-forced))
+    [Result (box.unbox Pulls)]))
+
+(test.assert-equal
+  "seq.map2 stops pulling from the right when the left source ends"
+  [[11] 1 1]
+  (let LeftPulls (box.make 0)
+       RightPulls (box.make 0)
+       Values (seq.to-list
+                (seq.map2 (fn +)
+                          (test.counted-seq [1] LeftPulls)
+                          (test.counted-seq [10 20] RightPulls)))
+    [Values (box.unbox LeftPulls) (box.unbox RightPulls)]))
+
+(test.assert-equal
+  "seq.map3 stops pulling later sources when the first source ends"
+  [[111] 1 1 1]
+  (let FirstPulls (box.make 0)
+       SecondPulls (box.make 0)
+       ThirdPulls (box.make 0)
+       Values (seq.to-list
+                (seq.map3 (/. X Y Z (+ X (+ Y Z)))
+                          (test.counted-seq [1] FirstPulls)
+                          (test.counted-seq [10 20] SecondPulls)
+                          (test.counted-seq [100 200] ThirdPulls)))
+    [Values
+     (box.unbox FirstPulls)
+     (box.unbox SecondPulls)
+     (box.unbox ThirdPulls)]))
+
+(test.assert-equal
+  "seq.map3 checks its sources from left to right at the shortest boundary"
+  [[111] 2 1 1]
+  (let FirstPulls (box.make 0)
+       SecondPulls (box.make 0)
+       ThirdPulls (box.make 0)
+       Values (seq.to-list
+                (seq.map3 (/. X Y Z (+ X (+ Y Z)))
+                          (test.counted-seq [1 2] FirstPulls)
+                          (test.counted-seq [10] SecondPulls)
+                          (test.counted-seq [100 200] ThirdPulls)))
+    [Values
+     (box.unbox FirstPulls)
+     (box.unbox SecondPulls)
+     (box.unbox ThirdPulls)]))
+
+(test.assert-equal
+  "seq.zip-with does not force its right source when the left is empty"
+  [[] 0]
+  (let Pulls (box.make 0)
+       Result (trap-error
+                (seq.to-list
+                  (seq.zip-with (/. X Y [X Y])
+                                (seq.empty)
+                                (test.delayed-error-seq Pulls)))
+                (/. Error later-source-forced))
+    [Result (box.unbox Pulls)]))
+
+(test.assert-equal
+  "seq.zip does not force its right source when the left is empty"
+  [[] 0]
+  (let Pulls (box.make 0)
+       Result (trap-error
+                (seq.to-list
+                  (seq.zip (seq.empty)
+                           (test.delayed-error-seq Pulls)))
+                (/. Error later-source-forced))
+    [Result (box.unbox Pulls)]))
+
+(test.assert-equal
   "seq find uses its package API"
   (@some 3)
   (seq.find (/. X (= X 3)) (seq.range 1 5)))
@@ -808,6 +895,19 @@ A final note.
       (return (+ X Y)))))
 
 (test.assert-equal
+  "seq applicative bindings do not force a later source after an empty first source"
+  [[] 0]
+  (let Pulls (box.make 0)
+       Result (trap-error
+                (seq.to-list
+                  (seq.do
+                    (and (bind X (seq.empty))
+                         (bind Y (test.delayed-error-seq Pulls)))
+                    (return [X Y])))
+                (/. Error later-source-forced))
+    [Result (box.unbox Pulls)]))
+
+(test.assert-equal
   "applicative bindings scope over the remaining body"
   [22 44]
   (seq.to-list
@@ -837,6 +937,21 @@ A final note.
            (bind C (seq.of-list [100 200]))
            (bind D (seq.of-list [1000 2000])))
       (return (+ A (+ B (+ C D)))))))
+
+(test.assert-equal
+  "seq applicative merging leaves all later sources untouched after an empty first source"
+  [[] 0]
+  (let Pulls (box.make 0)
+       Result (trap-error
+                (seq.to-list
+                  (seq.do
+                    (and (bind A (seq.empty))
+                         (bind B (test.delayed-error-seq Pulls))
+                         (bind C (test.delayed-error-seq Pulls))
+                         (bind D (test.delayed-error-seq Pulls)))
+                    (return [A B C D])))
+                (/. Error later-source-forced))
+    [Result (box.unbox Pulls)]))
 
 (test.assert-equal
   "generic cexpr applicative lowering supports four sources"

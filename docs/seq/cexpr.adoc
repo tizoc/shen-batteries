@@ -19,10 +19,11 @@ Consecutive produced computations are appended, and an empty computation
 produces `seq.empty`.
 
 Applicative `(and (bind X XS) (bind Y YS) ...)` bindings zip independent
-sources in order and stop at the shortest source. A terminal `return` is
-lowered to `seq.map`, `seq.map2`, or `seq.map3` when possible. Ordinary
-consecutive `bind` forms remain dependent flat-map operations rather than
-zip operations.
+sources in order and stop at the shortest source. At each position they
+pull sources from left to right, leaving later sources untouched after an
+earlier source ends. A terminal `return` is lowered to `seq.map`,
+`seq.map2`, or `seq.map3` when possible. Ordinary consecutive `bind` forms
+remain dependent flat-map operations rather than zip operations.
 
 Ordinary `let`, `effect`, and computation-body `if` forms are supported.
 `then` is a discarded sequence bind: the remainder runs once for every

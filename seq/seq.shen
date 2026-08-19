@@ -457,31 +457,45 @@
 \\: `(seq.map2 F SeqA SeqB)` returns a new sequence containing elements that are the results
 \\: of `(F EltA EltB)`, with `EltA` and `EltB` being elements resulting from the parallel
 \\: traversal of the sequences `SeqA` and `SeqB`. The resulting sequence is as long as
-\\: the shortest of the two input sequences.
+\\: the shortest of the two input sequences. At each position, sources are pulled
+\\: from left to right; when an earlier source ends, later sources are not pulled.
 (define map2
   { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
-  F SA SB -> (freeze (map2-h F (thaw SA) (thaw SB))))
+  F SA SB -> (freeze (map2-h F (thaw SA) SB)))
 
 (define map2-h
-  { (A --> B --> C) --> (node A) --> (node B) --> (node C) }
+  { (A --> B --> C) --> (node A) --> (seq.t B) --> (node C) }
   _ [] _ -> []
-  _ _ [] -> []
-  F [AH | AT] [BH | BT] -> [(F AH BH) | (freeze (map2-h F (thaw AT) (thaw BT)))])
+  F [AH | AT] SB -> (map2-second-h F AH AT (thaw SB)))
+
+(define map2-second-h
+  { (A --> B --> C) --> A --> (seq.t A) --> (node B) --> (node C) }
+  _ _ _ [] -> []
+  F AH AT [BH | BT] -> [(F AH BH) | (freeze (map2-h F (thaw AT) BT))])
 
 \\: `(seq.map3 F SeqA SeqB SeqC)` returns a new sequence containing elements that are the results
 \\: of `(F EltA EltB EltC)`, with `EltA`, `EltB` and `EltC` being elements resulting from the parallel
 \\: traversal of the sequences `SeqA`, `SeqB` and `SeqC`. The resulting sequence is as long as
-\\: the shortest of the three input sequences.
+\\: the shortest of the three input sequences. At each position, sources are pulled
+\\: from left to right; when an earlier source ends, later sources are not pulled.
 (define map3
   { (A --> B --> C --> D) --> (seq.t A) --> (seq.t B) --> (seq.t C) --> (seq.t D) }
-  F SA SB SC -> (freeze (map3-h F (thaw SA) (thaw SB) (thaw SC))))
+  F SA SB SC -> (freeze (map3-h F (thaw SA) SB SC)))
 
 (define map3-h
-  { (A --> B --> C --> D) --> (node A) --> (node B) --> (node C) --> (node D) }
+  { (A --> B --> C --> D) --> (node A) --> (seq.t B) --> (seq.t C) --> (node D) }
   _ [] _ _ -> []
-  _ _ [] _ -> []
-  _ _ _ [] -> []
-  F [AH | AT] [BH | BT] [CH | CT] -> [(F AH BH CH) | (freeze (map3-h F (thaw AT) (thaw BT) (thaw CT)))])
+  F [AH | AT] SB SC -> (map3-second-h F AH AT (thaw SB) SC))
+
+(define map3-second-h
+  { (A --> B --> C --> D) --> A --> (seq.t A) --> (node B) --> (seq.t C) --> (node D) }
+  _ _ _ [] _ -> []
+  F AH AT [BH | BT] SC -> (map3-third-h F AH AT BH BT (thaw SC)))
+
+(define map3-third-h
+  { (A --> B --> C --> D) --> A --> (seq.t A) --> B --> (seq.t B) --> (node C) --> (node D) }
+  _ _ _ _ _ [] -> []
+  F AH AT BH BT [CH | CT] -> [(F AH BH CH) | (freeze (map3-h F (thaw AT) BT CT))])
 
 \\: `(seq.filter Test Seq)` returns a new sequence with all the elements in `Seq` for which
 \\: `(Test Elt)` is `false` removed. Calls to `Test`, including any effects or errors,
@@ -655,27 +669,17 @@
 \\: `(seq.zip-with Cons SeqA SeqB)` returns a new sequence containing elements
 \\: that are the result of calling `(Cons EltA EltB)` for each element produced
 \\: by the parallel traversal of `SeqA` and `SeqB`. The produced sequence is
-\\: as long as the shortest of the input sequences.
+\\: as long as the shortest of the input sequences. Like `seq.map2`, sources are
+\\: pulled from left to right at each position, and a later source is not pulled
+\\: after an earlier source ends.
 (define zip-with
   { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
-  Cons S1 S2 -> (freeze (zip-with-h Cons (thaw S1) (thaw S2))))
-
-(define zip-with-h
-  { (A --> B --> C) --> (node A) --> (node B) --> (node C) }
-  _ [] _ -> []
-  _ _ [] -> []
-  Cons [X | XSeq] [Y | YSeq] -> [(Cons X Y) | (zip-with Cons XSeq YSeq)])
+  Cons S1 S2 -> (map2 Cons S1 S2))
 
 \\: `(seq.zip SeqA SeqB)` is equivalent to `(seq.zip-with (/. A B (@p A B)) SeqA SeqB)`.
 (define zip
   { (seq.t A) --> (seq.t B) --> (seq.t (A * B)) }
-  S1 S2 -> (freeze (zip-h (thaw S1) (thaw S2))))
-
-(define zip-h
-  { (node A) --> (node B) --> (node (A * B))}
-  [] _ -> []
-  _ [] -> []
-  [X | XSeq] [Y | YSeq] -> [(@p X Y) | (zip XSeq YSeq)])
+  S1 S2 -> (zip-with (/. A B (@p A B)) S1 S2))
 
 \\: `(seq.unzip SeqA*B)` returns `(@p SeqA SeqB)`, where `SeqA*B` is a sequence
 \\: of tuples `(@p A B)`, `SeqA` is `(seq.map (fn fst) SeqA*B)` and `SeqB` is
