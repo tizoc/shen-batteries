@@ -1,0 +1,6 @@
+(shen.module
+  (version 1)
+  (name conformance/feature-failure)
+  (requires conformance/feature-dependency)
+  (requires-features shen-module-v1-conformance/absent-feature-91f8a7)
+  (sources tc- "feature-failure/unreachable.shen"))

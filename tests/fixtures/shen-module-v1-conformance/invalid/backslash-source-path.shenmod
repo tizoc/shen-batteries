@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name invalid/backslash-source-path)
+  (sources tc- "nested\unreachable.shen"))

@@ -185,3 +185,11 @@ but does not check features or load dependencies or sources.
 `library.module-requires` returns the parsed direct dependency list. The exact
 internal representation of a parsed declaration is an implementation detail
 and is not part of version 1.
+
+## Conformance fixtures
+
+The repository includes a reusable, port-neutral fixture suite for these
+requirements. See the
+[`shen.module` version 1 conformance guide](shen-module-v1-conformance.md) for
+the covered behaviors, expected outcomes, and instructions for running either
+the reference loader or another implementation.

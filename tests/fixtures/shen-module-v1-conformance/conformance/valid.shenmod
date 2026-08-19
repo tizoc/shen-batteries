@@ -1,0 +1,9 @@
+(shen.module
+  (extension conformance/ignored
+    (this body is opaque))
+  (extension conformance/empty)
+  (sources tc- "valid/syntax.shen"
+           tc+ "valid/api.shen")
+  (requires conformance/left conformance/right)
+  (name conformance/valid)
+  (version 1))

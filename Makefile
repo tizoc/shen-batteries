@@ -28,8 +28,10 @@ PRODUCTION_MODULES = \
 	typ/void \
 	with-exit
 
-.PHONY: test test-modules test-authoring-modules test-native docs
-test: test-modules test-authoring-modules
+MODULE_CONFORMANCE_CASES = descriptors loading source-failure cycle feature
+
+.PHONY: test test-modules test-authoring-modules test-module-conformance test-native docs
+test: test-modules test-authoring-modules test-module-conformance
 	"$(SHEN)" script tests/run.shen
 	"$(SHEN)" script tests/run-verified-if.shen
 	"$(SHEN)" script tests/run-portable-fallback.shen
@@ -42,6 +44,12 @@ test-modules:
 
 test-authoring-modules:
 	"$(SHEN)" script tests/run-authoring-modules.shen
+
+test-module-conformance:
+	@set -e; \
+	for Case in $(MODULE_CONFORMANCE_CASES); do \
+		"$(SHEN)" script tests/run-shen-module-v1-conformance.shen "$$Case"; \
+	done
 
 test-native:
 	mkdir -p _build

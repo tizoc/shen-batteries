@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name invalid/non-symbol-extension-id)
+  (sources tc- "unreachable.shen")
+  (extension "not-a-symbol" body))

@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name conformance/feature-dependency)
+  (sources tc- "feature-dependency/loaded.shen"))

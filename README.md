@@ -33,7 +33,8 @@ the descriptor. Port-specific settings belong in namespaced `extension` fields
 and are ignored by the portable source loader. See the normative
 [`shen.module` version 1 specification](docs/shen-module-v1.md), or follow the
 checked [module-authoring walkthrough](docs/authoring-modules.adoc) to build and
-run a small module tree.
+run a small module tree. Port and loader authors can run the reusable
+[`shen.module` conformance fixtures](docs/shen-module-v1-conformance.md).
 
 Module catalog
 --------------
@@ -81,6 +82,12 @@ Provide the Shen executable explicitly:
 
 ```sh
 make test SHEN=/absolute/path/to/shen
+```
+
+To run only the port-neutral module-format cases, each in a fresh process:
+
+```sh
+make test-module-conformance SHEN=/absolute/path/to/shen
 ```
 
 The current reference runtime is Shen 41.3 from Shen kernel `master` on

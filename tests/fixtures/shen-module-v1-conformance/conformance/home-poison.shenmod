@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name conformance/home-poison)
+  (sources tc- "home-poison/first.shen"
+               "home-poison/second.shen"))

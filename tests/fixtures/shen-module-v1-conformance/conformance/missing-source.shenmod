@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name conformance/missing-source)
+  (sources tc- "missing-source/does-not-exist.shen"))

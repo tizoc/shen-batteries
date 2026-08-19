@@ -33,8 +33,10 @@ requested name, but does not load its dependencies or source files.
 `(library.use Names)` loads every named module and its transitive
 dependencies. Each module is loaded once, dependency cycles and missing
 required features are rejected, and each source file uses the typechecking
-mode declared by its descriptor. The caller's typechecking mode and home
-directory are restored even if loading raises an error.
+mode declared by its descriptor. Every source starts from its descriptor's
+base directory even if an earlier source changed `*home-directory*`. The
+caller's typechecking mode and home directory are restored even if loading
+raises an error.
 
 ==== `library.set-home`
 

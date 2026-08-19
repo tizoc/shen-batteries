@@ -235,12 +235,13 @@
 
 (define load-sources
   Base Sources
-  -> (with-home Base (freeze (load-sources-h Sources))))
+  -> (load-sources-h Base Sources))
 
 (define load-sources-h
-  [] -> skip
-  [Source | Sources] -> (do (load-source Source)
-                            (load-sources-h Sources)))
+  _ [] -> skip
+  Base [Source | Sources]
+  -> (do (with-home Base (freeze (load-source Source)))
+         (load-sources-h Base Sources)))
 
 (define use-one
   Name _ -> Name where (element? Name (value *loaded*))
@@ -265,8 +266,10 @@
 \\: `(library.use Names)` loads every named module and its transitive
 \\: dependencies. Each module is loaded once, dependency cycles and missing
 \\: required features are rejected, and each source file uses the typechecking
-\\: mode declared by its descriptor. The caller's typechecking mode and home
-\\: directory are restored even if loading raises an error.
+\\: mode declared by its descriptor. Every source starts from its descriptor's
+\\: base directory even if an earlier source changed `*home-directory*`. The
+\\: caller's typechecking mode and home directory are restored even if loading
+\\: raises an error.
 (define use
   Names -> (with-typechecking-state
             (freeze (use-h Names []))))

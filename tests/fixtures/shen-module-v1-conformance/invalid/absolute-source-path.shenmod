@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name invalid/absolute-source-path)
+  (sources tc- "/unreachable.shen"))
