@@ -31,7 +31,9 @@ Modules use the portable `shen.module` version 1 format. Descriptors are found
 at `<module-root>/<module-name>.shenmod`, and their source paths are relative to
 the descriptor. Port-specific settings belong in namespaced `extension` fields
 and are ignored by the portable source loader. See the normative
-[`shen.module` version 1 specification](docs/shen-module-v1.md).
+[`shen.module` version 1 specification](docs/shen-module-v1.md), or follow the
+checked [module-authoring walkthrough](docs/authoring-modules.adoc) to build and
+run a small module tree.
 
 Module catalog
 --------------
@@ -39,15 +41,15 @@ Module catalog
 The requirements below are the direct requirements declared by each module;
 `library.use` resolves their transitive dependencies. A module's feature
 requirements are checked against the current Shen implementation before that
-module's dependencies or sources are loaded. Each reference is generated from
-the module's source documentation unless it is the port-neutral module-format
-specification.
+module's dependencies or sources are loaded. API references are generated from
+the modules' source documentation; task-oriented guides and the port-neutral
+module-format specification are maintained by hand.
 
 | Module | Purpose | Declared requirements | Reference |
 | --- | --- | --- | --- |
 | `box` | Mutable references | `typ/void` | [API](docs/box.adoc) |
 | `cexpr` | Generic computation-expression parser and expander | `typ/sexp` | [Guide and API](docs/cexpr.adoc) |
-| `defpattern` | Definition helper for programmable pattern-matching handlers | `typ/sexp` | [API](docs/defpattern.adoc) |
+| `defpattern` | Definition helper for programmable pattern-matching handlers | `typ/sexp` | [Guide](docs/defining-programmable-patterns.adoc), [API](docs/defpattern.adoc) |
 | `dict` | Typed public API for Shen dictionaries | — | [API](docs/dict.adoc) |
 | `features` | Feature registration, discovery, and conditional expansion | — | [API](docs/features.adoc) |
 | `iter` | Push-based iterators | `typ/void`, `maybe`, `box`, `let-match`, `with-exit` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/iter.adoc) |
@@ -57,7 +59,7 @@ specification.
 | `maybe` | Tagged optional values and programmable patterns | `typ/void`, `defpattern` | [Guide](docs/working-with-optional-values.adoc), [API](docs/maybe.adoc) |
 | `maybe/cexpr` | `maybe.do` computation-expression frontend | `maybe`, `typ/sexp`, `cexpr` | [Guide](docs/working-with-optional-values.adoc), [API](docs/maybe/cexpr.adoc) |
 | `nullable` | Identity-represented nullable values and programmable patterns | `defpattern` | [Guide](docs/working-with-optional-values.adoc), [API](docs/nullable.adoc) |
-| `pipe-macro` | Thread-first, thread-last, and `doto` macros | — | [API](docs/pipe-macro.adoc) |
+| `pipe-macro` | Thread-first, thread-last, and `doto` macros | — | [Guide](docs/using-pipe-macros.adoc), [API](docs/pipe-macro.adoc) |
 | `seq` | Pull-based lazy sequences | `typ/void`, `typ/or`, `maybe`, `lazy` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/seq.adoc) |
 | `seq/cexpr` | `seq.do` computation-expression frontend | `seq`, `typ/sexp`, `cexpr` | [API](docs/seq/cexpr.adoc) |
 | `seq/dict` | Snapshot conversions between sequences and dictionaries | `seq`, `dict` | [API](docs/seq/dict.adoc) |

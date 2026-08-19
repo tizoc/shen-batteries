@@ -1,8 +1,8 @@
-(package defpattern-fixture []
+(package defpattern-guide []
 
-(define match
-  { A --> A }
-  (paired P) -> P
-  _ -> (error "not a pair"))
+(define first-or
+  { A --> (symbol * (list A)) --> A }
+  _ (tagged [Head | _]) -> Head
+  Default _ -> Default)
 
 )

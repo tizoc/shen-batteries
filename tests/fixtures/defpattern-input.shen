@@ -1,14 +1,19 @@
-(package defpattern-fixture [defpattern]
+(package defpattern-guide [defpattern]
 
-(defpattern pair-handler
-  Self Is? Assign [paired P]
-    -> (do (Is? [tuple? Self])
-           (Assign P Self)
-           handled))
+(define tagged
+  { A --> (symbol * A) }
+  Value -> (@p tagged Value))
 
-(datatype pair-pattern
-  P : A;
+(datatype tagged-pattern
+  Pattern : A;
   =================================================
-  (paired P) : A;)
+  (tagged Pattern) : (symbol * A);)
+
+(defpattern tagged-pattern-handler
+  Self Is? Assign [tagged Pattern]
+    -> (do (Is? [and [tuple? Self]
+                        [= [fst Self] tagged]])
+           (Assign Pattern [snd Self])
+           handled))
 
 )

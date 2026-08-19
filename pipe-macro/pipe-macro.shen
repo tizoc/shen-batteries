@@ -4,19 +4,30 @@
 \\: = Pipes and object threading
 \\:
 \\: These macros make a sequence of nested calls read from left to right.
+\\: Load them with `(library.use [pipe-macro])`. For a tutorial and a
+\\: comparison with computation expressions, see
+\\: link:using-pipe-macros.adoc[Using pipe macros].
+\\:
+\\: Pipes are syntax rewrites, not runtime control-flow constructs. They
+\\: preserve ordinary Shen call behavior: errors propagate, and explicit
+\\: stage arguments follow the evaluation rules of the expanded call.
+\\: Inside a Shen `package`, list `=>`, `=>>`, and `doto` among the package
+\\: externals when using them, along with any non-core stage functions from
+\\: other modules.
 \\:
 \\: == API
 \\:
 \\: === `=>`
 \\:
 \\: `(=> Value Stage ...)` threads the result of each stage into the first
-\\: argument position of the next stage. A bare function name is a one-place
-\\: stage.
+\\: argument position of the next stage. A parenthesized `(F A ...)` stage
+\\: becomes `(F Current A ...)`; a bare `F` stage becomes `(F Current)`.
+\\: With no stages, `(=> Value)` expands to `Value`.
 \\:
 \\: [source,shen]
 \\: ----
 \\: (=> 2 (+ 3) (* 4))
-\\: \\ Expands like: (* (+ 2 3) 4)
+\\: \\ Expands to: (* (+ 2 3) 4)
 \\: \\ Result: 20
 \\: ----
 
@@ -30,12 +41,15 @@
 \\: === `=>>`
 \\:
 \\: `(=>> Value Stage ...)` threads each result into the last argument
-\\: position. This is convenient for Shen functions such as `map`, whose data
-\\: argument follows the function argument.
+\\: position. A parenthesized `(F A ...)` stage becomes `(F A ... Current)`;
+\\: a bare `F` stage becomes `(F Current)`. With no stages, `(=>> Value)`
+\\: expands to `Value`. Thread-last is convenient for Shen functions such as
+\\: `map`, whose data argument follows the function argument.
 \\:
 \\: [source,shen]
 \\: ----
 \\: (=>> [1 2 3] (map (/. X (* X 2))) reverse)
+\\: \\ Expands to: (reverse (map (/. X (* X 2)) [1 2 3]))
 \\: \\ Result: [6 4 2]
 \\: ----
 (defmacro pipe-last-macro
@@ -45,10 +59,11 @@
 
 \\: === `doto`
 \\:
-\\: `(doto Value (Operation Args ...) ...)` evaluates `Value` once, invokes
-\\: every operation with that value inserted as its first argument, discards
-\\: the operation results, and returns the original value. Operations must be
-\\: parenthesized.
+\\: `(doto Value (Operation Args ...) ...)` evaluates `Value` exactly once,
+\\: invokes every operation from left to right with that same value inserted
+\\: as its first argument, discards the operation results, and returns the
+\\: original value. Operations must be parenthesized. With no operations,
+\\: `(doto Value)` expands to `Value`.
 \\:
 \\: [source,shen]
 \\: ----

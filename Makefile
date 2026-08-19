@@ -28,8 +28,8 @@ PRODUCTION_MODULES = \
 	typ/void \
 	with-exit
 
-.PHONY: test test-modules test-native docs
-test: test-modules
+.PHONY: test test-modules test-authoring-modules test-native docs
+test: test-modules test-authoring-modules
 	"$(SHEN)" script tests/run.shen
 	"$(SHEN)" script tests/run-verified-if.shen
 	"$(SHEN)" script tests/run-portable-fallback.shen
@@ -39,6 +39,9 @@ test-modules:
 	for Module in $(PRODUCTION_MODULES); do \
 		"$(SHEN)" script tests/load-module.shen "$$Module"; \
 	done
+
+test-authoring-modules:
+	"$(SHEN)" script tests/run-authoring-modules.shen
 
 test-native:
 	mkdir -p _build

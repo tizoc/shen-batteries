@@ -1,0 +1,6 @@
+(shen.module
+  (version 1)
+  (name example/greeting)
+  (requires example/punctuation)
+  (sources tc- "greeting/syntax.shen"
+           tc+ "greeting/api.shen"))

@@ -47,4 +47,11 @@
       (load "tests/fixtures/with-exit-input.shen")
       (tc Typechecking)))
 
+\\ Exercise pipe syntax in checked definitions and inside a package whose
+\\ external list keeps the globally installed macro names unqualified.
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "tests/fixtures/pipe-macro-input.shen")
+      (tc Typechecking)))
+
 (library.use [iter])

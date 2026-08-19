@@ -206,10 +206,47 @@
   (=> 2 (+ 3) (* 4)))
 
 (test.assert-equal
+  "pipe-last supports parenthesized and bare stages"
+  [6 4 2]
+  (=>> [1 2 3] (map (/. X (* X 2))) reverse))
+
+(test.assert-equal
+  "pipe bare stages are one-place calls"
+  [[3 2 1] [3 2 1]]
+  [(=> [1 2 3] reverse)
+   (=>> [1 2 3] reverse)])
+
+(test.assert-equal
+  "zero-stage pipes are identities"
+  [value value]
+  [(=> value) (=>> value)])
+
+(test.assert-equal
+  "pipe macros remain external inside packages"
+  [20 [6 4 2] 2]
+  [(test-pipe-package.scaled 2)
+   (test-pipe-package.doubled-reversed [1 2 3])
+   (test-pipe-package.bumped)])
+
+(test.assert-equal
   "doto returns the updated value"
   3
   (let Box (doto (box.make 1) (box.incr) (box.incr))
     (box.unbox Box)))
+
+(test.assert-equal
+  "doto evaluates its target once, orders operations, and returns the target"
+  [1 [first second] 99]
+  (let Builds (box.make 0)
+       Seen (box.make [])
+       Target (box.make 0)
+       Result (doto (do (box.incr Builds) Target)
+                (test.pipe-record-step Seen first)
+                (test.pipe-record-step Seen second))
+    (do (box.put Result 99)
+        [(box.unbox Builds)
+         (box.unbox Seen)
+         (box.unbox Target)])))
 
 (test.assert-equal
   "doto accepts no operations"
@@ -474,9 +511,26 @@
     (/. Error rejected)))
 
 (test.assert-equal
-  "defpattern registers for following files"
-  (@p 1 2)
-  (defpattern-fixture.match (@p 1 2)))
+  "defpattern registers for following files and binds nested subpatterns"
+  20
+  (defpattern-guide.first-or
+    0
+    (defpattern-guide.tagged [20 22])))
+
+(test.assert-equal
+  "defpattern discriminator rejects another tag before extraction"
+  0
+  (defpattern-guide.first-or 0 (@p another-tag [20 22])))
+
+(test.assert-equal
+  "defpattern nested subpattern can fall through"
+  0
+  (defpattern-guide.first-or 0 (defpattern-guide.tagged [])))
+
+(test.assert-equal
+  "defpattern discriminator safely rejects a non-tuple"
+  0
+  (defpattern-guide.first-or 0 ordinary-value))
 
 (test.assert-equal
   "maybe patterns use defpattern"
