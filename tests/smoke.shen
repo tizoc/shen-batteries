@@ -148,9 +148,7 @@
   7
   (doto 7))
 
-(shen.x.features.cond-expand
-  shen/scheme
-    (do (test.assert-equal
+(do (test.assert-equal
           "with-return typechecks"
           7
           (test-with-exit.return))
@@ -268,7 +266,6 @@
                 (iter.to-vector (iter.of-list [one two]))
                 2 0))
             (/. X rejected))))
-  true skip)
 
 (test.assert-equal
   "let list destructuring"

@@ -32,6 +32,7 @@ PRODUCTION_MODULES = \
 test: test-modules
 	"$(SHEN)" script tests/run.shen
 	"$(SHEN)" script tests/run-verified-if.shen
+	"$(SHEN)" script tests/run-portable-fallback.shen
 
 test-modules:
 	@set -e; \
@@ -45,6 +46,7 @@ test-native:
 	"$(SHEN)" eval -q \
 		-e '(shen-scheme.load-compiled "_build/native-test.so")' \
 		-e '(if (= (batteries-native-test.answer) 42) ok (error "native pattern smoke test failed"))' \
+		-e '(if (= (batteries-native-test.iter-answer) [1 2]) ok (error "native iter smoke test failed"))' \
 		-e '(if (= (batteries-native-test.maybe-do-answer) 42) ok (error "native maybe.do smoke test failed"))' \
 		-e '(if (= (batteries-native-test.seq-do-answer) [11 21 12 22]) ok (error "native seq.do smoke test failed"))'
 

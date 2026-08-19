@@ -2,9 +2,7 @@
 (set *test-typechecking* (tc?))
 
 (load "library.shen")
-(shen.x.features.cond-expand
-  shen/scheme (library.use [with-exit])
-  true skip)
+(library.use [with-exit])
 (library.use
   [features
    box
@@ -44,19 +42,9 @@
       (load "tests/fixtures/pattern-input.shen")
       (tc Typechecking)))
 
-(shen.x.features.cond-expand
-  shen/scheme
-    (let Typechecking (if (tc?) + -)
-      (do (tc +)
-          (load "tests/fixtures/with-exit-input.shen")
-          (tc Typechecking)))
-  true skip)
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "tests/fixtures/with-exit-input.shen")
+      (tc Typechecking)))
 
-\\ `iter` is Shen/Scheme-only; retain portable cache coverage on other ports.
-(shen.x.features.cond-expand
-  shen/scheme (library.use [iter])
-  true
-    (let Typechecking (if (tc?) + -)
-      (do (tc +)
-          (load "iter/mlist.shen")
-          (tc Typechecking))))
+(library.use [iter])

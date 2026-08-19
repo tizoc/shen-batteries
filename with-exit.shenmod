@@ -1,6 +1,5 @@
 (shen.module
   (version 1)
   (name with-exit)
-  (requires typ/void typ/sexp)
-  (requires-features shen/scheme)
+  (requires box features maybe typ/void typ/sexp)
   (sources tc+ "with-exit/with-exit.shen"))

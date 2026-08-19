@@ -1,4 +1,7 @@
-(package batteries-native-test [maybe.t @some maybe.do seq.do seq.of-list seq.to-list for yield]
+(package batteries-native-test
+ [maybe.t @some maybe.do
+  iter.of-list iter.take iter.to-list
+  seq.do seq.of-list seq.to-list for yield]
 
 (define unwrap
   { (maybe.t A) --> A }
@@ -7,6 +10,11 @@
 (define answer
   { --> number }
   -> (unwrap (@some 42)))
+
+(define iter-answer
+  { --> (list number) }
+  -> (iter.to-list
+       (iter.take 2 (iter.of-list [1 2 3]))))
 
 (define maybe-do-answer
   { --> number }

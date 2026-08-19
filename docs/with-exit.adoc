@@ -1,7 +1,9 @@
 = Early exits
 
-`with-return` and `with-break` provide lexically scoped early exits on
-Shen/Scheme ports.
+`with-return` and `with-break` provide portable, lexically scoped early
+exits. Shen/Scheme uses continuations for the exit operation; other ports
+use a tagged exception without exposing that implementation detail to the
+caller.
 
 == API
 
@@ -43,3 +45,10 @@ ordinary reusable function value. Consequently:
 * rebinding it to another name is undefined; and
 * passing it to another function is valid only when it is wrapped in a
   lambda that calls it.
+
+== Portability
+
+The Shen/Scheme implementation uses continuations. On ports without that
+feature, the exit is represented by a private tagged exception. A
+`trap-error` inside `Body` must therefore propagate exceptions it does not
+handle, or it may also intercept the portable exit signal.

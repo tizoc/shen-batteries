@@ -50,7 +50,7 @@ specification.
 | `defpattern` | Definition helper for programmable pattern-matching handlers | `typ/sexp` | [API](docs/defpattern.adoc) |
 | `dict` | Typed public API for Shen dictionaries | — | [API](docs/dict.adoc) |
 | `features` | Feature registration, discovery, and conditional expansion | — | [API](docs/features.adoc) |
-| `iter` | Push-based iterators | `typ/void`, `maybe`, `box`, `let-match`, `with-exit`; feature `shen/scheme` | [API](docs/iter.adoc) |
+| `iter` | Push-based iterators | `typ/void`, `maybe`, `box`, `let-match`, `with-exit` | [API](docs/iter.adoc) |
 | `lazy` | Memoization for frozen computations | `box` | [API](docs/lazy.adoc) |
 | `lazy/pattern` | Programmable matching of frozen computations | `defpattern`, `lazy` | [API](docs/lazy/pattern.adoc) |
 | `let-match` | List and tuple destructuring in `let` bindings | — | [API](docs/let-match.adoc) |
@@ -68,10 +68,9 @@ specification.
 | `typ/verified-if` | Type refinement in the true branch of `if` | — | [API](docs/typ/verified-if.adoc) |
 | `typ/verified-objects` | Predicate-based type-refinement rules | — | [API](docs/typ/verified-objects.adoc) |
 | `typ/void` | Type and value for discarded results | — | [API](docs/typ/void.adoc) |
-| `with-exit` | Early-return and early-break forms | `typ/void`, `typ/sexp`; feature `shen/scheme` | [API](docs/with-exit.adoc) |
+| `with-exit` | Portable early-return and early-break forms | `box`, `features`, `maybe`, `typ/void`, `typ/sexp` | [API](docs/with-exit.adoc) |
 
-Only `iter` and `with-exit` declare a port feature requirement; both require
-`shen/scheme`. The other modules have no declared port feature requirement.
+No production module currently declares a port feature requirement.
 
 Testing
 -------
