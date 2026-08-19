@@ -1,0 +1,229 @@
+= Choosing `seq` or `iter`
+
+The `seq` and `iter` libraries both support incremental traversal and delayed
+transformations. The important difference is who controls each step:
+
+* a `seq` is pull-based: the consumer asks for the next node; and
+* an `iter` is push-based: the producer calls a consumer function for each
+  value.
+
+Load either or both through the module loader:
+
+[source,shen]
+----
+(library.use [seq iter])
+----
+
+== At a glance
+
+[cols="1,2,2",options="header"]
+|===
+| Question
+| `seq`
+| `iter`
+
+| Who advances the traversal?
+| The consumer, by forcing the next sequence node.
+| The producer, by calling the supplied `Yield` function.
+
+| Can a traversal retain its remainder?
+| Yes. `seq.tail` returns the rest of the sequence, and operations such as
+  `seq.into-vector` can return an unconsumed remainder.
+| No. An early exit stops that run. Traversing the iterator again starts a new
+  run of its producer.
+
+| When do transformations run?
+| When their result sequence is traversed.
+| When their result iterator is passed to a consumer.
+
+| What happens on another traversal?
+| An ordinary sequence evaluates demanded nodes again. `seq.memo` shares each
+  successfully evaluated node.
+| An ordinary iterator invokes its producer again. `iter.persistent` and
+  `iter.persistent-lazy` replay buffered values after caching completes.
+
+| Is an infinite source practical?
+| Yes, when the consumer requests only a finite prefix or can otherwise decide
+  to stop.
+| Yes, when an early-terminating consumer such as `iter.take`, `iter.find`, or
+  `iter.exists?` can stop the producer.
+|===
+
+Choose `seq` when code needs to inspect one value at a time, retain the rest,
+or memoize only the demanded part of a computation. Choose `iter` when a source
+naturally emits values to a callback, or when a complete traversal is the
+natural operation. Both models can express the same common pipelines.
+
+== The same finite pipeline
+
+Here both pipelines keep values greater than `2`, multiply them by `10`, and
+collect the result:
+
+[source,shen]
+----
+(seq.to-list
+  (seq.map (/. X (* X 10))
+    (seq.filter (/. X (> X 2))
+      (seq.range 1 5))))
+\\ Result: [30 40 50]
+
+(iter.to-list
+  (iter.map (/. X (* X 10))
+    (iter.filter (/. X (> X 2))
+      (iter.of-list [1 2 3 4 5]))))
+\\ Result: [30 40 50]
+----
+
+Building either transformed value does not traverse its source. `seq.to-list`
+pulls nodes from the sequence; `iter.to-list` runs the iterator with a consumer
+that accumulates every value.
+
+== Infinite sources and early termination
+
+An infinite pipeline must be paired with an operation that can finish without
+exhausting its input. These examples both collect the first five even numbers:
+
+[source,shen]
+----
+(seq.to-list
+  (seq.truncate 5
+    (seq.map (/. N (* N 2))
+      (seq.unfold
+        (/. N (@some (@p N (+ N 1))))
+        0))))
+\\ Result: [0 2 4 6 8]
+
+(iter.to-list
+  (iter.take 5
+    (iter.map (/. N (* N 2))
+      (iter.init (/. N N)))))
+\\ Result: [0 2 4 6 8]
+----
+
+The sequence consumer simply stops asking for nodes after five values. The
+iterator producer would keep pushing forever, so `iter.take` uses a lexically
+scoped early exit to end the run after the fifth value. The same mechanism lets
+`iter.head`, `iter.find`, `iter.find-map`, `iter.exists?`, `iter.for-all?`,
+`iter.empty?`, `iter.take-while`, and `iter.fold-while` stop upstream work. It is
+provided portably by the link:with-exit.adoc[`with-exit` library].
+
+Iterator early termination is a non-local exit from the producer. Code after the
+`Yield` call that triggers the stop is not evaluated, so a producer must not rely
+on that code for cleanup.
+
+Stopping an iterator does not produce a resumable cursor. A later traversal of
+the same iterator starts its producer again. A sequence can instead expose its
+tail and continue from that value.
+
+`seq.take N` and `seq.truncate N` differ when a finite input has fewer than `N`
+values: `seq.take` raises an error during traversal, while `seq.truncate`
+returns every available value. `iter.take` is also permissive and produces at
+most `N` values.
+
+== Effects and replay
+
+Delayed does not mean cached. Effects in an ordinary sequence node or iterator
+producer run again on another traversal. For example, this prints `1` twice:
+
+[source,shen]
+----
+(let S (seq.map (/. X (do (print X) X))
+                 (seq.singleton 1))
+  (do (seq.head S)
+      (seq.head S)))
+----
+
+Wrapping the sequence in `seq.memo` changes that behavior:
+
+[source,shen]
+----
+(let S (seq.memo
+          (seq.map (/. X (do (print X) X))
+                   (seq.singleton 1)))
+  (do (seq.head S)
+      (seq.head S)))
+\\ Prints 1 once.
+----
+
+`seq.memo` caches incrementally. Each successfully evaluated node is shared by
+later traversals, so a traversal that reads only a prefix caches only that
+prefix. If evaluating a node raises an error, that node is not cached and a
+later traversal retries it.
+
+An ordinary iterator likewise reruns its producer for every traversal:
+
+[source,shen]
+----
+(let I (iter.map (/. X (do (print X) X))
+                  (iter.of-list [1 2]))
+  (do (iter.to-list I)
+      (iter.to-list I)))
+\\ Prints 1 2 twice.
+----
+
+Custom iterators may close over mutable external state, so their own replay
+behavior can be more restrictive. Caching makes replay independent of the
+original producer after a complete capture:
+
+* `iter.persistent` traverses and buffers its source immediately. Constructing
+  it therefore runs the source effects, and it cannot finish for an infinite
+  source.
+* `iter.persistent-lazy` postpones that traversal until the cached iterator is
+  first consumed. Its first complete traversal both yields and buffers the
+  source; later traversals replay the buffer.
+
+`iter.persistent-lazy` commits its buffer only after the first traversal reaches
+the end of the source. If that traversal exits early or raises an error, the
+partial buffer is discarded and the next traversal invokes the source again. A
+replayable source starts over; a custom iterator with captured mutable state may
+produce something different. This is deferred whole-source caching, not
+incremental caching like `seq.memo`.
+
+For an infinite iterator, first make the source finite and then persist it:
+
+[source,shen]
+----
+(iter.persistent
+  (iter.take 100 (iter.init (/. N N))))
+----
+
+Putting `iter.persistent` inside `iter.take` would try to cache the infinite
+source before `iter.take` could stop it.
+
+== Operations that require a finite input
+
+Any operation that must consume the entire input does not terminate on an
+infinite source. Common examples include:
+
+* `seq.to-list`, `seq.to-vector`, `seq.to-string`, `seq.length`, `seq.drain`,
+  and a complete `seq.fold-left`;
+* `iter.to-list`, `iter.to-vector`, `iter.length`, `iter.reverse`,
+  `iter.persistent`, and a complete `iter.fold` or `iter.for-each`.
+
+`iter.persistent-lazy` likewise needs one complete finite traversal before it can
+establish its cache. An early-terminating consumer can stop an infinite source
+through it, but that interrupted traversal is not cached.
+
+Predicates and searches terminate on infinite input only if they encounter a
+decisive value. For example, `exists?` finishes when it finds a match, while
+`for-all?` finishes when it finds a counterexample. Otherwise they continue
+forever.
+
+Caching also changes space use. `seq.memo` retains the demanded nodes reachable
+from the memoized sequence. Both persistent iterator variants retain every
+value from a completed traversal. Prefer an uncached traversal when replay is
+not needed.
+
+Likewise, `seq.cycle` traverses its source again for every cycle. Memoize the
+source first when repeated effects or changing source values are not intended.
+
+== A practical choice
+
+Start with `seq` when demand, a resumable remainder, partial memoization, or
+infinite structure is central to the design. Start with `iter` when an existing
+producer already pushes values, or when clients naturally consume a complete
+stream through folds and callbacks. Convert inputs such as lists and vectors at
+the boundary, then keep one traversal model through the pipeline when possible.
+
+See the link:seq.adoc[`seq` API] and link:iter.adoc[`iter` API] for the complete
+operation sets.

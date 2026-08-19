@@ -228,6 +228,103 @@
                           (test.counted-iter [1 2 3] Count)))
             [(box.unbox Count) Values]))
         (test.assert-equal
+          "ordinary iterators rerun their producer on every traversal"
+          [6 [1 2 3] [1 2 3]]
+          (let Count (box.make 0)
+               Iter (test.counted-iter [1 2 3] Count)
+               First (iter.to-list Iter)
+               Second (iter.to-list Iter)
+            [(box.unbox Count) First Second]))
+        (test.assert-equal
+          "iter.persistent eagerly consumes once and replays its cache"
+          [3 3 3 [1 2 3] [1 2 3]]
+          (let Count (box.make 0)
+               Iter (iter.persistent
+                      (test.counted-iter [1 2 3] Count))
+               AfterCreation (box.unbox Count)
+               First (iter.to-list Iter)
+               AfterFirst (box.unbox Count)
+               Second (iter.to-list Iter)
+            [AfterCreation AfterFirst (box.unbox Count) First Second]))
+        (test.assert-equal
+          "iter.persistent-lazy waits, then caches a completed traversal"
+          [0 3 3 [1 2 3] [1 2 3]]
+          (let Count (box.make 0)
+               Iter (iter.persistent-lazy
+                      (test.counted-iter [1 2 3] Count))
+               Before (box.unbox Count)
+               First (iter.to-list Iter)
+               AfterFirst (box.unbox Count)
+               Second (iter.to-list Iter)
+            [Before AfterFirst (box.unbox Count) First Second]))
+        (test.assert-equal
+          "iter.persistent-lazy retries after an interrupted traversal"
+          [(@some 1) 1 [1 2 3] 4 [1 2 3] 4]
+          (let Count (box.make 0)
+               Iter (iter.persistent-lazy
+                      (test.counted-iter [1 2 3] Count))
+               Head (iter.head Iter)
+               AfterHead (box.unbox Count)
+               Complete (iter.to-list Iter)
+               AfterComplete (box.unbox Count)
+               Replay (iter.to-list Iter)
+            [Head AfterHead Complete AfterComplete Replay (box.unbox Count)]))
+        (test.assert-equal
+          "iter.persistent-lazy retries after a failed traversal"
+          [failed 1 [1 2] 2 [1 2] 2]
+          (let Attempts (box.make 0)
+               Source (/. Yield
+                        (do (box.incr Attempts)
+                            (if (= 1 (box.unbox Attempts))
+                                (do (Yield 1)
+                                    (simple-error "expected iterator failure"))
+                                (test.list-iter [1 2] Yield))))
+               Iter (iter.persistent-lazy Source)
+               Failed (trap-error (iter.to-list Iter) (/. Error failed))
+               AfterFailure (box.unbox Attempts)
+               Complete (iter.to-list Iter)
+               AfterComplete (box.unbox Attempts)
+               Replay (iter.to-list Iter)
+            [Failed AfterFailure Complete AfterComplete Replay
+             (box.unbox Attempts)]))
+        (test.assert-equal
+          "iter.head consumes only its result"
+          [(@some 1) 1]
+          (let Count (box.make 0)
+               Result (iter.head (test.counted-iter [1 2 3] Count))
+            [Result (box.unbox Count)]))
+        (test.assert-equal
+          "iter.find stops at its first match"
+          [(@some 3) 3]
+          (let Count (box.make 0)
+               Result (iter.find (= 3)
+                        (test.counted-iter [1 2 3 4] Count))
+            [Result (box.unbox Count)]))
+        (test.assert-equal
+          "iter.exists? stops at its first match"
+          [true 2]
+          (let Count (box.make 0)
+               Result (iter.exists? (= 2)
+                        (test.counted-iter [1 2 3 4] Count))
+            [Result (box.unbox Count)]))
+        (test.assert-equal
+          "iter.take-while consumes its first rejected value"
+          [3 [1 2]]
+          (let Count (box.make 0)
+               Values (iter.to-list
+                        (iter.take-while (/. X (< X 3))
+                          (test.counted-iter [1 2 3 4] Count)))
+            [(box.unbox Count) Values]))
+        (test.assert-equal
+          "iter.fold-while retains the accumulator from its stopping value"
+          [6 3]
+          (let Count (box.make 0)
+               Result (iter.fold-while
+                        (/. Acc X (@p (+ Acc X) (< X 3)))
+                        0
+                        (test.counted-iter [1 2 3 4] Count))
+            [Result (box.unbox Count)]))
+        (test.assert-equal
           "iter.take rejects negative counts"
           rejected
           (trap-error
@@ -745,6 +842,111 @@ A final note.
        Before (box.unbox Count)
        Values (seq.to-list (seq.take 1 Flattened))
     [Before Values (box.unbox Count)]))
+
+(test.assert-equal
+  "seq traversal repeats effects without memoization"
+  [[1 2] [1 2] 4]
+  (let Count (box.make 0)
+       Seq (seq.map (/. X (do (box.incr Count) X))
+                    (seq.of-list [1 2]))
+       First (seq.to-list Seq)
+       Second (seq.to-list Seq)
+    [First Second (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.memo shares successful nodes between traversals"
+  [[1 2] [1 2] 2]
+  (let Count (box.make 0)
+       Seq (seq.memo
+             (seq.map (/. X (do (box.incr Count) X))
+                      (seq.of-list [1 2])))
+       First (seq.to-list Seq)
+       Second (seq.to-list Seq)
+    [First Second (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.memo preserves an already consumed prefix"
+  [[1] 1 [1 2 3] 3]
+  (let Count (box.make 0)
+       Seq (seq.memo
+             (seq.map (/. X (do (box.incr Count) X))
+                      (seq.of-list [1 2 3])))
+       Prefix (seq.to-list (seq.take 1 Seq))
+       AfterPrefix (box.unbox Count)
+       All (seq.to-list Seq)
+    [Prefix AfterPrefix All (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.memo preserves its prefix and retries only a failed node"
+  [failed 2 [1 2 3] 4 [1 2 3] 4]
+  (let Count (box.make 0)
+       Failed (box.make false)
+       Seq (seq.memo
+             (seq.map
+               (/. X
+                 (do (box.incr Count)
+                     (if (and (= X 2) (= false (box.unbox Failed)))
+                         (do (box.put Failed true)
+                             (simple-error "transient sequence failure"))
+                         X)))
+               (seq.of-list [1 2 3])))
+       First (trap-error (seq.to-list Seq) (/. Error failed))
+       AfterFailure (box.unbox Count)
+       Second (seq.to-list Seq)
+       AfterRetry (box.unbox Count)
+       Third (seq.to-list Seq)
+    [First AfterFailure Second AfterRetry Third (box.unbox Count)]))
+
+(test.assert-equal
+  "seq transformation errors are delayed until traversal"
+  delayed
+  (let Seq (seq.map (/. X (simple-error "delayed sequence failure"))
+                     (seq.singleton 1))
+    (trap-error (seq.head Seq) (/. Error delayed))))
+
+(test.assert-equal
+  "seq.head evaluates only its result node"
+  [1 1]
+  (let Count (box.make 0)
+       Seq (seq.map (/. X (do (box.incr Count) X))
+                    (seq.of-list [1 2 3]))
+       Head (seq.head Seq)
+    [Head (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.find stops at its first match"
+  [(@some 3) 3]
+  (let Count (box.make 0)
+       Seq (seq.map (/. X (do (box.incr Count) X))
+                    (seq.of-list [1 2 3 4]))
+       Found (seq.find (= 3) Seq)
+    [Found (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.exists? stops at the first match"
+  [true 2]
+  (let Count (box.make 0)
+       Seq (seq.map (/. X (do (box.incr Count) X))
+                    (seq.of-list [1 2 3 4]))
+       Found (seq.exists? (= 2) Seq)
+    [Found (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.take-while evaluates its first rejected value"
+  [3 [1 2]]
+  (let Count (box.make 0)
+       Seq (seq.map (/. X (do (box.incr Count) X))
+                    (seq.of-list [1 2 3 4]))
+       Values (seq.to-list (seq.take-while (/. X (< X 3)) Seq))
+    [(box.unbox Count) Values]))
+
+(test.assert-equal
+  "seq.take is strict and seq.truncate is permissive"
+  [rejected [1 2]]
+  [(trap-error
+     (seq.to-list (seq.take 3 (seq.of-list [1 2])))
+     (/. Error rejected))
+   (seq.to-list (seq.truncate 3 (seq.of-list [1 2])))])
 
 (test.assert-equal
   "seq.take zero consumes no source values"

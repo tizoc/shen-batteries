@@ -8,6 +8,16 @@ is raised.
 Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 is controlled by the producer. For a pull-based iterator see the `seq` library.
 
+Applying an iterator starts a traversal. Applying it again normally starts the
+producer again, so any effects in the producer are repeated. Transformations such
+as `iter.map` and `iter.filter` preserve this behavior. Use `iter.persistent` or
+`iter.persistent-lazy` when subsequent traversals should replay cached values.
+
+Consumers such as `iter.fold`, `iter.length`, and `iter.to-list` traverse the
+complete iterator and therefore return only for finite inputs. Short-circuiting
+consumers such as `iter.head`, `iter.find`, and `iter.exists?` can consume an
+infinite iterator when they reach a result.
+
 == Creation
 
 ==== `iter.from-lazy` : `(lazy (maybe.t A)) --> (iter.t A)`
@@ -32,7 +42,7 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.repeat` : `A --> (iter.t A)`
 
-`(iter.repeat X)`
+`(iter.repeat X)` produces `X` forever.
 
 ==== `iter.init` : `(number --> A) --> (iter.t A)`
 
@@ -40,16 +50,20 @@ is controlled by the producer. For a pull-based iterator see the `seq` library.
 
 ==== `iter.iterate` : `(A --> A) --> A --> (iter.t A)`
 
-`(iter.iterate F X)`
+`(iter.iterate F X)` produces the infinite iterator `X`, `F X`, `F (F X)`,
+and so on.
 
 ==== `iter.forever` : `(lazy A) --> (iter.t A)`
 
-`(iter.forever Frozen)`
+`(iter.forever Frozen)` repeatedly thaws `Frozen` and produces its value forever.
 
 ==== `iter.cycle` : `(iter.t A) --> (iter.t A)`
 
 `(iter.cycle Iter)` repeats every value produced by `Iter`. If `Iter` is
-empty, the resulting iterator is empty.
+empty, the resulting iterator is empty. Every cycle traverses `Iter` again, so
+effects in `Iter` are repeated unless it is persistent. A repeatable finite
+iterator that produces at least one value on every traversal produces an
+infinite result.
 
 ==== `iter.unfoldr` : `(B --> (maybe.t (A * B))) --> B --> (iter.t A)`
 
@@ -63,19 +77,23 @@ empty, the resulting iterator is empty.
 
 ==== `iter.for-each` : `(A --> void) --> (iter.t A) --> void`
 
-`(iter.for-each F Iter)`
+`(iter.for-each F Iter)` applies `F` to every value. `Iter` must be finite for
+this call to return.
 
 ==== `iter.for-eachi` : `(number --> A --> void) --> (iter.t A) --> void`
 
-`(iter.for-eachi F Iter)`
+`(iter.for-eachi F Iter)` applies `F` to every zero-based index and value.
+`Iter` must be finite for this call to return.
 
 ==== `iter.fold` : `(A --> B --> A) --> A --> (iter.t B) --> A`
 
-`(iter.fold F Init Iter)`
+`(iter.fold F Init Iter)` folds every value from left to right. `Iter` must be
+finite for this call to return.
 
 ==== `iter.foldi` : `(A --> number --> B --> A) --> A --> (iter.t B) --> A`
 
-`(iter.foldi F Init Iter)`
+`(iter.foldi F Init Iter)` folds every zero-based index and value from left to
+right. `Iter` must be finite for this call to return.
 
 ==== `iter.fold-map` : `(Acc --> A --> (Acc * B)) --> Acc --> (iter.t A) --> (iter.t B)`
 
@@ -95,11 +113,13 @@ empty, the resulting iterator is empty.
 
 ==== `iter.for-all?` : `(A --> boolean) --> (iter.t A) --> boolean`
 
-`(iter.for-all? Test Iter)`
+`(iter.for-all? Test Iter)` stops at the first value that fails `Test`. It can
+consume an infinite iterator when such a value is reached.
 
 ==== `iter.exists?` : `(A --> boolean) --> (iter.t A) --> boolean`
 
-`(iter.exists? Test Iter)`
+`(iter.exists? Test Iter)` stops at the first value that satisfies `Test`. It can
+consume an infinite iterator when such a value is reached.
 
 ==== `iter.element?` : `A --> (iter.t A) --> boolean`
 
@@ -111,15 +131,17 @@ empty, the resulting iterator is empty.
 
 ==== `iter.find-map` : `(A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B)`
 
-`(iter.find-map F Iter)`
+`(iter.find-map F Iter)` stops at the first value for which `F` returns `@some`.
 
 ==== `iter.find-mapi` : `(number --> A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B)`
 
-`(iter.find-mapi F Iter)`
+`(iter.find-mapi F Iter)` stops at the first zero-based index and value for which
+`F` returns `@some`.
 
 ==== `iter.find` : `(A --> boolean) --> (iter.t A) --> (maybe.t A)`
 
-`(iter.find Test Iter)`
+`(iter.find Test Iter)` returns the first value that satisfies `Test` and stops
+traversing immediately.
 
 ==== `iter.find-exn` : `(A --> boolean) --> (iter.t A) --> A`
 
@@ -127,11 +149,11 @@ empty, the resulting iterator is empty.
 
 ==== `iter.length` : `(iter.t A) --> number`
 
-`(iter.length Iter)`
+`(iter.length Iter)` consumes the complete iterator, which must be finite.
 
 ==== `iter.empty?` : `(iter.t A) --> boolean`
 
-`(iter.empty? Iter)`
+`(iter.empty? Iter)` stops after the first value, if there is one.
 
 == Transformation
 
@@ -169,7 +191,7 @@ empty, the resulting iterator is empty.
 
 ==== `iter.filter-count` : `(A --> boolean) --> (iter.t A) --> number`
 
-`(iter.filter-count F Iter)`
+`(iter.filter-count F Iter)` consumes the complete iterator, which must be finite.
 
 ==== `iter.intersperse` : `A --> (iter.t A) --> (iter.t A)`
 
@@ -183,11 +205,21 @@ empty, the resulting iterator is empty.
 
 ==== `iter.persistent` : `(iter.t A) --> (iter.t A)`
 
-`(iter.persistent Iter)`
+`(iter.persistent Iter)` immediately consumes all of `Iter` and returns an
+iterator over the cached values. Effects in `Iter` happen during this call and
+only once; later traversals replay the cache. `Iter` must be finite.
 
 ==== `iter.persistent-lazy` : `(iter.t A) --> (iter.t A)`
 
-`(iter.persistent-lazy Iter)`
+`(iter.persistent-lazy Iter)` defers traversal until the result is first consumed.
+The first traversal produces values while building a cache; after that traversal
+completes, later traversals replay the cache without running `Iter` again.
+
+A traversal stopped early or terminated by an error is not cached. The next
+traversal invokes `Iter` again; a replayable source starts over, while a custom
+stateful source may produce something different. Consequently an infinite source
+may be short-circuited through this iterator, but no traversal of it can complete
+and establish the cache.
 
 == Misc
 
@@ -195,7 +227,8 @@ empty, the resulting iterator is empty.
 
 ==== `iter.head` : `(iter.t A) --> (maybe.t A)`
 
-`(iter.head Iter)`
+`(iter.head Iter)` consumes at most one value and stops immediately after finding
+it.
 
 ==== `iter.head-exn` : `(iter.t A) --> A`
 
@@ -204,15 +237,21 @@ empty, the resulting iterator is empty.
 ==== `iter.take` : `number --> (iter.t A) --> (iter.t A)`
 
 `(iter.take N Iter)` produces at most the first `N` values from `Iter`.
-Negative values of `N` are rejected.
+For positive `N`, it stops immediately after producing the `N`th value and does
+not consume an extra value from `Iter`. Zero does not start `Iter`. Negative
+values of `N` are rejected. This can bound an infinite iterator.
 
 ==== `iter.take-while` : `(A --> boolean) --> (iter.t A) --> (iter.t A)`
 
-`(iter.take-while P Iter)`
+`(iter.take-while P Iter)` produces values while `P` is true. It consumes but does
+not produce the first value for which `P` is false, then stops immediately.
 
 ==== `iter.fold-while` : `(A --> B --> (A * boolean)) --> A --> (iter.t B) --> A`
 
-`(iter.fold-while F Init Iter)`
+`(iter.fold-while F Init Iter)` calls `F` with the accumulator and each value.
+`F` returns the next accumulator paired with a continuation flag. The next
+accumulator is retained even when the flag is false, and traversal then stops
+immediately.
 
 ==== `iter.drop` : `number --> (iter.t A) --> (iter.t A)`
 
@@ -225,7 +264,8 @@ Negative values of `N` are rejected.
 
 ==== `iter.reverse` : `(iter.t A) --> (iter.t A)`
 
-`(iter.reverse Iter)`
+`(iter.reverse Iter)` immediately consumes all of `Iter` and returns an iterator
+over the cached values in reverse order. `Iter` must be finite.
 
 ==== `iter.enumerate` : `(iter.t A) --> (iter.t (number * A))`
 
@@ -235,11 +275,11 @@ Negative values of `N` are rejected.
 
 ==== `iter.to-list` : `(iter.t A) --> (list A)`
 
-`(iter.to-list Iter)`
+`(iter.to-list Iter)` consumes the complete iterator, which must be finite.
 
 ==== `iter.to-list-reverse` : `(iter.t A) --> (list A)`
 
-`(iter.to-list-reverse Iter)`
+`(iter.to-list-reverse Iter)` consumes the complete iterator, which must be finite.
 
 ==== `iter.of-list` : `(list A) --> (iter.t A)`
 
@@ -251,7 +291,7 @@ Negative values of `N` are rejected.
 
 ==== `iter.to-vector` : `(iter.t A) --> (vector A)`
 
-`(iter.to-vector Iter)`
+`(iter.to-vector Iter)` consumes the complete iterator, which must be finite.
 
 ==== `iter.of-vector` : `(vector A) --> (iter.t A)`
 

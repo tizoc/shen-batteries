@@ -71,3 +71,22 @@
   "iter searches through portable with-return"
   (@some 2)
   (iter.find (= 2) (iter.of-list [1 2 3])))
+
+(test.assert-equal
+  "portable early exit leaves iter.persistent-lazy uncached"
+  [(@some 1) 1 [1 2 3] 4 [1 2 3] 4]
+  (let Count (box.make 0)
+       Source (/. Yield
+                (do (box.incr Count)
+                    (Yield 1)
+                    (box.incr Count)
+                    (Yield 2)
+                    (box.incr Count)
+                    (Yield 3)))
+       Iter (iter.persistent-lazy Source)
+       Head (iter.head Iter)
+       AfterHead (box.unbox Count)
+       Complete (iter.to-list Iter)
+       AfterComplete (box.unbox Count)
+       Replay (iter.to-list Iter)
+    [Head AfterHead Complete AfterComplete Replay (box.unbox Count)]))

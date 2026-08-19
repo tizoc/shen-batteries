@@ -50,7 +50,7 @@ specification.
 | `defpattern` | Definition helper for programmable pattern-matching handlers | `typ/sexp` | [API](docs/defpattern.adoc) |
 | `dict` | Typed public API for Shen dictionaries | — | [API](docs/dict.adoc) |
 | `features` | Feature registration, discovery, and conditional expansion | — | [API](docs/features.adoc) |
-| `iter` | Push-based iterators | `typ/void`, `maybe`, `box`, `let-match`, `with-exit` | [API](docs/iter.adoc) |
+| `iter` | Push-based iterators | `typ/void`, `maybe`, `box`, `let-match`, `with-exit` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/iter.adoc) |
 | `lazy` | Memoization for frozen computations | `box` | [API](docs/lazy.adoc) |
 | `lazy/pattern` | Programmable matching of frozen computations | `defpattern`, `lazy` | [API](docs/lazy/pattern.adoc) |
 | `let-match` | List and tuple destructuring in `let` bindings | — | [API](docs/let-match.adoc) |
@@ -58,7 +58,7 @@ specification.
 | `maybe/cexpr` | `maybe.do` computation-expression frontend | `maybe`, `typ/sexp`, `cexpr` | [API](docs/maybe/cexpr.adoc) |
 | `nullable` | Identity-represented nullable values and programmable patterns | `defpattern` | [API](docs/nullable.adoc) |
 | `pipe-macro` | Thread-first, thread-last, and `doto` macros | — | [API](docs/pipe-macro.adoc) |
-| `seq` | Pull-based lazy sequences | `typ/void`, `typ/or`, `maybe`, `lazy` | [API](docs/seq.adoc) |
+| `seq` | Pull-based lazy sequences | `typ/void`, `typ/or`, `maybe`, `lazy` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/seq.adoc) |
 | `seq/cexpr` | `seq.do` computation-expression frontend | `seq`, `typ/sexp`, `cexpr` | [API](docs/seq/cexpr.adoc) |
 | `seq/dict` | Snapshot conversions between sequences and dictionaries | `seq`, `dict` | [API](docs/seq/dict.adoc) |
 | `shendoc` | AsciiDoc generator for Shen source comments | — | [API](docs/shendoc.adoc) |
