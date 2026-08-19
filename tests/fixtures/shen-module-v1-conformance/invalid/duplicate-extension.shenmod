@@ -1,0 +1,6 @@
+(shen.module
+  (version 1)
+  (name invalid/duplicate-extension)
+  (sources tc- "unreachable.shen")
+  (extension conformance/host first)
+  (extension conformance/host second))

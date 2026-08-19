@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name conformance/shared)
+  (sources tc+ "shared/api.shen"
+           tc- "shared/loaded.shen"))

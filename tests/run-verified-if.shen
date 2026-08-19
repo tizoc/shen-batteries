@@ -1,0 +1,5 @@
+(load "tests/harness.shen")
+(load "library.shen")
+(library.use [typ/verified-objects typ/verified-if])
+(load "tests/verified-if.shen")
+(test.finish)

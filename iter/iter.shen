@@ -10,6 +10,16 @@
 \\:
 \\: Instances of `(iter.t A)` are push-based iterators, which means that the iteration
 \\: is controlled by the producer. For a pull-based iterator see the `seq` library.
+\\:
+\\: Applying an iterator starts a traversal. Applying it again normally starts the
+\\: producer again, so any effects in the producer are repeated. Transformations such
+\\: as `iter.map` and `iter.filter` preserve this behavior. Use `iter.persistent` or
+\\: `iter.persistent-lazy` when subsequent traversals should replay cached values.
+\\:
+\\: Consumers such as `iter.fold`, `iter.length`, and `iter.to-list` traverse the
+\\: complete iterator and therefore return only for finite inputs. Short-circuiting
+\\: consumers such as `iter.head`, `iter.find`, and `iter.exists?` can consume an
+\\: infinite iterator when they reach a result.
 
 (package iter [
   maybe.t maybe.some? maybe.unsafe-get maybe.for-each @some @none
@@ -37,7 +47,7 @@
 \\: `(iter.empty)`
 (define empty
   { --> (iter.t A) }
-  -> (/. _ (void)))
+  -> (/. X (void)))
 
 \\: `(iter.singleton X)`
 (define singleton
@@ -56,42 +66,50 @@
   Iter X Yield -> (do (Iter Yield)
                       (Yield X)))
 
-\\: `(iter.repeat X)`
+\\: `(iter.repeat X)` produces `X` forever.
 (define repeat
   { A --> (iter.t A) }
   X Yield -> (do (Yield X)
                  (repeat X Yield)))
 
-\\: `(iter.init F)`
+\\: `(iter.init F)` produces an infinite iterator containing `F 0`, `F 1`, and so on.
 (define init
   { (number --> A) --> (iter.t A) }
   FN Yield -> (init-h 0 FN Yield))
 
 (define init-h
   { number --> (number --> A) --> (iter.t A) }
-  0 _ _ -> (void)
   N FN Yield -> (do (Yield (FN N))
-                    (init-h (- N 1) FN Yield)))
+                    (init-h (+ N 1) FN Yield)))
 
-\\: `(iterate F X)`
+\\: `(iter.iterate F X)` produces the infinite iterator `X`, `F X`, `F (F X)`,
+\\: and so on.
 (define iterate
   { (A --> A) --> A --> (iter.t A) }
   F X Yield -> (do (Yield X)
                    (iterate F (F X) Yield)))
 
-\\: `(iter.forever Frozen)`
+\\: `(iter.forever Frozen)` repeatedly thaws `Frozen` and produces its value forever.
 (define forever
   { (lazy A) --> (iter.t A) }
   X Yield -> (do (Yield (thaw X))
                  (forever X Yield)))
 
-\\: `(iter.cycle Iter)`
+\\: `(iter.cycle Iter)` repeats every value produced by `Iter`. If `Iter` is
+\\: empty, the resulting iterator is empty. Every cycle traverses `Iter` again, so
+\\: effects in `Iter` are repeated unless it is persistent. A repeatable finite
+\\: iterator that produces at least one value on every traversal produces an
+\\: infinite result.
 (define cycle
   { (iter.t A) --> (iter.t A) }
-  Iter Yield -> (do (Iter Yield)
-                    (cycle Iter Yield)))
+  Iter Yield -> (let Produced (box.make false)
+                  (do (Iter (/. X (do (box.put Produced true)
+                                      (Yield X))))
+                      (if (box.unbox Produced)
+                          (cycle Iter Yield)
+                          (void)))))
 
-\\: `(iter.unfoldr X F Init)`
+\\: `(iter.unfoldr F X)`
 (define unfoldr
   { (B --> (maybe.t (A * B))) --> B --> (iter.t A) }
   F X Yield -> (unfoldr-h F (F X) Yield))
@@ -115,12 +133,14 @@
 
 \\: == Consumption
 
-\\: `(iter.for-each F Iter)`
+\\: `(iter.for-each F Iter)` applies `F` to every value. `Iter` must be finite for
+\\: this call to return.
 (define for-each
   { (A --> void) --> (iter.t A) --> void }
   F Iter -> (Iter F))
 
-\\: `(iter.for-eachi F Iter)`
+\\: `(iter.for-eachi F Iter)` applies `F` to every zero-based index and value.
+\\: `Iter` must be finite for this call to return.
 (define for-eachi
   { (number --> A --> void) --> (iter.t A) --> void }
   F Iter -> (let Index (box.make 0)
@@ -128,14 +148,16 @@
                               _ (F I X)
                             (box.put Index (+ 1 I)))))))
 
-\\: `(iter.fold F Init Iter)`
+\\: `(iter.fold F Init Iter)` folds every value from left to right. `Iter` must be
+\\: finite for this call to return.
 (define fold
   { (A --> B --> A) --> A --> (iter.t B) --> A }
   F Init Iter -> (let Acc (box.make Init)
                       _ (Iter (/. Elt (box.put Acc (F (box.unbox Acc) Elt))))
                    (box.unbox Acc)))
 
-\\: `(iter.foldi F Init Iter)`
+\\: `(iter.foldi F Init Iter)` folds every zero-based index and value from left to
+\\: right. `Iter` must be finite for this call to return.
 (define foldi
   { (A --> number --> B --> A) --> A --> (iter.t B) --> A }
   F Init Iter -> (let Index (box.make 0)
@@ -174,12 +196,8 @@
                     (Iter (/. X (do (Yield (F (box.unbox Index) X))
                                     (box.incr Index))))))
 
-\\: `(iter.map-by-2 F Iter)`
-\\(define map-by-2
-\\  { (A --> A --> A) --> (iter.t A) --> (iter.t A) }
-\\  F Iter Yield -> )
-
-\\: `(iter.for-all? Test Iter)`
+\\: `(iter.for-all? Test Iter)` stops at the first value that fails `Test`. It can
+\\: consume an infinite iterator when such a value is reached.
 (define for-all?
   { (A --> boolean) --> (iter.t A) --> boolean }
   Test Iter -> (with-return Return
@@ -188,7 +206,8 @@
                                      (void))))
                      true)))
 
-\\: `(iter.exists? Test Iter)`
+\\: `(iter.exists? Test Iter)` stops at the first value that satisfies `Test`. It can
+\\: consume an infinite iterator when such a value is reached.
 (define exists?
   { (A --> boolean) --> (iter.t A) --> boolean }
   Test Iter -> (with-return Return
@@ -207,7 +226,7 @@
   { (A --> A --> boolean) --> A --> (iter.t A) --> boolean }
   Eq Elt Iter -> (exists? (Eq Elt) Iter))
 
-\\: `(iter.find-map F Iter)`
+\\: `(iter.find-map F Iter)` stops at the first value for which `F` returns `@some`.
 (define find-map
   { (A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B) }
   F Iter -> (with-return Return
@@ -217,7 +236,8 @@
                                     (void)))))
                   (@none))))
 
-\\: `(iter.find-mapi F Iter)`
+\\: `(iter.find-mapi F Iter)` stops at the first zero-based index and value for which
+\\: `F` returns `@some`.
 (define find-mapi { (number --> A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B) }
   F Iter -> (let Index (box.make 0)
               (with-return Return
@@ -227,36 +247,37 @@
                                       (box.incr Index)))))
                     (@none)))))
 
-\\: `(iter.find Test Iter)`
-(define find
+\\: `(iter.find Test Iter)` returns the first value that satisfies `Test` and stops
+\\: traversing immediately.
+(define iter.find
   { (A --> boolean) --> (iter.t A) --> (maybe.t A) }
   Test Iter -> (find-map (/. X (if (Test X) (@some X) (@none))) Iter))
 
 \\: `(iter.find-exn Test Iter)`
 (define find-exn
   { (A --> boolean) --> (iter.t A) --> A }
-  Test Iter -> (let R (find Test Iter)
+  Test Iter -> (let R (iter.find Test Iter)
                  (if (maybe.some? R)
                      (maybe.unsafe-get R)
                      (error "find-exn: value not found"))))
 
-\\: `(iter.length Iter)`
+\\: `(iter.length Iter)` consumes the complete iterator, which must be finite.
 (define iter.length { (iter.t A) --> number }
   Iter -> (let R (box.make 0)
-               _ (Iter (/. _ (box.incr R)))
+               _ (Iter (/. X (box.incr R)))
             (box.unbox R)))
 
-\\: `(iter.empty? Iter)`
+\\: `(iter.empty? Iter)` stops after the first value, if there is one.
 (define iter.empty?
   { (iter.t A) --> boolean }
   Iter -> (with-return Return
-            (do (Iter (/. _ (Return false)))
+            (do (Iter (/. X (Return false)))
                 true)))
 
 \\: == Transformation
 
 \\: `(iter.filter F Iter)`
-(define filter
+(define iter.filter
   { (A --> boolean) --> (iter.t A) --> (iter.t A) }
   F Iter Yield -> (Iter (/. X (if (F X)
                                   (Yield X)
@@ -309,7 +330,7 @@
                                      _ (box.incr Index)
                                   (maybe.for-each Yield Res))))))
 
-\\: `(iter.filter-count F Iter)`
+\\: `(iter.filter-count F Iter)` consumes the complete iterator, which must be finite.
 (define filter-count
   { (A --> boolean) --> (iter.t A) --> number }
   F Iter -> (let Count (box.make 0)
@@ -334,12 +355,23 @@
 
 \\: == Caching
 
-\\: `(iter.persistent Iter)`
+\\: `(iter.persistent Iter)` immediately consumes all of `Iter` and returns an
+\\: iterator over the cached values. Effects in `Iter` happen during this call and
+\\: only once; later traversals replay the cache. `Iter` must be finite.
 (define persistent
   { (iter.t A) --> (iter.t A) }
-  Iter -> (mlist.to-iter (mlist.of-iter Iter)))
+  Iter -> (let Cached (mlist.of-iter Iter)
+            (/. Yield (mlist.to-iter Cached Yield))))
 
-\\: `(iter.persistent-lazy Iter)`
+\\: `(iter.persistent-lazy Iter)` defers traversal until the result is first consumed.
+\\: The first traversal produces values while building a cache; after that traversal
+\\: completes, later traversals replay the cache without running `Iter` again.
+\\:
+\\: A traversal stopped early or terminated by an error is not cached. The next
+\\: traversal invokes `Iter` again; a replayable source starts over, while a custom
+\\: stateful source may produce something different. Consequently an infinite source
+\\: may be short-circuited through this iterator, but no traversal of it can complete
+\\: and establish the cache.
 (define persistent-lazy
   { (iter.t A) --> (iter.t A) }
   Iter -> (let R (box.make (@none))
@@ -355,32 +387,40 @@
 
 \\: === List-like
 
-\\: `(iter.head Iter)`
+\\: `(iter.head Iter)` consumes at most one value and stops immediately after finding
+\\: it.
 (define iter.head
   { (iter.t A) --> (maybe.t A) }
   Iter -> (with-return Return
             (do (Iter (/. X (Return (@some X))))
                 (@none))))
 
-\\: `(iter.head-exn)`
+\\: `(iter.head-exn Iter)`
 (define head-exn
   { (iter.t A) --> A }
   Iter -> (let R (iter.head Iter)
             (if (maybe.some? R)
                 (maybe.unsafe-get R)
-                (error "iter.head-exn called on emtpy iter"))))
+                (error "iter.head-exn called on empty iter"))))
 
-\\: `(iter.take N Iter)`
-(define take
+\\: `(iter.take N Iter)` produces at most the first `N` values from `Iter`.
+\\: For positive `N`, it stops immediately after producing the `N`th value and does
+\\: not consume an extra value from `Iter`. Zero does not start `Iter`. Negative
+\\: values of `N` are rejected. This can bound an infinite iterator.
+(define iter.take
   { number --> (iter.t A) --> (iter.t A) }
+  N _ _ -> (error "cannot take a negative amount from an iter") where (< N 0)
+  0 _ _ -> (void)
   N Iter Yield -> (let Count (box.make 0)
                     (with-break Break
-                      (Iter (/. X (if (= (box.unbox Count) N)
-                                      (Break)
-                                      (do (box.incr Count)
-                                          (Yield X))))))))
+                      (Iter (/. X (do (box.incr Count)
+                                     (Yield X)
+                                     (if (= (box.unbox Count) N)
+                                         (Break)
+                                         (void))))))))
 
-\\: `(iter.take-while P Iter)`
+\\: `(iter.take-while P Iter)` produces values while `P` is true. It consumes but does
+\\: not produce the first value for which `P` is false, then stops immediately.
 (define take-while
   { (A --> boolean) --> (iter.t A) --> (iter.t A) }
   P Iter Yield -> (with-break Break
@@ -388,7 +428,10 @@
                                     (Yield X)
                                     (Break))))))
 
-\\: `(iter.fold-while F Init Iter)`
+\\: `(iter.fold-while F Init Iter)` calls `F` with the accumulator and each value.
+\\: `F` returns the next accumulator paired with a continuation flag. The next
+\\: accumulator is retained even when the flag is false, and traversal then stops
+\\: immediately.
 (define fold-while
   { (A --> B --> (A * boolean)) --> A --> (iter.t B) --> A }
   F Init Iter -> (let State (box.make Init)
@@ -400,9 +443,11 @@
                                            (Break))))))
                        (box.unbox State))))
 
-\\: `(iter.drop N Iter)`
-(define drop
+\\: `(iter.drop N Iter)` skips the first `N` values from `Iter`.
+\\: Negative values of `N` are rejected.
+(define iter.drop
   { number --> (iter.t A) --> (iter.t A) }
+  N _ _ -> (error "cannot drop a negative amount from an iter") where (< N 0)
   N Iter Yield -> (let Count (box.make 0)
                     (Iter (/. X (if (>= (box.unbox Count) N)
                                     (Yield X)
@@ -418,7 +463,8 @@
                                         (do (box.toggle Drop)
                                             (Yield X)))
                                     (Yield X))))))
-\\ `(iter.reverse Iter)`
+\\: `(iter.reverse Iter)` immediately consumes all of `Iter` and returns an iterator
+\\: over the cached values in reverse order. `Iter` must be finite.
 (define iter.reverse
   { (iter.t A) --> (iter.t A) }
   Iter -> (let MList (mlist.of-iter Iter)
@@ -434,40 +480,43 @@
 
 \\: == Converters
 
-\\: `(iter.to-list Iter)`
+\\: `(iter.to-list Iter)` consumes the complete iterator, which must be finite.
 (define to-list
   { (iter.t A) --> (list A) }
   Iter -> (reverse (to-list-reverse Iter)))
 
-\\: `(iter.to-list-reverse Iter)`
+\\: `(iter.to-list-reverse Iter)` consumes the complete iterator, which must be finite.
 (define to-list-reverse
   { (iter.t A) --> (list A) }
   Iter -> (fold (/. Acc X [X | Acc]) [] Iter))
 
-\\: `(iter.to-list List)`
+\\: `(iter.of-list List)`
 (define of-list
   { (list A) --> (iter.t A) }
   [] Yield -> (void)
   [X | Rest] Yield -> (do (Yield X)
-                          (of-list Rest)))
+                          (of-list Rest Yield)))
 
 \\: `(iter.convert-list F List)`
 (define convert-list
   { ((iter.t A) --> (iter.t B)) --> (list A) --> (list B) }
   F List -> (to-list (F (of-list List))))
 
-\\: `(iter.to-vector Iter)`
+\\: `(iter.to-vector Iter)` consumes the complete iterator, which must be finite.
 (define to-vector
   { (iter.t A) --> (vector A) }
   Iter -> (let MList (mlist.of-iter Iter)
                Limit (mlist.length MList)
             (let Vector (vector Limit)
-                 _ (mlist.for-each-enumerated (/. (@p I X) (vector-> Vector I X)) MList)
+                 _ (mlist.for-each-enumerated
+                    (/. Pair (vector-> Vector (fst Pair) (snd Pair)))
+                    MList)
               Vector)))
 
 \\: `(iter.of-vector Vector)`
 (define of-vector
   { (vector A) --> (iter.t A) }
+  Vector _ -> (void) where (= 0 (limit Vector))
   Vector Yield -> (of-vector-range Vector 1 (limit Vector) Yield))
 
 \\: `(iter.of-vector-enumerated Vector)`
@@ -475,13 +524,22 @@
   { (vector A) --> (iter.t (number * A)) }
   Vector Yield -> (mlist.vector-for-each-enumerated Yield Vector 1 (+ 1 (limit Vector))))
 
-\\: `(iter.of-vector-range Vector From To)`
+\\: `(iter.of-vector-range Vector From To)` iterates over the inclusive range of
+\\: vector positions from `From` to `To`. Positions increase when `From <= To`
+\\: and decrease otherwise. Both endpoints must be valid positions in `Vector`.
 (define of-vector-range
-  { (vector A) --> number --> number --> (iter.t A) } \\ TODO: allow reverse ranges?
+  { (vector A) --> number --> number --> (iter.t A) }
   Vector From To _ -> (error "iter.of-vector-range: Invalid range for vector with limit ~A: From=~A To=~A" (limit Vector) From To)
-      where (or (< From 1) (> From To) (> To (limit Vector)))
-  Vector From To Yield -> (mlist.vector-for-each Yield Vector From (+ 1 To)))
+      where (or (< From 1) (> From (limit Vector))
+                (< To 1) (> To (limit Vector)))
+  Vector From To Yield -> (mlist.vector-for-each Yield Vector From (+ 1 To))
+      where (<= From To)
+  Vector From To Yield -> (of-vector-range-descending-h Vector From To Yield))
+
+(define of-vector-range-descending-h
+  { (vector A) --> number --> number --> (A --> void) --> void }
+  Vector To To Yield -> (Yield (<-vector Vector To))
+  Vector Position To Yield -> (do (Yield (<-vector Vector Position))
+                                  (of-vector-range-descending-h Vector (- Position 1) To Yield)))
 
 )
-
-

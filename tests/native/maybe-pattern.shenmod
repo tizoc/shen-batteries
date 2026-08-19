@@ -1,0 +1,13 @@
+(shen.module
+  (version 1)
+  (name batteries.native-test)
+  (requires iter maybe maybe/cexpr seq seq/cexpr)
+  (requires-features shen/scheme)
+  (sources tc+ "maybe-pattern.shen")
+  (extension shen/scheme
+    (mode sealed)
+    (exports batteries-native-test.answer
+             batteries-native-test.iter-answer
+             batteries-native-test.maybe-do-answer
+             batteries-native-test.seq-do-answer)
+    (metadata runtime compiletime)))

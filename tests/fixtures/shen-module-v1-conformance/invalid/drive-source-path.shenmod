@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name invalid/drive-source-path)
+  (sources tc- "C:/unreachable.shen"))

@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name seq)
+  (requires typ/void typ/or maybe lazy)
+  (sources tc+ "seq/seq.shen"))

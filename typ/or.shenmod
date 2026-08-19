@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name typ/or)
+  (sources tc+ "or/or.shen"))

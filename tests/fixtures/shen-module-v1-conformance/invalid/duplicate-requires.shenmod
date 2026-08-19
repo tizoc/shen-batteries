@@ -1,0 +1,6 @@
+(shen.module
+  (version 1)
+  (name invalid/duplicate-requires)
+  (requires first)
+  (requires second)
+  (sources tc- "unreachable.shen"))

@@ -1,0 +1,246 @@
+= Using pipe macros
+
+The `pipe-macro` module provides three macros for reading nested operations
+from left to right:
+
+* `=>` inserts each intermediate value as the first argument of the next
+  stage;
+* `=>>` inserts it as the last argument; and
+* `doto` sends one object through several effects and returns that object.
+
+Load the module before Shen reads source that uses the macros:
+
+[source,shen]
+----
+(load "library.shen")
+(library.set-home "/path/to/shen-batteries")
+(library.use [pipe-macro])
+----
+
+In a program, the loader call normally belongs in a bootstrap file and the
+forms using the macros in a subsequently loaded source file. Macro definitions
+become available at a source-file boundary.
+
+== From nesting to a pipe
+
+An ordinary nested expression places the first operation deepest in the form:
+
+[source,shen]
+----
+(* (+ 2 3) 4)
+\\ Result: 20
+----
+
+`=>` writes the starting value first and the operations in the order in which
+their calls complete:
+
+[source,shen]
+----
+(=> 2 (+ 3) (* 4))
+\\ Expands to: (* (+ 2 3) 4)
+\\ Result: 20
+----
+
+Use `=>>` when the data parameter is last. This is the usual shape of Shen
+functions such as `map`:
+
+[source,shen]
+----
+(reverse (map (/. X (* X 2)) [1 2 3]))
+
+(=>> [1 2 3]
+     (map (/. X (* X 2)))
+     reverse)
+\\ Both forms return [6 4 2].
+----
+
+Choose the pipe from the called functions' parameter order. `=>` and `=>>`
+perform no automatic signature adaptation.
+
+== Stage forms
+
+Each pipe accepts parenthesized stages, bare stages, or no stages at all.
+
+[cols="1,2,2",options="header"]
+|===
+| Stage
+| In `(=> Current ...)`
+| In `(=>> Current ...)`
+
+| `(F A B)`
+| `(F Current A B)`
+| `(F A B Current)`
+
+| `F`
+| `(F Current)`
+| `(F Current)`
+
+| no stage
+| `Current`
+| `Current`
+|===
+
+A bare stage is therefore useful only for a one-argument call:
+
+[source,shen]
+----
+(=> [1 2 3] reverse)
+\\ Result: [3 2 1]
+
+(=>> [1 2 3] reverse)
+\\ Result: [3 2 1]
+----
+
+The zero-stage forms are identities. They do not wrap, copy, or otherwise
+change the starting value:
+
+[source,shen]
+----
+[(=> value) (=>> value)]
+\\ Result: [value value]
+----
+
+== Evaluation and effects
+
+Pipes expand into ordinary nested Shen calls. The starting expression and
+each preceding result appear once in that expansion; each stage call consumes
+the result of the stage to its left before the next stage call can complete.
+The macros do not add laziness, caching, error handling, or short-circuiting.
+Those behaviors belong to the functions used as stages.
+
+Parenthesized stages may contain arbitrary argument expressions. Those
+explicit arguments obey the ordinary evaluation rules of the expanded Shen
+call. In particular, compare the expansions when argument expressions have
+effects:
+
+[source,shen]
+----
+(=> Start (F Arg))
+\\ Expands to: (F Start Arg)
+
+(=>> Start (F Arg))
+\\ Expands to: (F Arg Start)
+----
+
+Use `let` and `do` explicitly when the relative order of `Start` and `Arg`
+effects matters. The pipe notation guarantees placement and call nesting; it
+is not a replacement for general sequencing.
+
+== Updating one target with `doto`
+
+`doto` is for several first-argument operations on the same object. It binds
+the target once, invokes the parenthesized operations from left to right,
+discards every operation result, and returns the original target.
+
+[source,shen]
+----
+(let Box (doto (box.make 1)
+           (box.incr)
+           (box.incr))
+  (box.unbox Box))
+\\ Result: 3
+----
+
+All operations receive the same target, not the result of the preceding
+operation. The following example checks the three important effect contracts:
+
+[source,shen]
+----
+(define record-step
+  Target Seen Label ->
+    (do (box.put Seen (append (box.unbox Seen) [Label]))
+        (box.incr Target)
+        ignored))
+
+(let Builds (box.make 0)
+     Seen (box.make [])
+     Target (box.make 0)
+     Result (doto (do (box.incr Builds) Target)
+              (record-step Seen first)
+              (record-step Seen second))
+  (do (box.put Result 99)
+      [(box.unbox Builds)
+       (box.unbox Seen)
+       (box.unbox Target)]))
+\\ Result: [1 [first second] 99]
+----
+
+`Builds` reaches `1`, so the target expression ran exactly once. `Seen` shows
+the operation order. Updating `Result` also updates `Target`, showing that
+`doto` returned the original object even though `record-step` returned
+`ignored`.
+
+Operations must be parenthesized because `doto` must split each operation into
+its function and explicit arguments. `(doto Value)` with no operations is an
+identity and simply expands to `Value`.
+
+== Using the macros in a package
+
+Shen qualifies non-external symbols in a `package`. List pipe syntax among the
+package externals so it still names the globally installed macros. Also list
+non-core functions from other modules that the package calls:
+
+[source,shen]
+----
+(package pipe-example [=> =>> doto box.make box.incr box.unbox]
+
+(define scaled
+  { number --> number }
+  X -> (=> X (+ 3) (* 4)))
+
+(define doubled-reversed
+  { (list number) --> (list number) }
+  Xs -> (=>> Xs (map (/. X (* X 2))) reverse))
+
+(define bumped
+  { --> number }
+  -> (let Box (doto (box.make 1) (box.incr))
+       (box.unbox Box)))
+
+)
+----
+
+Here `=>`, `=>>`, and `doto` must be external because they are macro syntax;
+the `box.*` names must be external because they come from another module.
+Core Shen names such as `+`, `*`, `map`, and `reverse` are already external.
+
+== Pipes versus computation expressions
+
+Pipes and `cexpr` solve different readability problems:
+
+[cols="1,2,2",options="header"]
+|===
+| Question
+| Pipe macros
+| Computation expressions
+
+| What is transformed?
+| A value followed by call stages.
+| A body of structured statements.
+
+| Who defines the meaning?
+| Ordinary Shen function application and fixed first- or last-argument
+  insertion.
+| A builder supplied by an adapter such as `maybe/cexpr` or `seq/cexpr`.
+
+| What control flow is supplied?
+| None beyond the resulting nested calls; `doto` adds explicit sequential
+  effects on one target.
+| Builder-defined binding, combination, lifting, iteration, delay, and
+  short-circuit behavior.
+
+| Typical use
+| A short transformation pipeline whose functions share a data-argument
+  position.
+| A computation with several bindings, branches, effects, generators, or
+  domain-specific failure behavior.
+|===
+
+The two forms are complementary. A pipe can calculate an expression inside a
+computation-expression statement; it does not replace the builder semantics
+that make, for example, `maybe.do` stop after absence or `seq.do` produce a
+lazy sequence.
+
+See link:pipe-macro.adoc[the pipe-macro API] for the exact forms and
+link:cexpr.adoc[the computation-expression guide and API] for structured
+computations.

@@ -1,0 +1,4 @@
+(shen.module
+  (version 2)
+  (name invalid/wrong-version)
+  (sources tc- "unreachable.shen"))

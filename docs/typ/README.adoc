@@ -8,6 +8,8 @@ include::or.adoc[]
 
 include::sexp.adoc[]
 
+include::verified-objects.adoc[]
+
 include::verified-and-head.adoc[]
 
 include::verified-if.adoc[]

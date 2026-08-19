@@ -10,7 +10,7 @@
 
 (datatype t-internal
   ______________
-  (absvector 2) : (mode (t A) -);
+  (absvector 2) : (- (t A));
 
   Box : (t A);
   ______________
@@ -48,7 +48,7 @@
 \\: `(box.box? X)` returns `true` if `X` is a box, `false` otherwise.
 (define box?
   { A --> boolean}
-  X -> (trap-error (= (<-address X 0) #tag) (/. _ false))
+  X -> (trap-error (= (<-address X 0) #tag) (/. X false))
     where (absvector? X)
   _ -> false)
 
@@ -66,7 +66,7 @@
   { (t A) --> A --> void }
   Box X -> (do (address-> Box 1 X) (void)))
 
-\\: `(box.modify F Box)` stores the result of `(box.put (F (box.unbox Box)))` inside `Box`.
+\\: `(box.modify F Box)` stores the result of `(F (box.unbox Box))` inside `Box`.
 (define modify
   { (A --> A) --> (t A) --> void }
   F Box -> (box.put Box (F (unbox Box))))

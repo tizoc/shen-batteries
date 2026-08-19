@@ -1,0 +1,138 @@
+= Defining programmable patterns
+
+Shen's programmable-pattern extension lets a library add pattern syntax without
+changing the compiler. A pattern handler describes the run-time tests and
+selectors for one surface form; a datatype rule separately tells the
+typechecker what that form means.
+
+This guide builds `(tagged Pattern)`. Values use the ordinary tuple
+representation `(@p tagged Value)`, while the custom pattern checks the tag and
+continues matching `Pattern` against the payload.
+
+Load `defpattern` before the source that declares the handler:
+
+[source,shen]
+----
+(library.use [defpattern])
+----
+
+== Declare the representation, type rule, and handler
+
+Put the declaration in `defpattern-input.shen`:
+
+[source,shen]
+----
+(package defpattern-guide [defpattern]
+
+(define tagged
+  { A --> (symbol * A) }
+  Value -> (@p tagged Value))
+
+(datatype tagged-pattern
+  Pattern : A;
+  =================================================
+  (tagged Pattern) : (symbol * A);)
+
+(defpattern tagged-pattern-handler
+  Self Is? Assign [tagged Pattern]
+    -> (do (Is? [and [tuple? Self]
+                        [= [fst Self] tagged]])
+           (Assign Pattern [snd Self])
+           handled))
+
+)
+----
+
+The datatype rule describes the custom pattern in its surface form. Its premise
+says the nested `Pattern` has type `A`; the double rule makes that binding
+available while the matching clause's action is checked. The complete pattern
+therefore matches a `(symbol * A)`. Do not write Shen's internal
+`shen.custom-pattern` marker in a datatype rule.
+
+`defpattern` supplies four handler arguments:
+
+* `Self` is the generated reference to the value being matched. Build test and
+  selector S-expressions with it; do not inspect it while the handler runs.
+* `Is?` registers a run-time discriminator. Here `and` first checks `tuple?`,
+  so `fst` is never applied to a non-tuple, and then checks the tag.
+* `Assign` associates a variable or nested subpattern with a selector
+  expression. The compiler will match `Pattern` recursively against
+  `(snd Self)` after the discriminator succeeds.
+* The fourth argument is the surface pattern being compiled. Matching it as
+  `[tagged Pattern]` selects this handler clause and exposes its nested pattern.
+
+The clause returns `handled` to tell the compiler that it recognizes the
+surface form.
+
+Register the complete discriminator before registering selectors. Shen runs a
+custom pattern's tests before its selectors, but keeping the guarded operations
+in this order makes the safety dependency explicit. Every selector must be safe
+once all registered tests have succeeded.
+
+The generated handler also has a final `_ _ _ _ -> (fail)` clause. `(fail)` is
+compile-time handler dispatch: it lets another registered handler try a surface
+form this handler does not recognize. It is different from a registered `Is?`
+test returning `false`, which makes the containing function try its next
+run-time pattern clause.
+
+== Use the pattern from a following source
+
+Put consumers in `defpattern-use.shen`, using the same package:
+
+[source,shen]
+----
+(package defpattern-guide []
+
+(define first-or
+  { A --> (symbol * (list A)) --> A }
+  _ (tagged [Head | _]) -> Head
+  Default _ -> Default)
+
+)
+----
+
+`Assign` passes the entire nested `[Head | _]` pattern back to Shen, so the
+ordinary list matcher handles it recursively. A correctly tagged nonempty list
+returns its head. An empty payload fails the nested list pattern, and another
+tag fails the handler's discriminator; both continue to the `Default _`
+fallback clause.
+
+[source,shen]
+----
+(defpattern-guide.first-or
+  0
+  (defpattern-guide.tagged [20 22]))
+\\ Result: 20
+
+(defpattern-guide.first-or 0 (@p another-tag [20 22]))
+\\ Result: 0
+
+(defpattern-guide.first-or 0 (defpattern-guide.tagged []))
+\\ Result: 0
+----
+
+Registration becomes available only after the declaring source has finished
+loading. Definitions earlier in that source have already been compiled, so the
+new syntax cannot affect them retroactively. A module should list the handler
+source before every checked consumer source:
+
+[source,shen]
+----
+(shen.module
+  (version 1)
+  (name defpattern-guide)
+  (requires defpattern)
+  (sources tc+
+    "defpattern-input.shen"
+    "defpattern-use.shen"))
+----
+
+Both source files use the `defpattern-guide` package, which gives the pattern,
+handler, constructor, and consumer one namespace. The declaration file lists
+`defpattern` as an external symbol so the imported macro stays unqualified.
+The second file needs no such external because it uses the now-active pattern
+inside its own package.
+
+Keep the datatype rule beside the handler, keep the handler source before its
+consumers, and load typed declarations and consumers under `tc+`. See
+link:defpattern.adoc[the `defpattern` API] for the handler contract.

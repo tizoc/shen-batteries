@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name conformance/cycle-b)
+  (requires conformance/cycle-a)
+  (sources tc- "cycle-b/marker.shen"))

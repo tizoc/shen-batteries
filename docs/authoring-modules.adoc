@@ -1,0 +1,163 @@
+= Authoring a portable module
+
+Use a `shen.module` version 1 descriptor when a library should load through
+`library.use` on every Shen port. This walkthrough builds two small modules:
+`example/greeting` and its dependency, `example/punctuation`. The checked copy
+lives under `tests/fixtures/authoring-modules` in this repository.
+
+== Create the module tree
+
+Starting at the repository root, create exactly this layout:
+
+[source,text]
+----
+tests/
+|-- fixtures/
+|   `-- authoring-modules/             <1>
+|       `-- example/
+|           |-- greeting.shenmod       <2>
+|           |-- greeting/
+|           |   |-- syntax.shen
+|           |   `-- api.shen
+|           |-- punctuation.shenmod
+|           `-- punctuation/
+|               `-- api.shen
+`-- run-authoring-modules.shen
+----
+<1> This directory is the _module home_.
+<2> The descriptor for `example/greeting` is therefore
+`example/greeting.shenmod` below the module home.
+
+A slash in a module name maps to a directory only when locating its
+descriptor. Each source filename is instead relative to the directory that
+contains its descriptor. Thus `"greeting/api.shen"` in
+`example/greeting.shenmod` resolves beside that descriptor, under
+`example/greeting/`.
+
+== Define the dependency
+
+Put this descriptor in `example/punctuation.shenmod`:
+
+[source,shen]
+----
+(shen.module
+  (version 1)
+  (name example/punctuation)
+  (sources tc+ "punctuation/api.shen"))
+----
+
+Put its checked source in `example/punctuation/api.shen`:
+
+[source,shen]
+----
+(package example-punctuation []
+
+(define finish
+  { string --> string }
+  Text -> (cn Text "!"))
+
+)
+----
+
+== Define the greeting module
+
+Put this descriptor in `example/greeting.shenmod`:
+
+[source,shen]
+----
+(shen.module
+  (version 1)
+  (name example/greeting)
+  (requires example/punctuation)
+  (sources tc- "greeting/syntax.shen"
+           tc+ "greeting/api.shen"))
+----
+
+`requires` lists module names, not source paths. The loader completely loads
+requirements from left to right before it loads any source of the requiring
+module. Transitive requirements are resolved recursively, and every completed
+module is loaded only once in the current Shen process.
+
+The entries in `sources` are also loaded from left to right. A `tc+` or `tc-`
+marker applies to every following filename until another marker appears. The
+loader switches typechecking immediately before each source and restores the
+caller's original typechecking state after `library.use`, including when a load
+fails. Prefer `tc+` for ordinary library code; reserve `tc-` for source that is
+intentionally unchecked, such as this small syntax declaration.
+
+Put the unchecked macro declaration in `example/greeting/syntax.shen`:
+
+[source,shen]
+----
+(defmacro example-greeting.syntax
+  [example-greeting.message Name]
+    -> [cn "Hello, " [example-punctuation.finish Name]])
+----
+
+Put the checked API in the following source,
+`example/greeting/api.shen`:
+
+[source,shen]
+----
+(package example-greeting [example-greeting.message]
+
+(define greet
+  { string --> string }
+  Name -> (example-greeting.message Name))
+
+)
+----
+
+Shen activates syntax and type-system extensions at a source-file boundary.
+A macro, programmable pattern handler, or datatype/type rule declared in one
+source is reliable for sources loaded after it, not for forms compiled earlier
+in the same source. Splitting `syntax.shen` from `api.shen` makes that boundary
+explicit. The successful checked compilation of `api.shen` also proves that
+the dependency and the macro declaration were already active.
+
+== Keep modules and packages distinct
+
+`example/greeting` is a *module name*: the loader uses it to locate a
+descriptor, resolve dependencies, and remember that a unit has loaded.
+`example-greeting` is a *package name*: Shen uses it to namespace source
+definitions, producing the qualified function `example-greeting.greet`.
+
+The two names do not need to match. A descriptor does not wrap its sources in
+a package, and a package does not create a loadable module. Here their visibly
+different spellings make the boundary hard to miss. The macro form is listed
+among the package's external symbols so package rewriting leaves that syntax
+name available for expansion.
+
+== Load and run the example
+
+Put this isolated runner in `tests/run-authoring-modules.shen`:
+
+[source,shen]
+----
+(hush +)
+(load "library.shen")
+(library.set-home "tests/fixtures/authoring-modules")
+(library.use [example/greeting])
+(hush -)
+
+(if (= "Hello, Shen!" (example-greeting.greet "Shen"))
+    (output "[OK] module-authoring example loaded its dependency and ordered sources~%")
+    (error "module-authoring example returned the wrong greeting"))
+----
+
+Run it in a fresh Shen process from the repository root:
+
+[source,shell]
+----
+make test-authoring-modules SHEN=/absolute/path/to/shen
+----
+
+Set the module home before the first `library.use`. Loading is permanent for
+that loader instance and version 1 defines no unload operation. Applications
+can request several top-level modules at once; their names, like dependencies,
+are processed from left to right.
+
+For every descriptor field, validation rule, path rule, and load-order
+guarantee, see the normative link:shen-module-v1.md[`shen.module` version 1
+specification]. For the callable loader operations, see the
+link:library.adoc[runtime loader API].

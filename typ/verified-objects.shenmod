@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name typ/verified-objects)
+  (sources tc+ "verified-objects/verified-objects.shen"))

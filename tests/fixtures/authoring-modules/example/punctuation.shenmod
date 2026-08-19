@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name example/punctuation)
+  (sources tc+ "punctuation/api.shen"))

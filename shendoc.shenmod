@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name shendoc)
+  (sources tc- "shendoc/core.shen"))

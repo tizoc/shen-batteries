@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name seq/cexpr)
+  (requires seq typ/sexp cexpr)
+  (sources tc+ "cexpr/seq-cexpr.shen"))

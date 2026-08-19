@@ -2,27 +2,50 @@
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
 \\: = Utilities for lazy computations
+\\:
+\\: Shen's `freeze` creates a delayed computation and `thaw` runs it.
+\\: `lazy.memo` adds successful-result caching when the same computation may
+\\: be thawed more than once.
+\\:
+\\: == API
 
-(package lazy [box.make box.unbox box.put]
+(package lazy [box.t box.make box.unbox box.put]
 
-(datatype t-internal
-  _____________
-  #not-thawed#7907# : A;)
+(datatype memo-state-internal
+  L : (lazy A);
+  ==============================
+  [pending L] : (memo-state A);
 
-\\: `(lazy.memo Frozen)` returns a memoized version of `Frozen` that will produce the same
-\\: result as `(thaw Frozen)` when thawed but performing the computation only once
-\\: the first time it is thawed, and reusing the initial result every other time.
+  X : A;
+  ============================
+  [ready X] : (memo-state A);)
+
+\\: `(lazy.memo Frozen)` returns a new lazy computation. Its first successful
+\\: thaw evaluates `Frozen` and caches the result; later thaws return that
+\\: result without evaluating `Frozen` again. If evaluation raises an error,
+\\: nothing is cached and a later thaw retries it.
+\\:
+\\: [source,shen]
+\\: ----
+\\: (let Count (box.make 0)
+\\:      Delayed (lazy.memo (freeze (do (box.incr Count) 42)))
+\\:   (do (thaw Delayed)
+\\:       (thaw Delayed)
+\\:       (box.unbox Count)))
+\\: \\ Result: 1
+\\: ----
 (define memo
   { (lazy A) --> (lazy A) }
-  L -> (let Result (box.make #not-thawed#7907#)
-         (freeze
-          (let X (box.unbox Result)
-            (if (= #not-thawed#7907# X)
-                (let Thawed (thaw L)
-                     Update (box.put Result Thawed)
-                  Thawed)
-                X)))))
+  L -> (let Result (box.make [pending L])
+         (freeze (memo-h Result (box.unbox Result)))))
 
-(preclude [t-internal])
+(define memo-h
+  { (box.t (memo-state A)) --> (memo-state A) --> A }
+  Result [pending L] -> (let X (thaw L)
+                             Update (box.put Result [ready X])
+                          X)
+  _ [ready X] -> X)
+
+(preclude [memo-state-internal])
 
 )

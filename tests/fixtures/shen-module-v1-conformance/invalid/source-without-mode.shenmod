@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name invalid/source-without-mode)
+  (sources "unreachable.shen"))

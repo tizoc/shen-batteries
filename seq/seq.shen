@@ -11,35 +11,47 @@
 \\:
 \\: Instances of `(seq.t A)` are pull-based iterators, which means that the iteration
 \\: is controlled by the consumer. For a push-based iterator see the `iter` library.
+\\:
+\\: Laziness does not imply memoization. Traversing an ordinary sequence more than
+\\: once may evaluate its source and transformation functions more than once. Wrap a
+\\: sequence with `seq.memo` when successful nodes should be shared by later
+\\: traversals. Memoization is incremental: an already consumed prefix remains
+\\: cached, while a node whose evaluation raised an error is retried.
+\\:
+\\: Operations that return a sequence delay their work unless documented otherwise,
+\\: so errors from a source or transformation are normally raised during traversal.
+\\: Consumers that must reach the end of a sequence require finite input. Operations
+\\: such as `seq.exists?`, `seq.find`, and `seq.take` can terminate on infinite input
+\\: once they have obtained the requested result.
 
 (package seq [void maybe.t maybe.some? maybe.unsafe-get lazy.memo @none @some]
 
 (datatype t-internal
   ______________________
-  [] : (mode (node A) -);
+  [] : (- (node A));
 
   X : A;
   Seq : (seq.t A);
   ===================
-  (cons X Seq) : (mode (node A) -);
+  (cons X Seq) : (- (node A));
 
   Node : (node A);
   ______________________
-  (freeze Node) : (mode (seq.t A) -);
+  (freeze Node) : (- (seq.t A));
 
   Seq : (seq.t A);
   ______________________
-  (lazy.memo Seq) : (mode (seq.t A) -);
+  (lazy.memo Seq) : (- (seq.t A));
 
   Seq : (seq.t A);
   ______________________
   (thaw Seq) : (node A);
 
   ______________________
-  (list? X) : verified >> X : (mode (list A) -);
+  (list? X) : verified >> X : (- (list A));
 
   ______________________
-  (vector? X) : verified >> X : (mode (vector A) -);
+  (vector? X) : verified >> X : (- (vector A));
   )
 
 \\: == API
@@ -56,8 +68,9 @@
   { A --> (seq.t A) }
   X -> (freeze [X | (empty)]))
 
-\\: `(seq.memo Seq)` wraps `Seq` in a memoized sequence for which elements are
-\\: evaluated only once the first time the sequence is traversed.
+\\: `(seq.memo Seq)` wraps `Seq` in a memoized sequence. Each successfully evaluated
+\\: node is cached and reused by later traversals; an evaluation that raises an error
+\\: is retried by a later traversal.
 (define memo
   { (seq.t A) --> (seq.t A) }
   Seq -> (lazy.memo (freeze (memo-h (thaw Seq)))))
@@ -79,14 +92,16 @@
   S V -> (seq.append S (singleton V)))
 
 \\: `(seq.make N Elt)` produces a sequence containing `N` times the value of `Elt`.
+\\: Negative values of `N` are rejected.
 (define make
   { number --> A --> (seq.t A) }
+  N _ -> (error "cannot make a negative amount of elements") where (< N 0)
   0 _ -> (empty)
   N Elt -> (freeze [Elt | (make (- N 1) Elt)]))
 
 \\: `(seq.unfold F Seed)` produces a sequence of values constructed from the results of `(F Seed)`.
-\\: `F` must return `(@none)` to signal the end of the production of elements, and `(@some Elt NewSeed)`
-\\: to produce a new sequence element `Elt`. `NewSeed` will be passed to `F` the next time a sequence
+\\: `F` must return `(@none)` to signal the end of the production of elements, or
+\\: `(@some (@p Elt NewSeed))` to produce `Elt`. `NewSeed` will be passed to `F` the next time a sequence
 \\: element has to be produced.
 (define unfold
   { (B --> (maybe.t (A * B))) --> B --> (seq.t A) }
@@ -99,9 +114,9 @@
                        [Elt | (unfold F NewSeed)])
                      []))))
 
-\\: `(seq.range-step Step Start End)` produces a sequence containing all integers in the range (inclusive) from
-\\: `Start` to `End` and separated by `Step`. If `Step` is a negative number, a sequence of decreasing values
-\\: is produced.
+\\: `(seq.range-step Step Start End)` produces an empty sequence if a positive `Step` has
+\\: `Start > End` or a negative `Step` has `Start < End`. Otherwise it begins at `Start` and
+\\: advances by `Step` until the next value would pass `End`. `Step` must not be `0`.
 (define range-step
   { number --> number --> number --> (seq.t number) }
   Step Start End -> (range-step-increasing-h Step Start End) where (> Step 0)
@@ -118,14 +133,12 @@
   Step Start End -> (empty) where (< Start End)
   Step Start End -> (freeze [Start | (range-step-decreasing-h Step (- Start Step) End)]))
 
-\\: `(seq.range Start End)` produces a sequence containing all integers in the range (inclusive) from
-\\: `Start` to `End`. If `Start` is greater than `End`, a sequence of decreasing values is produced.
+\\: `(seq.range Start End)` is equivalent to `(seq.range-step 1 Start End)` when `Start` is
+\\: less than or equal to `End`, and `(seq.range-step -1 Start End)` otherwise.
 (define seq.range
   { number --> number --> (seq.t number) }
   Start End -> (range-step 1 Start End) where (>= End Start)
   Start End -> (range-step -1 Start End))
-
-\\ TODO: dict
 
 (define list?
   { (or A (list A)) --> boolean }
@@ -165,7 +178,7 @@
   _ N L -> (empty) where (> N L)
   V N L -> (freeze [(<-vector V N) | (of-vector-h V (+ N 1) L)]))
 
-\\: `(seq.of-vector Vector)` produces a sequence containing all elements in the vector `Vector` in reverse order.
+\\: `(seq.of-vector-reversed Vector)` produces a sequence containing all elements in the vector `Vector` in reverse order.
 (define of-vector-reversed
   { (vector A) --> (seq.t A) }
   V -> (of-vector-reversed-h V (limit V)))
@@ -183,14 +196,13 @@
 
 (define of-string-h
   { string --> number --> (node string) }
-  S N -> (let Char (trap-error (pos S N) (/. _ ""))
+  S N -> (let Char (trap-error (pos S N) (/. X ""))
            (if (= Char "")
                []
                [Char | (freeze (of-string-h S (+ N 1)))])))
 
-\\ TODO: dict
-
 \\: `(seq.to-list Seq)` constructs a list containing every element produced by the sequence `Seq`.
+\\: It does not terminate for an infinite sequence.
 (define to-list
   { (seq.t A) --> (list A) }
   S -> (to-list-h (thaw S)))
@@ -200,11 +212,38 @@
   [] -> []
   [X | Seq] -> [X | (to-list-h (thaw Seq))])
 
+\\: `(seq.length Seq)` consumes `Seq` and returns the number of elements it
+\\: produces. It does not terminate for an infinite sequence.
+(define seq.length
+  { (seq.t A) --> number }
+  Seq -> (fold-left (/. Count Ignored (+ Count 1)) 0 Seq))
+
+\\: `(seq.to-vector Seq)` consumes a finite `Seq` once and constructs a vector
+\\: containing its elements in traversal order. It does not terminate for an
+\\: infinite sequence.
+(define to-vector
+  { (seq.t A) --> (vector A) }
+  Seq -> (let Values (to-list Seq)
+              Vector (vector (list-length Values))
+           (list-into-vector Values Vector 1)))
+
+(define list-length
+  { (list A) --> number }
+  [] -> 0
+  [_ | Xs] -> (+ 1 (list-length Xs)))
+
+(define list-into-vector
+  { (list A) --> (vector A) --> number --> (vector A) }
+  [] Vector _ -> Vector
+  [X | Xs] Vector Position -> (list-into-vector Xs
+                                                (vector-> Vector Position X)
+                                                (+ Position 1)))
+
 \\: `(seq.into-vector Start Count Vector Seq)` fills the vector `Vector` with elements produced by the sequence `Seq`.
 \\: If `Count` is positive, the vector slots from `Start` to `Start + Count - 1` are filled in increasing order.
 \\: If `Count` is negative, the vector slots from `Start` to `Start - abs(Count) + 1` are filled in decreasing order.
 \\: The return value is a `(@p RemainingSeq NotFilledCount)` tuple, with `RemainingSeq` being what is left to be consumed of the sequence, and `NotFilledCount`
-\\: the amount of slots that couldn't be filled because `Seq` got fully consumed before `Count` amount of slots were filled. If `NotFilledCount` is `0`,
+\\: the number of requested slots that couldn't be filled because `Seq` was fully consumed first. If `NotFilledCount` is `0`,
 \\: that means that the operation succeeded without the `Seq` sequence ending prematurely.
 (define into-vector
   { number --> number --> (vector A) --> (seq.t A) --> ((seq.t A) * number) }
@@ -225,7 +264,8 @@
                            (@p Seq 0))
   N Count Step V [X | Seq] -> (into-vector-h (+ N Step) (- Count 1) Step (vector-> V N X) (thaw Seq)))
 
-\\: `(seq.to-string Seq)` constructs a list that is the concatenation of every string produced by the sequence `Seq`.
+\\: `(seq.to-string Seq)` constructs a string that is the concatenation of every string produced by the sequence `Seq`.
+\\: It does not terminate for an infinite sequence.
 (define to-string
   { (seq.t string) --> string }
   S -> (to-string-h (thaw S)))
@@ -266,13 +306,13 @@
   [] -> (error "seq.tail called on empty seq")
   [_ | T] -> T)
 
-\\: `(seq.head Seq)` evaluates and returns the first element of `Seq`.
+\\: `(seq.head Seq)` evaluates and returns only the first element of `Seq`.
 (define seq.head
   { (seq.t A) --> A }
   S -> (node-head (thaw S)))
 
 \\: `(seq.tail Seq)` returns `Seq` without the first element. Note that this
-\\: will cause the evaulation of the first element of `Seq`.
+\\: will cause the evaluation of the first element of `Seq`.
 (define seq.tail
   { (seq.t A) --> (seq.t A) }
   S -> (node-tail (thaw S)))
@@ -280,16 +320,17 @@
 \\: === Consumption
 
 \\: `(seq.drain Seq)` consumes `Seq` until no more elements are left. The produced
-\\: elements will be discarded.
+\\: elements will be discarded. It does not terminate for an infinite sequence.
 (define drain
   { (seq.t A) --> void }
-  Seq -> (for-each (/. _ (void)) Seq))
+  Seq -> (for-each (/. X (void)) Seq))
 
-\\: `(seq.fold-left F Acc Seq)` consumes the sequence `Seq`, combining each of it's elements with
+\\: `(seq.fold-left F Acc Seq)` consumes the sequence `Seq`, combining each of its elements with
 \\: the accumulator `Acc` by calling `(F Acc Elt)`. The result of each call to `F` is a new `NewAcc`
 \\: value that will be passed as argument to the next call to `F` along with the next element in the
-\\: `Seq` sequence: `(F NewAcc NextElt)`. The return value of `seq.fold-left` is the result of the
-\\: final call to `F` when the sequence is fully consumed.
+\\: `Seq` sequence: `(F NewAcc NextElt)`. The return value of `seq.fold-left` is the final
+\\: accumulator, or the initial accumulator if `Seq` is empty. It does not terminate
+\\: for an infinite sequence.
 (define fold-left
   { (A --> B --> A) --> A --> (seq.t B) --> A }
   F Init S -> (fold-left-h F Init (thaw S)))
@@ -300,7 +341,8 @@
   F Acc [H | T] -> (fold-left-h F (F Acc H) (thaw T)))
 
 \\: `(seq.for-each F Seq)` consumes `Seq` until no more elements are left. Each value
-\\: produced is passed to `F` and the result discarded.
+\\: produced is passed to `F` and the result discarded. It does not terminate for an
+\\: infinite sequence.
 (define for-each
   { (A --> Any) --> (seq.t A) --> void }
   F S -> (for-each-h F (thaw S)))
@@ -312,7 +354,7 @@
 
 \\: `(seq.equal? SeqA SeqB)` consumes `SeqA` and `SeqB` one element at a time comparing
 \\: the elements with `(= EltA EltB)` until `false` is returned or one of the sequences is fully consumed.
-\\: The result is `true` if `false` is never returned and both sequences produce the same amount of values.
+\\: The result is `true` if `false` is never returned and both sequences produce the same number of values.
 (define equal?
   { (seq.t A) --> (seq.t A) --> boolean }
   S1 S2 -> (equal?-h (thaw S1) (thaw S2)))
@@ -325,7 +367,7 @@
 
 \\: `(seq.equal-cmp? Cmp SeqA SeqB)` consumes `SeqA` and `SeqB` one element at a time comparing
 \\: the elements with `(Cmp EltA EltB)` until `false` is returned or one of the sequences is fully consumed.
-\\: The result is `true` if `false` is never returned and both sequences produce the same amount of values.
+\\: The result is `true` if `false` is never returned and both sequences produce the same number of values.
 (define equal-cmp?
   { (A --> B --> boolean) --> (seq.t A) --> (seq.t B) --> boolean }
   Cmp S1 S2 -> (equal-cmp?-h Cmp (thaw S1) (thaw S2)))
@@ -336,8 +378,9 @@
   Cmp [X | XSeq] [Y | YSeq] -> (equal-cmp?-h Cmp (thaw XSeq) (thaw YSeq)) where (Cmp X Y)
   _ _ _ -> false)
 
-\\: `(seq.for-all? Test Seq)` return `true` if `(Test Elt)` is `true` for every value produced
-\\: the traversal of `Seq`.
+\\: `(seq.for-all? Test Seq)` returns `true` if `(Test Elt)` is `true` for every value produced
+\\: by the traversal of `Seq`. Traversal stops at the first false result. On an infinite
+\\: sequence for which `Test` is always true, it does not terminate.
 (define for-all?
   { (A --> boolean) --> (seq.t A) --> boolean }
   F S -> (for-all?-h F (thaw S)))
@@ -348,7 +391,7 @@
   F [X | Seq] -> (for-all?-h F (thaw Seq)) where (F X)
   _ _ -> false)
 
-\\: `(seq.exists? Test Seq)` return `true` if `(Test Elt)` is `true` for any value produced
+\\: `(seq.exists? Test Seq)` returns `true` if `(Test Elt)` is `true` for any value produced
 \\: by the traversal of `Seq`. `Seq` is only consumed until `(Test Elt)` is `true`.
 (define exists?
   { (A --> boolean) --> (seq.t A) --> boolean }
@@ -365,14 +408,14 @@
   { A --> (seq.t A) --> boolean }
   X S -> (exists? (= X) S))
 
-\\: `(seq.element? Cmp X Seq)` is equivalent to `(seq.exists? (Cmp X) Seq)`.
+\\: `(seq.element-cmp? Cmp X Seq)` is equivalent to `(seq.exists? (Cmp X) Seq)`.
 (define element-cmp?
   { (A --> B --> boolean) --> A --> (seq.t B) --> boolean }
   Cmp X S -> (exists? (Cmp X) S))
 
 \\: `(seq.find Test Seq)` returns the first element in `Seq` for which `(Test Elt)` is `true`
-\\: wrapped as `(@some Elt)` or `@none` otherwise.
-(define find
+\\: wrapped as `(@some Elt)` or `(@none)` otherwise. Traversal stops at the first match.
+(define seq.find
   { (A --> boolean) --> (seq.t A) --> (maybe.t A) }
   F S -> (find-h F (thaw S)))
 
@@ -384,7 +427,7 @@
                      (find-h F (thaw Seq))))
 
 \\: `(seq.find-map F Seq)` returns the first result of `(F Elt)` of the form `(@some Result)` or
-\\: `(@none)` if there is no such result.
+\\: `(@none)` if there is no such result. Traversal stops at the first present result.
 (define find-map
   { (A --> (maybe.t B)) --> (seq.t A) --> (maybe.t B) }
   F S -> (find-map-h F (thaw S)))
@@ -400,7 +443,8 @@
 \\: === Transformation
 
 \\: `(seq.map F Seq)` returns a new sequence with all the elements in `Seq` transformed
-\\: with `(F Elt)`.
+\\: with `(F Elt)`. Calls to `F`, including any effects or errors, are delayed until
+\\: the corresponding elements are traversed.
 (define seq.map
   { (A --> B) --> (seq.t A) --> (seq.t B) }
   F S -> (freeze (map-h F (thaw S))))
@@ -413,35 +457,50 @@
 \\: `(seq.map2 F SeqA SeqB)` returns a new sequence containing elements that are the results
 \\: of `(F EltA EltB)`, with `EltA` and `EltB` being elements resulting from the parallel
 \\: traversal of the sequences `SeqA` and `SeqB`. The resulting sequence is as long as
-\\: the shortest of the two input sequences.
+\\: the shortest of the two input sequences. At each position, sources are pulled
+\\: from left to right; when an earlier source ends, later sources are not pulled.
 (define map2
   { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
-  F SA SB -> (freeze (map2-h F (thaw SA) (thaw SB))))
+  F SA SB -> (freeze (map2-h F (thaw SA) SB)))
 
 (define map2-h
-  { (A --> B --> C) --> (node A) --> (node B) --> (node C) }
+  { (A --> B --> C) --> (node A) --> (seq.t B) --> (node C) }
   _ [] _ -> []
-  _ _ [] -> []
-  F [AH | AT] [BH | BT] -> [(F AH BH) | (freeze (map2-h F (thaw AT) (thaw BT)))])
+  F [AH | AT] SB -> (map2-second-h F AH AT (thaw SB)))
+
+(define map2-second-h
+  { (A --> B --> C) --> A --> (seq.t A) --> (node B) --> (node C) }
+  _ _ _ [] -> []
+  F AH AT [BH | BT] -> [(F AH BH) | (freeze (map2-h F (thaw AT) BT))])
 
 \\: `(seq.map3 F SeqA SeqB SeqC)` returns a new sequence containing elements that are the results
 \\: of `(F EltA EltB EltC)`, with `EltA`, `EltB` and `EltC` being elements resulting from the parallel
 \\: traversal of the sequences `SeqA`, `SeqB` and `SeqC`. The resulting sequence is as long as
-\\: the shortest of the three input sequences.
+\\: the shortest of the three input sequences. At each position, sources are pulled
+\\: from left to right; when an earlier source ends, later sources are not pulled.
 (define map3
   { (A --> B --> C --> D) --> (seq.t A) --> (seq.t B) --> (seq.t C) --> (seq.t D) }
-  F SA SB SC -> (freeze (map3-h F (thaw SA) (thaw SB) (thaw SC))))
+  F SA SB SC -> (freeze (map3-h F (thaw SA) SB SC)))
 
 (define map3-h
-  { (A --> B --> C --> D) --> (node A) --> (node B) --> (node C) --> (node D) }
+  { (A --> B --> C --> D) --> (node A) --> (seq.t B) --> (seq.t C) --> (node D) }
   _ [] _ _ -> []
-  _ _ [] _ -> []
-  _ _ _ [] -> []
-  F [AH | AT] [BH | BT] [CH | CT] -> [(F AH BH CH) | (freeze (map3-h F (thaw AT) (thaw BT) (thaw CT)))])
+  F [AH | AT] SB SC -> (map3-second-h F AH AT (thaw SB) SC))
+
+(define map3-second-h
+  { (A --> B --> C --> D) --> A --> (seq.t A) --> (node B) --> (seq.t C) --> (node D) }
+  _ _ _ [] _ -> []
+  F AH AT [BH | BT] SC -> (map3-third-h F AH AT BH BT (thaw SC)))
+
+(define map3-third-h
+  { (A --> B --> C --> D) --> A --> (seq.t A) --> B --> (seq.t B) --> (node C) --> (node D) }
+  _ _ _ _ _ [] -> []
+  F AH AT BH BT [CH | CT] -> [(F AH BH CH) | (freeze (map3-h F (thaw AT) BT CT))])
 
 \\: `(seq.filter Test Seq)` returns a new sequence with all the elements in `Seq` for which
-\\: `(Test Elt)` is `false` removed.
-(define filter
+\\: `(Test Elt)` is `false` removed. Calls to `Test`, including any effects or errors,
+\\: are delayed until traversal.
+(define seq.filter
   { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (filter-h F (thaw S))))
 
@@ -452,7 +511,7 @@
       where (F H)
   F [H | T] -> (filter-h F (thaw T)))
 
-\\: `(seq.filter F Seq)` returns a new sequence with all the elements in `Seq` for which
+\\: `(seq.filter-map F Seq)` returns a new sequence with all the elements in `Seq` for which
 \\: `(F Elt)` is `(@none)` removed, and for which the result is `(@some NewElt)` replaced by
 \\: `NewElt`.
 (define filter-map
@@ -501,32 +560,43 @@
   [H | T] B -> [H | (seq.append T B)])
 
 \\: `(seq.concat [Seq1 Seq2 ... SeqN])` returns a sequence that produces all elements
-\\: in `Seq1` followed by all elements in `Seq2`, .... followed by all elements in `SeqN`.
+\\: in `Seq1`, followed by all elements in `Seq2`, and so on through `SeqN`.
 (define seq.concat
   { (list (seq.t A)) --> (seq.t A)}
   [] -> (empty)
   [S | Ss] -> (seq.append S (seq.concat Ss)))
 
 \\: `(seq.flatten SeqOfSeqs)` returns a sequence that produces every element produced
-\\: by each subsequence produced by `SeqOfSeqs`.
+\\: by each subsequence produced by `SeqOfSeqs`, consuming the outer sequence only
+\\: as its subsequences are needed.
 (define flatten
   { (seq.t (seq.t A)) --> (seq.t A) }
-  S -> (freeze (thaw (flatten-h (thaw S)))))
+  S -> (freeze (flatten-h (thaw S))))
 
 (define flatten-h
-  { (node (seq.t A)) --> (seq.t A) }
-  [] -> (empty)
-  [S | Ss] -> (seq.append S (flatten-h (thaw Ss))))
+  { (node (seq.t A)) --> (node A) }
+  [] -> []
+  [S | Ss] -> (append-h (thaw S) (flatten Ss)))
 
-\\: `(seq.cycle Seq)` returns an infinite sequence that produces all the elements from `Seq`
-\\: repeated from the beginning each time the end of the original sequence is reached.
+\\: `(seq.cycle Seq)` returns a sequence that repeatedly traverses `Seq`. It is
+\\: infinite when every traversal produces at least one value; a traversal that is
+\\: empty ends the result. Each cycle traverses `Seq` again, so source effects and
+\\: changing values are repeated unless `Seq` is memoized first.
 (define cycle
   { (seq.t A) --> (seq.t A) }
-  S -> (freeze (thaw (seq.append S (cycle S)))))
+  S -> (freeze (cycle-h S (thaw S))))
+
+(define cycle-h
+  { (seq.t A) --> (node A) --> (node A) }
+  _ [] -> []
+  S Node -> (append-h Node (cycle S)))
 
 \\: `(seq.truncate N Seq)` returns a sequence containing at most the first `N` elements of `Seq`.
+\\: It succeeds with every available element if `Seq` ends early. Negative values of
+\\: `N` are rejected, and `0` does not evaluate `Seq`.
 (define truncate
   { number --> (seq.t A) --> (seq.t A) }
+  0 _ -> (empty)
   N _ -> (error "cannot truncate a negative amount from a seq") where (< N 0)
   N S -> (freeze (truncate-h N (thaw S))))
 
@@ -538,9 +608,11 @@
 
 \\: `(seq.take N Seq)` returns a sequence containing the first `N` elements of `Seq`.
 \\: An error will be thrown when traversing the new sequence if the original sequence
-\\: had fewer than `N` elements.
-(define take
+\\: had fewer than `N` elements. Negative values of `N` are rejected, and `0` does
+\\: not evaluate `Seq`.
+(define seq.take
   { number --> (seq.t A) --> (seq.t A) }
+  0 _ -> (empty)
   N _ -> (error "cannot take a negative amount from a seq") where (< N 0)
   N S -> (freeze (take-h N (thaw S))))
 
@@ -548,12 +620,13 @@
   { number --> (node A) --> (node A) }
   0 _ -> []
   N [] -> (error "failure to take from sequence that ended abruptly")
-  N [X | Seq] -> [X | (take (- N 1) Seq)])
+  N [X | Seq] -> [X | (seq.take (- N 1) Seq)])
 
 \\: `(seq.drop N Seq)` returns a sequence with the elements from `Seq` with the first `N` elements removed.
 \\: An error will be thrown when traversing the new sequence if the original sequence
 \\: had fewer than `N` elements.
-(define drop
+\\: Negative values of `N` are rejected.
+(define seq.drop
   { number --> (seq.t A) --> (seq.t A) }
   0 S -> S
   N _ -> (error "cannot drop a negative amount from a seq") where (< N 0)
@@ -566,7 +639,8 @@
   N [X | Seq] -> (drop-h (- N 1) (thaw Seq)))
 
 \\: `(seq.take-while Test Seq)` returns a sequence containing elements of `Seq` for
-\\: which `(Test Elt)` is `true` until `false` is returned or the sequence ends.
+\\: which `(Test Elt)` is `true` until `false` is returned or the sequence ends. The
+\\: first element rejected by `Test` is evaluated but is not included.
 (define take-while
   { (A --> boolean) --> (seq.t A) --> (seq.t A) }
   F S -> (freeze (take-while-h F (thaw S))))
@@ -595,35 +669,25 @@
 \\: `(seq.zip-with Cons SeqA SeqB)` returns a new sequence containing elements
 \\: that are the result of calling `(Cons EltA EltB)` for each element produced
 \\: by the parallel traversal of `SeqA` and `SeqB`. The produced sequence is
-\\: as long as the shortest of the input sequences.
+\\: as long as the shortest of the input sequences. Like `seq.map2`, sources are
+\\: pulled from left to right at each position, and a later source is not pulled
+\\: after an earlier source ends.
 (define zip-with
   { (A --> B --> C) --> (seq.t A) --> (seq.t B) --> (seq.t C) }
-  Cons S1 S2 -> (freeze (zip-with-h Cons (thaw S1) (thaw S2))))
-
-(define zip-with-h
-  { (A --> B --> C) --> (node A) --> (node B) --> (node C) }
-  _ [] _ -> []
-  _ _ [] -> []
-  Cons [X | XSeq] [Y | YSeq] -> [(Cons X Y) | (zip-with Cons XSeq YSeq)])
+  Cons S1 S2 -> (map2 Cons S1 S2))
 
 \\: `(seq.zip SeqA SeqB)` is equivalent to `(seq.zip-with (/. A B (@p A B)) SeqA SeqB)`.
 (define zip
   { (seq.t A) --> (seq.t B) --> (seq.t (A * B)) }
-  S1 S2 -> (freeze (zip-h (thaw S1) (thaw S2))))
-
-(define zip-h
-  { (node A) --> (node B) --> (node (A * B))}
-  [] _ -> []
-  _ [] -> []
-  [X | XSeq] [Y | YSeq] -> [(@p X Y) | (zip XSeq YSeq)])
+  S1 S2 -> (zip-with (/. A B (@p A B)) S1 S2))
 
 \\: `(seq.unzip SeqA*B)` returns `(@p SeqA SeqB)`, where `SeqA*B` is a sequence
-\\: of tuples `(@p A B)`, `SeqA` is `(seq.map (function fst) SeqA*B)` and `SeqB` is
-\\: `(seq.map (function snd) SeqA*B)`.
+\\: of tuples `(@p A B)`, `SeqA` is `(seq.map (fn fst) SeqA*B)` and `SeqB` is
+\\: `(seq.map (fn snd) SeqA*B)`.
 (define unzip
   { (seq.t (A * B)) --> ((seq.t A) * (seq.t B)) }
-  S -> (@p (seq.map (function fst) S)
-           (seq.map (function snd) S)))
+  S -> (@p (seq.map (fn fst) S)
+           (seq.map (fn snd) S)))
 
 \\: `(seq.chunks N Seq)` returns a sequence of vectors of size `N`, with
 \\: each vector filled with the elements obtained from taking `N` elements

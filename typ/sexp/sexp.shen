@@ -8,31 +8,31 @@
 (datatype typ/sexp.t
   [X | Y] : (list sexp);
   ========================
-  [X | Y] : (mode sexp -);
+  [X | Y] : (- sexp);
 
   X : (list sexp);
   ______________
-  X : (mode sexp -);
+  X : (- sexp);
 
   X : atom;
   ______________
-  X : (mode sexp -);
+  X : (- sexp);
 
   X : symbol;
   ______________
-  X : (mode atom -);
+  X : (- atom);
 
   X : boolean;
   ______________
-  X : (mode atom -);
+  X : (- atom);
 
   X : string;
   ______________
-  X : (mode atom -);
+  X : (- atom);
 
   X : number;
   ______________
-  X : (mode atom -);
+  X : (- atom);
 
   ______________
-  [] : (mode atom -);)
+  [] : (- atom);)

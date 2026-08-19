@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name conformance/failure-dependency)
+  (sources tc- "failure-dependency/probe.shen"))

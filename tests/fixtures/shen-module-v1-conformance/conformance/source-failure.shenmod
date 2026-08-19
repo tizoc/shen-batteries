@@ -1,0 +1,6 @@
+(shen.module
+  (version 1)
+  (name conformance/source-failure)
+  (requires conformance/failure-dependency)
+  (sources tc- "source-failure/before.shen"
+               "source-failure/fail.shen"))

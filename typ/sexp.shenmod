@@ -1,0 +1,4 @@
+(shen.module
+  (version 1)
+  (name typ/sexp)
+  (sources tc+ "sexp/sexp.shen"))

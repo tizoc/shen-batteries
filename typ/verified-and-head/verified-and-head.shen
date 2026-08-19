@@ -3,16 +3,17 @@
 
 \\: == `typ/verified-and-head.t`
 \\:
-\\: This rule extends the typechecker so that then the `Tail` expression of `(and Head Tail)` expressions
-\\: is typechecked, any `verified` rules that result from `Head` are are taken into account.
+\\: This rule extends the typechecker so that when the `Tail` expression of `(and Head Tail)` expressions
+\\: is typechecked, any `verified` rules that result from `Head` are taken into account.
 \\:
 \\: Example:
 \\:
-\\: ```shen
+\\: [source,shen]
+\\: ----
 \\: (define test
 \\:   { A --> boolean }
 \\:   X -> (and (number? X) (> X 0)))
-\\: ```
+\\: ----
 \\:
 \\: The above code doesn't typecheck by default, but if `typ/verified-and-head.t` and `typ/verified-objects.t`
 \\: are enabled it does.

@@ -6,22 +6,22 @@
 \\: `(void)` returns the void object. The void object represents an unspecified value, and
 \\: is useful as a result of side-effectful functions without a meaningful return value.
 \\:
-\\: Should not be used for anything else than to express that a return value should be ignored
+\\: Should not be used for anything other than to express that a return value should be ignored
 \\: and discarded.
 
 (datatype typ/void.internal-t
   ____________________
-  X : (mode void -);)
+  X : (- void);)
 
 (datatype typ/void.t
   X : A;
   ____________________
-  X : (mode void -);)
+  X : (- void);)
 
 (define void
   { --> void}
   -> (shen.x.features.cond-expand
-       shen/scheme (scm.void)
+       shen/scheme ((foreign scm.void))
        true -void-))
 
 (preclude [typ/void.internal-t])

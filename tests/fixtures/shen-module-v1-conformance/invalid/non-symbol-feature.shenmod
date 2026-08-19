@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name invalid/non-symbol-feature)
+  (requires-features "not-a-symbol")
+  (sources tc- "unreachable.shen"))
