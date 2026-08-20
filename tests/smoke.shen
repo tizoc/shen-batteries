@@ -39,6 +39,13 @@
   "feature list is nonempty"
   (cons? (features.current)))
 
+(test.assert-true
+  "features.add is idempotent"
+  (let Feature shen-batteries/test-idempotent-feature
+       First (do (features.add Feature) (features.current))
+       Second (do (features.add Feature) (features.current))
+    (and (element? Feature First) (= First Second))))
+
 \\ Make a fixture-owned feature visible before the following source is expanded.
 (features.add shen-batteries/documented-examples)
 
@@ -72,6 +79,19 @@
         (box.unbox Box))))
 
 (test.assert-equal
+  "box predicates and modification helpers"
+  [true false 5 false]
+  (let Number (box.make 3)
+       Flag (box.make true)
+    (do (box.modify (/. X (* X 2)) Number)
+        (box.decr Number)
+        (box.toggle Flag)
+        [(box.box? Number)
+         (box.box? 3)
+         (box.unbox Number)
+         (box.unbox Flag)])))
+
+(test.assert-equal
   "lazy.memo evaluates once"
   1
   (let Count (box.make 0)
@@ -79,6 +99,23 @@
     (do (thaw Lazy)
         (thaw Lazy)
         (box.unbox Count))))
+
+(test.assert-equal
+  "lazy.memo retries after an error and caches the successful result"
+  ["first attempt failed" 1 42 2 42 2]
+  (let Attempts (box.make 0)
+       Lazy (lazy.memo
+              (freeze
+                (do (box.incr Attempts)
+                    (if (= 1 (box.unbox Attempts))
+                        (simple-error "first attempt failed")
+                        42))))
+       First (trap-error (thaw Lazy) (/. Error (error-to-string Error)))
+       AfterFirst (box.unbox Attempts)
+       Second (thaw Lazy)
+       AfterSecond (box.unbox Attempts)
+       Third (thaw Lazy)
+    [First AfterFirst Second AfterSecond Third (box.unbox Attempts)]))
 
 (test.assert-equal
   "lazy.memo caches every result value"
@@ -89,6 +126,11 @@
     (do (thaw Lazy)
         (thaw Lazy)
         (box.unbox Count))))
+
+(test.assert-equal
+  "dict.is? distinguishes dictionaries"
+  [true false]
+  [(dict.is? (dict.make 1)) (dict.is? not-a-dictionary)])
 
 (test.assert-equal
   "dict set returns and stores its value"
@@ -148,11 +190,15 @@
        Delete (do (dict.delete Dict key) (dict.count Dict))
     [Empty Insert Replace Delete]))
 
-(test.assert-equal
-  "dict rejects nonpositive size hints"
-  [true true]
-  [(trap-error (do (dict.make 0) false) (/. Error true))
-   (trap-error (do (dict.make -1) false) (/. Error true))])
+(test.assert-error-contains
+  "dict rejects a zero size hint"
+  "dict.make requires a positive size hint"
+  (freeze (dict.make 0)))
+
+(test.assert-error-contains
+  "dict rejects a negative size hint"
+  "dict.make requires a positive size hint"
+  (freeze (dict.make -1)))
 
 (test.assert-equal
   "maybe bind transforms present values"
@@ -187,10 +233,14 @@
 
 (test.assert-equal
   "maybe checked and unchecked extraction agree for present values"
-  [42 42 rejected]
+  [42 42]
   [(maybe.get (@some 42))
-   (maybe.unsafe-get (@some 42))
-   (trap-error (maybe.get (@none)) (/. Error rejected))])
+   (maybe.unsafe-get (@some 42))])
+
+(test.assert-error-contains
+  "maybe.get rejects an absent value"
+  "Not a @some value"
+  (freeze (maybe.get (@none))))
 
 (test.assert-equal
   "maybe.get/or evaluates its default only for absence"
@@ -475,6 +525,55 @@
                         (test.counted-iter [1 2 3 4] Count))
             [Result (box.unbox Count)]))
         (test.assert-equal
+          "iter.unfoldr produces values until @none"
+          [[0 1 2] []]
+          [(iter.to-list
+             (iter.unfoldr
+               (/. N (if (< N 3)
+                         (@some (@p N (+ N 1)))
+                         (@none)))
+               0))
+           (iter.to-list (iter.unfoldr (/. Ignored (@none)) ignored))])
+        (test.assert-equal
+          "iter.for-all? handles empty, complete, and short-circuited traversals"
+          [true true false 3]
+          (let Count (box.make 0)
+               Failed (iter.for-all? (/. X (< X 3))
+                        (test.counted-iter [1 2 3 4] Count))
+            [(iter.for-all? (/. Ignored false) (iter.empty))
+             (iter.for-all? (/. X (< X 3)) (iter.of-list [1 2]))
+             Failed
+             (box.unbox Count)]))
+        (test.assert-equal
+          "iter.find-map stops at its first @some and reports no match"
+          [(@some 30) 3 true]
+          (let Count (box.make 0)
+               Present
+                (iter.find-map
+                  (/. X (if (> X 2) (@some (* X 10)) (@none)))
+                  (test.counted-iter [1 2 3 4] Count))
+               Absent
+                (iter.find-map (/. Ignored (@none)) (iter.of-list [1 2]))
+            [Present (box.unbox Count) (maybe.none? Absent)]))
+        (test.assert-equal
+          "iter.intersperse handles empty, singleton, and longer iterators"
+          [[] [a] [a separator b separator c]]
+          [(iter.to-list (iter.intersperse separator (iter.empty)))
+           (iter.to-list
+             (iter.intersperse separator (iter.singleton a)))
+           (iter.to-list
+             (iter.intersperse separator (iter.of-list [a b c])))])
+        (test.assert-equal
+          "iter.reverse eagerly consumes once and replays its cache"
+          [3 [3 2 1] [3 2 1] 3]
+          (let Count (box.make 0)
+               Reversed
+                (iter.reverse (test.counted-iter [1 2 3] Count))
+               AfterCreation (box.unbox Count)
+               First (iter.to-list Reversed)
+               Second (iter.to-list Reversed)
+            [AfterCreation First Second (box.unbox Count)]))
+        (test.assert-equal
           "iter.take-while consumes its first rejected value"
           [3 [1 2]]
           (let Count (box.make 0)
@@ -491,18 +590,16 @@
                         0
                         (test.counted-iter [1 2 3 4] Count))
             [Result (box.unbox Count)]))
-        (test.assert-equal
+        (test.assert-error-contains
           "iter.take rejects negative counts"
-          rejected
-          (trap-error
-            (iter.to-list (iter.take -1 (iter.of-list [1 2 3])))
-            (/. X rejected)))
-        (test.assert-equal
+          "cannot take a negative amount from an iter"
+          (freeze
+            (iter.to-list (iter.take -1 (iter.of-list [1 2 3])))))
+        (test.assert-error-contains
           "iter.drop rejects negative counts"
-          rejected
-          (trap-error
-            (iter.to-list (iter.drop -1 (iter.of-list [1 2 3])))
-            (/. X rejected)))
+          "cannot drop a negative amount from an iter"
+          (freeze
+            (iter.to-list (iter.drop -1 (iter.of-list [1 2 3])))))
         (test.assert-equal
           "iter.from-lazy thaws until @none"
           [1 2 3]
@@ -580,15 +677,14 @@
             (iter.of-vector-range
               (iter.to-vector (iter.of-list [one two three four]))
               4 2)))
-        (test.assert-equal
+        (test.assert-error-contains
           "iter.of-vector-range rejects out-of-bounds endpoints"
-          rejected
-          (trap-error
+          "iter.of-vector-range: Invalid range for vector with limit 2"
+          (freeze
             (iter.to-list
               (iter.of-vector-range
                 (iter.to-vector (iter.of-list [one two]))
-                2 0))
-            (/. X rejected))))
+                2 0)))))
 
 (test.assert-equal
   "let list destructuring"
@@ -607,6 +703,16 @@
   [1 2]
   [(let (@p A _) (@p 1 ignored) A)
    (let [_ | Tail] [ignored 2] (hd Tail))])
+
+(test.assert-equal
+  "discarded destructuring components evaluate non-variable inputs once"
+  [[1 1] [2 2] 2]
+  (let Count (box.make 0)
+    [(let [Head | _] (do (box.incr Count) [1 2])
+       [Head (box.unbox Count)])
+     (let (@p _ Right) (do (box.incr Count) (@p ignored 2))
+       [Right (box.unbox Count)])
+     (box.unbox Count)]))
 
 (test.assert-equal
   "let destructuring evaluates its input once"
@@ -768,13 +874,15 @@ A final note.
 
 (set test.*shendoc-package-probe* false)
 
-(test.assert-equal
-  "shendoc does not evaluate package external declarations"
-  [rejected false]
-  [(trap-error
-    (shendoc.generate "tests/fixtures/shendoc-unsafe-package.shen")
-    (/. X rejected))
-   (value test.*shendoc-package-probe*)])
+(do (test.assert-error-contains
+      "shendoc rejects an unsafe package external declaration"
+      "unsupported package external declaration"
+      (freeze
+        (shendoc.generate "tests/fixtures/shendoc-unsafe-package.shen")))
+    (test.assert-equal
+      "shendoc does not evaluate package external declarations"
+      false
+      (value test.*shendoc-package-probe*)))
 
 (test.assert-equal
   "seq loads through its descriptor"
@@ -1053,21 +1161,19 @@ A final note.
          (bind Y 2))
     (return (+ X Y))))
 
-(test.assert-equal
+(test.assert-error-contains
   "cexpr propagates errors from a supported bind-return operation"
-  rejected
-  (trap-error
+  "broken bind-return optimizer"
+  (freeze
     (cexpr.build (fn test.cexpr-broken-builder)
-                 [[bind X source] [return X]])
-    (/. E rejected)))
+                 [[bind X source] [return X]])))
 
-(test.assert-equal
+(test.assert-error-contains
   "applicative cexpr propagates bind-return errors"
-  rejected
-  (trap-error
+  "broken bind-return optimizer"
+  (freeze
     (cexpr.build (fn test.cexpr-broken-builder)
-                 [[and [bind X 1] [bind Y 2]] [return (+ X Y)]])
-    (/. E rejected)))
+                 [[and [bind X 1] [bind Y 2]] [return result]])))
 
 (test.assert-equal
   "seq cexpr supports two applicative bindings"
@@ -1263,10 +1369,23 @@ A final note.
   [4 6]
   (seq.to-list (test.cexpr-seq-let (seq.of-list [1 2]))))
 
-(test.assert-equal
+(test.assert-error-contains
   "seq.make rejects negative counts"
-  rejected
-  (trap-error (seq.make -1 x) (/. X rejected)))
+  "cannot make a negative amount of elements"
+  (freeze (seq.make -1 x)))
+
+(test.assert-equal
+  "seq.range-step handles both directions and incompatible bounds"
+  [[1 3 5] [6 4 2] [] []]
+  [(seq.to-list (seq.range-step 2 1 6))
+   (seq.to-list (seq.range-step -2 6 1))
+   (seq.to-list (seq.range-step 2 6 1))
+   (seq.to-list (seq.range-step -2 1 6))])
+
+(test.assert-error-contains
+  "seq.range-step rejects a zero step"
+  "seq.range-step called with Step=0"
+  (freeze (seq.range-step 0 1 6)))
 
 (test.assert-true
   "cycling an empty sequence stays empty"
@@ -1354,12 +1473,12 @@ A final note.
        Third (seq.to-list Seq)
     [First AfterFailure Second AfterRetry Third (box.unbox Count)]))
 
-(test.assert-equal
+(test.assert-error-contains
   "seq transformation errors are delayed until traversal"
-  delayed
+  "delayed sequence failure"
   (let Seq (seq.map (/. X (simple-error "delayed sequence failure"))
                      (seq.singleton 1))
-    (trap-error (seq.head Seq) (/. Error delayed))))
+    (freeze (seq.head Seq))))
 
 (test.assert-equal
   "seq.head evaluates only its result node"
@@ -1370,11 +1489,15 @@ A final note.
        Head (seq.head Seq)
     [Head (box.unbox Count)]))
 
-(test.assert-equal
-  "seq head and tail reject an empty sequence"
-  [true true]
-  [(trap-error (do (seq.head (seq.empty)) false) (/. Error true))
-   (trap-error (do (seq.tail (seq.empty)) false) (/. Error true))])
+(test.assert-error-contains
+  "seq.head rejects an empty sequence"
+  "seq.head called on empty seq"
+  (freeze (seq.head (seq.empty))))
+
+(test.assert-error-contains
+  "seq.tail rejects an empty sequence"
+  "seq.tail called on empty seq"
+  (freeze (seq.tail (seq.empty))))
 
 (test.assert-equal
   "seq.into-vector returns the unconsumed remainder"
@@ -1387,14 +1510,35 @@ A final note.
      (snd Result)]))
 
 (test.assert-equal
-  "seq.into-vector rejects an invalid span before consuming its source"
-  [rejected 0]
-  (let Count (box.make 0)
-       Source (test.counted-seq [a b] Count)
-       Result (trap-error
-                (seq.into-vector 2 2 (vector 2) Source)
-                (/. Error rejected))
-    [Result (box.unbox Count)]))
+  "seq.into-vector fills downward for a negative count"
+  [b a [c] 0]
+  (let Vector (vector 3)
+       Result (seq.into-vector 3 -2 Vector (seq.of-list [a b c]))
+    [(<-vector Vector 2)
+     (<-vector Vector 3)
+     (seq.to-list (fst Result))
+     (snd Result)]))
+
+(test.assert-equal
+  "seq.into-vector reports premature source exhaustion"
+  [a b [] 1]
+  (let Vector (vector 3)
+       Result (seq.into-vector 1 3 Vector (seq.of-list [a b]))
+    [(<-vector Vector 1)
+     (<-vector Vector 2)
+     (seq.to-list (fst Result))
+     (snd Result)]))
+
+(let Count (box.make 0)
+     Source (test.counted-seq [a b] Count)
+  (do (test.assert-error-contains
+        "seq.into-vector rejects an invalid span"
+        "count exceeds vector limits"
+        (freeze (seq.into-vector 2 2 (vector 2) Source)))
+      (test.assert-equal
+        "seq.into-vector validates its span before consuming its source"
+        0
+        (box.unbox Count))))
 
 (test.assert-equal
   "seq.find stops at its first match"
@@ -1404,6 +1548,45 @@ A final note.
                     (seq.of-list [1 2 3 4]))
        Found (seq.find (= 3) Seq)
     [Found (box.unbox Count)]))
+
+(test.assert-equal
+  "seq.find-map stops at its first @some and reports no match"
+  [(@some 30) 3 true]
+  (let Count (box.make 0)
+       Present
+        (seq.find-map
+          (/. X (if (> X 2) (@some (* X 10)) (@none)))
+          (test.counted-seq [1 2 3 4] Count))
+       Absent
+        (seq.find-map (/. Ignored (@none)) (seq.of-list [1 2]))
+    [Present (box.unbox Count) (maybe.none? Absent)]))
+
+(test.assert-equal
+  "seq.equal-cmp? uses its comparator and requires equal lengths"
+  [true false false]
+  [(seq.equal-cmp? (/. X Y (= (* X 10) Y))
+                   (seq.of-list [1 2])
+                   (seq.of-list [10 20]))
+   (seq.equal-cmp? (/. X Y (= (* X 10) Y))
+                   (seq.of-list [1 2])
+                   (seq.of-list [10 99]))
+   (seq.equal-cmp? (/. X Y (= (* X 10) Y))
+                   (seq.of-list [1 2])
+                   (seq.of-list [10]))])
+
+(test.assert-equal
+  "seq.unzip projections independently traverse their source"
+  [[1 2] 2 [a b] 4]
+  (let Count (box.make 0)
+       Source
+        (seq.map
+          (/. Pair (do (box.incr Count) Pair))
+          (seq.of-list [(@p 1 a) (@p 2 b)]))
+       Unzipped (seq.unzip Source)
+       Firsts (seq.to-list (fst Unzipped))
+       AfterFirsts (box.unbox Count)
+       Seconds (seq.to-list (snd Unzipped))
+    [Firsts AfterFirsts Seconds (box.unbox Count)]))
 
 (test.assert-equal
   "seq.exists? stops at the first match"
@@ -1423,13 +1606,15 @@ A final note.
        Values (seq.to-list (seq.take-while (/. X (< X 3)) Seq))
     [(box.unbox Count) Values]))
 
+(test.assert-error-contains
+  "seq.take rejects a sequence that ends early"
+  "failure to take from sequence that ended abruptly"
+  (freeze (seq.to-list (seq.take 3 (seq.of-list [1 2])))))
+
 (test.assert-equal
-  "seq.take is strict and seq.truncate is permissive"
-  [rejected [1 2]]
-  [(trap-error
-     (seq.to-list (seq.take 3 (seq.of-list [1 2])))
-     (/. Error rejected))
-   (seq.to-list (seq.truncate 3 (seq.of-list [1 2])))])
+  "seq.truncate permits a sequence that ends early"
+  [1 2]
+  (seq.to-list (seq.truncate 3 (seq.of-list [1 2]))))
 
 (test.assert-equal
   "seq.take zero consumes no source values"
@@ -1467,22 +1652,35 @@ A final note.
        Values (seq.to-list (seq.truncate 2 Source))
     [(box.unbox Count) Values]))
 
-(test.assert-equal
+(test.assert-error-contains
   "seq.take rejects negative counts"
-  rejected
-  (trap-error (seq.take -1 (seq.empty)) (/. X rejected)))
+  "cannot take a negative amount from a seq"
+  (freeze (seq.take -1 (seq.empty))))
 
-(test.assert-equal
+(test.assert-error-contains
   "seq.truncate rejects negative counts"
-  rejected
-  (trap-error (seq.truncate -1 (seq.empty)) (/. X rejected)))
+  "cannot truncate a negative amount from a seq"
+  (freeze (seq.truncate -1 (seq.empty))))
 
-(test.assert-equal
+(test.assert-error-contains
   "seq.drop rejects negative counts"
-  rejected
-  (trap-error (seq.drop -1 (seq.empty)) (/. X rejected)))
+  "cannot drop a negative amount from a seq"
+  (freeze (seq.drop -1 (seq.empty))))
+
+(test.assert-error-contains
+  "seq.chunks rejects sizes below one"
+  "cannot produce seq chunks of size < 1"
+  (freeze (seq.chunks 0 (seq.empty))))
 
 (test.assert-equal
-  "seq.chunks rejects sizes below one"
-  rejected
-  (trap-error (seq.chunks 0 (seq.empty)) (/. Error rejected)))
+  "seq.chunks handles empty, exact, and partial groups"
+  [[] [[1 2] [3 4]] [[1 2] [3]]]
+  (let ChunkLists
+        (/. Seq
+          (seq.to-list
+            (seq.map
+              (/. Vector (seq.to-list (seq.of-vector Vector)))
+              Seq)))
+    [(ChunkLists (seq.chunks 2 (seq.empty)))
+     (ChunkLists (seq.chunks 2 (seq.of-list [1 2 3 4])))
+     (ChunkLists (seq.chunks 2 (seq.of-list [1 2 3])))]))

@@ -5,12 +5,24 @@
 \\:
 \\: Shendoc generates AsciiDoc from documentation comments embedded in Shen
 \\: source files. Consecutive lines beginning with `\\:` form a documentation
-\\: block. A block immediately before a function documents that function; a
-\\: blank line makes the block standalone.
+\\: block.
 \\:
-\\: Shendoc never evaluates the documented source. External declarations on
-\\: named packages must be literal symbol lists; computed declarations are
-\\: rejected.
+\\: == Authoring rules
+\\:
+\\: A documentation block is associated with a `define` or `defcc` form only
+\\: when that form immediately follows the block, with no blank line. The
+\\: generated function heading uses the defined function or grammar-rule name.
+\\: A block followed by a blank line, any other source form, or the end of the
+\\: file is rendered as standalone AsciiDoc.
+\\:
+\\: For `define`, an inline type signature immediately after the function name
+\\: and between `{` and `}` is included in the generated heading. Definitions
+\\: without an inline signature, and `defcc` forms, receive a name-only heading.
+\\:
+\\: Inside a named package, function names are qualified according to the
+\\: package's literal external-symbol list. Shendoc parses this source metadata
+\\: without evaluating the documented file. Computed external declarations are
+\\: therefore rejected.
 \\:
 \\: == Usage
 \\:

@@ -690,7 +690,10 @@
 
 \\: `(seq.unzip SeqA*B)` returns `(@p SeqA SeqB)`, where `SeqA*B` is a sequence
 \\: of tuples `(@p A B)`, `SeqA` is `(seq.map (fn fst) SeqA*B)` and `SeqB` is
-\\: `(seq.map (fn snd) SeqA*B)`.
+\\: `(seq.map (fn snd) SeqA*B)`. The two projections independently traverse the
+\\: original sequence when consumed, so effects are repeated when both are
+\\: traversed. Use `(seq.unzip (seq.memo SeqA*B))` to share evaluation between
+\\: the projections.
 (define unzip
   { (seq.t (A * B)) --> ((seq.t A) * (seq.t B)) }
   S -> (@p (seq.map (fn fst) S)
