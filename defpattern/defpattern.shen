@@ -8,8 +8,10 @@
 \\: catch-all `(fail)` clause, then registers the completed definition.
 \\:
 \\: A handler controls compilation of a pattern form. Typed consumers also
-\\: need a shape-specific datatype rule for that surface pattern; `defpattern`
-\\: deliberately does not install a generic typing rule.
+\\: need a datatype rule for the form seen by that handler; `defpattern`
+\\: deliberately does not install one. A polyadic public form should be
+\\: normalized by a macro to a recursive fixed shape rather than enumerating
+\\: its possible arities in datatype rules.
 \\:
 \\: == API
 \\:
@@ -19,21 +21,22 @@
 \\:
 \\: [source,shen]
 \\: ----
-\\: (defpattern tagged-pattern-handler
-\\:   Self Is? Assign [tagged Pattern]
-\\:     -> (do (Is? [and [tuple? Self]
-\\:                         [= [fst Self] tagged]])
-\\:            (Assign Pattern [snd Self])
+\\: (defpattern bit-pattern-handler
+\\:   Self Is? Assign [@bit Width Pattern Rest]
+\\:     -> (do (Is? [and [bits? Self]
+\\:                        [has-bits? Self Width]])
+\\:            (Assign Pattern [peek Self Width])
+\\:            (Assign Rest [bit-drop Self Width])
 \\:            handled))
 \\: ----
 \\:
 \\: `Self` is the generated reference to the value being matched. `Is?`
 \\: registers a run-time test S-expression. `Assign` associates a variable or
 \\: nested pattern with a selector S-expression; Shen compiles that pattern
-\\: recursively against the selected value. The fourth argument is the surface
-\\: pattern being compiled; `[tagged Pattern]` selects the example clause.
-\\: The example tests `tuple?` before using `fst`, checks the tag, and only
-\\: then registers the `snd` selector. Every selector must be safe after all
+\\: recursively against the selected value. The fourth argument is the pattern
+\\: form being compiled. This handler checks that an opaque cursor has enough
+\\: input, assigns the decoded unsigned field, then recursively matches `Rest`
+\\: against a cursor advanced by `Width`. Every selector must be safe after all
 \\: registered tests succeed.
 \\:
 \\: Return `handled` after claiming a form. If no user clause applies, the
@@ -42,26 +45,40 @@
 \\: returning `false`, which makes matching continue to the next clause of the
 \\: function being run.
 \\:
-\\: A checked binding pattern needs a datatype rule written with the same
-\\: surface syntax:
+\\: A macro can make the public syntax polyadic by expanding it into nested
+\\: internal patterns:
 \\:
 \\: [source,shen]
 \\: ----
-\\: (datatype tagged-pattern
-\\:   Pattern : A;
-\\:   =================================================
-\\:   (tagged Pattern) : (symbol * A);)
+\\: (defmacro bits-pattern-macro
+\\:   [@bits Rest] -> Rest
+\\:   [@bits Width Pattern | More]
+\\:     -> [@bit Width Pattern [@bits | More]]
+\\:   [@bits | _]
+\\:     -> (simple-error
+\\:          "@bits expects width/pattern pairs followed by a rest pattern"))
+\\:
+\\: (datatype bit-pattern
+\\:   Width : number;
+\\:   Pattern : number;
+\\:   Rest : bits;
+\\:   ==================================
+\\:   (@bit Width Pattern Rest) : bits;)
 \\: ----
+\\:
+\\: Thus `(@bits W1 P1 W2 P2 Rest)` becomes
+\\: `(@bit W1 P1 (@bit W2 P2 Rest))`. One recursive datatype rule checks every
+\\: generated node, regardless of the number of width/pattern pairs.
 \\:
 \\: Once the declaration has been evaluated, later source files can use the
 \\: pattern like any built-in pattern:
 \\:
 \\: [source,shen]
 \\: ----
-\\: (define first-or
-\\:   { A --> (symbol * (list A)) --> A }
-\\:   _ (tagged [Head | _]) -> Head
-\\:   Default _ -> Default)
+\\: (define read-prefix
+\\:   { bits --> (list number) }
+\\:   (@bits 1 Flag 3 Kind Rest) -> [Flag Kind]
+\\:   _ -> [])
 \\: ----
 \\:
 \\: Put uses in a following source file (or a dependent module): registration
@@ -70,8 +87,9 @@
 \\: and consumers in the same package, or use the pattern's qualified name.
 \\:
 \\: See link:defining-programmable-patterns.adoc[Defining programmable
-\\: patterns] for a complete checked, two-source example covering nested
-\\: patterns, fallbacks, and module order.
+\\: patterns] for a complete checked, two-source WebSocket-header example
+\\: covering macro-normalized polyadic fields, an opaque bit cursor, bounds
+\\: checks, literals, fallbacks, and module order.
 
 (package defpattern [defpattern sexp]
 

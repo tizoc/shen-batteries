@@ -563,26 +563,33 @@
     (/. Error rejected)))
 
 (test.assert-equal
-  "defpattern registers for following files and binds nested subpatterns"
-  20
-  (defpattern-guide.first-or
-    0
-    (defpattern-guide.tagged [20 22])))
+  "defpattern decodes a polyadic bit pattern in a following file"
+  [1 2 1 5 8]
+  (defpattern-guide.read-small-frame
+    (defpattern-guide.bits [130 133 255])))
 
 (test.assert-equal
-  "defpattern discriminator rejects another tag before extraction"
-  0
-  (defpattern-guide.first-or 0 (@p another-tag [20 22])))
+  "defpattern macro supports another polyadic bit-pattern arity"
+  [1 2 4]
+  (defpattern-guide.read-short-prefix
+    (defpattern-guide.bits [160])))
 
 (test.assert-equal
-  "defpattern nested subpattern can fall through"
-  0
-  (defpattern-guide.first-or 0 (defpattern-guide.tagged [])))
+  "defpattern nested literal rejects reserved WebSocket bits"
+  []
+  (defpattern-guide.read-small-frame
+    (defpattern-guide.bits [146 133 255])))
 
 (test.assert-equal
-  "defpattern discriminator safely rejects a non-tuple"
-  0
-  (defpattern-guide.first-or 0 ordinary-value))
+  "defpattern bounds discriminator rejects a truncated bit cursor"
+  []
+  (defpattern-guide.read-small-frame
+    (defpattern-guide.bits [130])))
+
+(test.assert-equal
+  "defpattern type discriminator safely rejects an unrelated value"
+  []
+  (defpattern-guide.read-small-frame ordinary-value))
 
 (test.assert-equal
   "maybe patterns use defpattern"

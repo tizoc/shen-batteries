@@ -1,13 +1,32 @@
 = Defining programmable patterns
 
-Shen's programmable-pattern extension lets a library add pattern syntax without
-changing the compiler. A pattern handler describes the run-time tests and
-selectors for one surface form; a datatype rule separately tells the
-typechecker what that form means.
+Shen's programmable-pattern extension lets a library add pattern syntax
+without changing the compiler. A handler describes the run-time tests and
+selectors for one surface form; a datatype rule separately tells System S what
+that form means.
 
-This guide builds `(tagged Pattern)`. Values use the ordinary tuple
-representation `(@p tagged Value)`, while the custom pattern checks the tag and
-continues matching `Pattern` against the payload.
+This guide builds a bit-cursor pattern for decoding binary protocols:
+
+[source,shen]
+----
+(@bits 1 Fin
+       3 0
+       4 Opcode
+       1 Masked
+       7 Length
+       Rest)
+----
+
+Each width is followed by an ordinary Shen pattern. The example consumes the
+two-byte base header of a small WebSocket frame: it binds the FIN bit, requires
+the three reserved bits to be zero, binds the opcode, mask bit, and seven-bit
+length, then binds `Rest` to a cursor over the remaining bytes.
+
+The matched value is not a list of fields. It is an opaque cursor containing a
+byte vector and a bit offset. Reading a field checks the available input,
+decodes an unsigned number, and advances without copying the vector. Without a
+programmable pattern, every consumer would have to repeat those checks and
+thread each successive cursor by hand.
 
 Load `defpattern` before the source that declares the handler:
 
@@ -16,105 +35,190 @@ Load `defpattern` before the source that declares the handler:
 (library.use [defpattern])
 ----
 
-== Declare the representation, type rule, and handler
+== Cursor operations
 
-Put the declaration in `defpattern-input.shen`:
+The cursor implementation is ordinary library code. The pattern needs only
+these operations:
+
+[source,shen]
+----
+bits       : (list number) --> bits
+bits?      : A --> boolean
+has-bits?  : bits --> number --> boolean
+peek       : bits --> number --> number
+bit-drop   : bits --> number --> bits
+remaining  : bits --> number
+----
+
+`(bits Bytes)` constructs a cursor over a vector containing `Bytes`.
+`(peek Cursor Width)` decodes the next `Width` bits, while
+`(bit-drop Cursor Width)` returns a cursor sharing the same vector at the new
+offset. `has-bits?` makes both operations safe. The complete portable cursor
+used by this guide is in
+link:../tests/fixtures/defpattern-input.shen[`tests/fixtures/defpattern-input.shen`].
+`@bits` is a view used only in patterns; `bits` remains the value constructor.
+
+== Normalize the polyadic syntax
+
+System S datatype rules describe fixed shapes. Repeating one rule for every
+possible field count would make `@bits` only superficially polyadic. Instead,
+use a macro to normalize the public syntax into a recursive internal pattern.
+
+Put the cursor implementation followed by this macro, datatype rule, and
+handler in
+`defpattern-input.shen`:
 
 [source,shen]
 ----
 (package defpattern-guide [defpattern]
 
-(define tagged
-  { A --> (symbol * A) }
-  Value -> (@p tagged Value))
+(defmacro bits-pattern-macro
+  [@bits Rest] -> Rest
+  [@bits Width Pattern | More]
+    -> [@bit Width Pattern [@bits | More]]
+  [@bits | _]
+    -> (simple-error
+         "@bits expects width/pattern pairs followed by a rest pattern"))
 
-(datatype tagged-pattern
-  Pattern : A;
-  =================================================
-  (tagged Pattern) : (symbol * A);)
+(datatype bit-pattern
+  Width : number;
+  Pattern : number;
+  Rest : bits;
+  ==================================
+  (@bit Width Pattern Rest) : bits;)
 
-(defpattern tagged-pattern-handler
-  Self Is? Assign [tagged Pattern]
-    -> (do (Is? [and [tuple? Self]
-                        [= [fst Self] tagged]])
-           (Assign Pattern [snd Self])
+(defpattern bit-pattern-handler
+  Self Is? Assign [@bit Width Pattern Rest]
+    -> (do (Is? [and [bits? Self]
+                       [has-bits? Self Width]])
+           (Assign Pattern [peek Self Width])
+           (Assign Rest [bit-drop Self Width])
            handled))
 
 )
 ----
 
-The datatype rule describes the custom pattern in its surface form. Its premise
-says the nested `Pattern` has type `A`; the double rule makes that binding
-available while the matching clause's action is checked. The complete pattern
-therefore matches a `(symbol * A)`. Do not write Shen's internal
-`shen.custom-pattern` marker in a datatype rule.
+`@bits` is the polyadic surface syntax; `@bit` is an internal ternary
+programmable pattern. Repeated macro expansion turns, for example,
+
+[source,shen]
+----
+(@bits W1 P1 W2 P2 Rest)
+----
+
+into
+
+[source,shen]
+----
+(@bit W1 P1 (@bit W2 P2 Rest))
+----
+
+The base macro clause removes `(@bits Rest)`, leaving the final rest pattern in
+place. Because every generated node has the same three-argument shape, the one
+datatype rule checks every width, every extracted number pattern, and the
+eventual `bits` rest pattern at any arity.
+
+The handler compiles one internal node. It checks and extracts the next field,
+then associates `Rest` with the advanced cursor. When `Rest` is another
+`@bit`, Shen's normal recursive pattern compiler invokes the same handler for
+that nested pattern. No input is read while the macro or handler itself runs.
 
 `defpattern` supplies four handler arguments:
 
-* `Self` is the generated reference to the value being matched. Build test and
-  selector S-expressions with it; do not inspect it while the handler runs.
-* `Is?` registers a run-time discriminator. Here `and` first checks `tuple?`,
-  so `fst` is never applied to a non-tuple, and then checks the tag.
-* `Assign` associates a variable or nested subpattern with a selector
-  expression. The compiler will match `Pattern` recursively against
-  `(snd Self)` after the discriminator succeeds.
-* The fourth argument is the surface pattern being compiled. Matching it as
-  `[tagged Pattern]` selects this handler clause and exposes its nested pattern.
+* `Self` is the generated reference to the value currently being matched. When
+  Shen compiles a nested `Rest`, that reference is the preceding `bit-drop`
+  selector; it is still not evaluated by the handler.
+* `Is?` registers a run-time discriminator. `and` checks `bits?` first, so
+  `has-bits?` is never applied to an unrelated value.
+* `Assign` associates an ordinary or nested Shen pattern with a selector.
+  Here it recursively matches each `Pattern` against the number returned by
+  `peek`, and `Rest` against the cursor returned by `bit-drop`.
+* The fourth argument is the pattern being compiled. The handler clause
+  recognizes the internal `@bit` form produced by the macro.
 
-The clause returns `handled` to tell the compiler that it recognizes the
-surface form.
+Every internal node registers its bounds check before its selectors. If any
+field is missing, no `peek` operation runs and the containing function tries
+its next clause. A literal such as the reserved-field `0` is handled by normal
+Shen pattern matching after extraction, so a nonzero value also falls through.
 
-Register the complete discriminator before registering selectors. Shen runs a
-custom pattern's tests before its selectors, but keeping the guarded operations
-in this order makes the safety dependency explicit. Every selector must be safe
-once all registered tests have succeeded.
+The macro therefore supports any number of width/pattern pairs without
+generating or duplicating datatype rules. The cursor representation remains
+hidden behind one recursive pattern shape.
 
-The generated handler also has a final `_ _ _ _ -> (fail)` clause. `(fail)` is
-compile-time handler dispatch: it lets another registered handler try a surface
-form this handler does not recognize. It is different from a registered `Is?`
-test returning `false`, which makes the containing function try its next
-run-time pattern clause.
+The handler returns `handled` after claiming a form. `defpattern` also appends
+a final `_ _ _ _ -> (fail)` clause. That compile-time `(fail)` lets another
+registered handler try an unrecognized surface form; it is different from an
+`Is?` test returning `false`, which selects the next run-time function clause.
 
-== Use the pattern from a following source
+== Decode a header in a following source
 
-Put consumers in `defpattern-use.shen`, using the same package:
+Put the checked consumer in `defpattern-use.shen`, using the same package:
 
 [source,shen]
 ----
 (package defpattern-guide []
 
-(define first-or
-  { A --> (symbol * (list A)) --> A }
-  _ (tagged [Head | _]) -> Head
-  Default _ -> Default)
+(define read-small-frame
+  { bits --> (list number) }
+  (@bits 1 Fin
+         3 0
+         4 Opcode
+         1 Masked
+         7 Length
+         Rest)
+    -> [Fin Opcode Masked Length (remaining Rest)]
+  _ -> [])
+
+(define read-short-prefix
+  { bits --> (list number) }
+  (@bits 1 Flag
+         3 Kind
+         Rest)
+    -> [Flag Kind (remaining Rest)]
+  _ -> [])
 
 )
 ----
 
-`Assign` passes the entire nested `[Head | _]` pattern back to Shen, so the
-ordinary list matcher handles it recursively. A correctly tagged nonempty list
-returns its head. An empty payload fails the nested list pattern, and another
-tag fails the handler's discriminator; both continue to the `Default _`
-fallback clause.
+The bytes `130` and `133` are `10000010` and `10000101` in binary. They encode
+a final binary frame with no reserved bits, opcode `2`, the mask bit set, and a
+payload length of `5`. The third byte is left in the returned cursor:
 
 [source,shen]
 ----
-(defpattern-guide.first-or
-  0
-  (defpattern-guide.tagged [20 22]))
-\\ Result: 20
-
-(defpattern-guide.first-or 0 (@p another-tag [20 22]))
-\\ Result: 0
-
-(defpattern-guide.first-or 0 (defpattern-guide.tagged []))
-\\ Result: 0
+(defpattern-guide.read-small-frame
+  (defpattern-guide.bits [130 133 255]))
+\\ Result: [1 2 1 5 8]
 ----
 
-Registration becomes available only after the declaring source has finished
-loading. Definitions earlier in that source have already been compiled, so the
-new syntax cannot affect them retroactively. A module should list the handler
-source before every checked consumer source:
+The final `8` is the number of unconsumed bits. A nonzero reserved field or a
+truncated header fails the programmable pattern and selects the fallback:
+
+[source,shen]
+----
+(defpattern-guide.read-small-frame
+  (defpattern-guide.bits [146 133 255]))
+\\ Result: []
+
+(defpattern-guide.read-small-frame
+  (defpattern-guide.bits [130]))
+\\ Result: []
+----
+
+The same macro and datatype rule also check the shorter two-field pattern; no
+arity-specific declaration is needed:
+
+[source,shen]
+----
+(defpattern-guide.read-short-prefix
+  (defpattern-guide.bits [160]))
+\\ Result: [1 2 4]
+----
+
+The macro and handler registrations become available only after the declaring
+source has finished loading. Definitions earlier in that source have already
+been compiled, so the new syntax cannot affect them retroactively. A module
+should list the declaration source before every checked consumer source:
 
 [source,shen]
 ----
@@ -127,12 +231,12 @@ source before every checked consumer source:
     "defpattern-use.shen"))
 ----
 
-Both source files use the `defpattern-guide` package, which gives the pattern,
-handler, constructor, and consumer one namespace. The declaration file lists
-`defpattern` as an external symbol so the imported macro stays unqualified.
-The second file needs no such external because it uses the now-active pattern
-inside its own package.
+Both source files use the `defpattern-guide` package, so package processing
+qualifies the public `@bits` syntax, internal `@bit` form, macro, handler,
+cursor operations, and consumer consistently. The declaration file lists
+`defpattern` as external so the imported macro stays unqualified. The consumer
+needs no additional external symbols.
 
-Keep the datatype rule beside the handler, keep the handler source before its
-consumers, and load typed declarations and consumers under `tc+`. See
-link:defpattern.adoc[the `defpattern` API] for the handler contract.
+Keep the normalization macro, datatype rule, and handler together; keep their
+source before consumers; and load typed declarations and consumers under
+`tc+`. See link:defpattern.adoc[the `defpattern` API] for the handler contract.
