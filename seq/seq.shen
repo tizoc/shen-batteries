@@ -239,12 +239,17 @@
                                                 (vector-> Vector Position X)
                                                 (+ Position 1)))
 
-\\: `(seq.into-vector Start Count Vector Seq)` fills the vector `Vector` with elements produced by the sequence `Seq`.
-\\: If `Count` is positive, the vector slots from `Start` to `Start + Count - 1` are filled in increasing order.
-\\: If `Count` is negative, the vector slots from `Start` to `Start - abs(Count) + 1` are filled in decreasing order.
-\\: The return value is a `(@p RemainingSeq NotFilledCount)` tuple, with `RemainingSeq` being what is left to be consumed of the sequence, and `NotFilledCount`
-\\: the number of requested slots that couldn't be filled because `Seq` was fully consumed first. If `NotFilledCount` is `0`,
-\\: that means that the operation succeeded without the `Seq` sequence ending prematurely.
+\\: `(seq.into-vector Start Count Vector Seq)` consumes up to `abs(Count)` values
+\\: from `Seq` and writes them into `Vector`. A positive `Count` fills slots from
+\\: `Start` upward; a negative `Count` fills them downward. `Start` and the whole
+\\: requested span must be within the vector or the call raises an error before
+\\: consuming `Seq`.
+\\:
+\\: The result is `(@p RemainingSeq NotFilledCount)`. `RemainingSeq` begins after
+\\: the values written, and `NotFilledCount` is the number of requested slots left
+\\: empty because the source ended. A `NotFilledCount` of zero means the requested
+\\: span was filled completely. The supplied vector is mutated in place and is not
+\\: included in the result tuple.
 (define into-vector
   { number --> number --> (vector A) --> (seq.t A) --> ((seq.t A) * number) }
   Start Count Vec _ -> (error "start position out of vector range")
@@ -306,13 +311,15 @@
   [] -> (error "seq.tail called on empty seq")
   [_ | T] -> T)
 
-\\: `(seq.head Seq)` evaluates and returns only the first element of `Seq`.
+\\: `(seq.head Seq)` evaluates and returns only the first element of `Seq`. It
+\\: raises an error when `Seq` is empty.
 (define seq.head
   { (seq.t A) --> A }
   S -> (node-head (thaw S)))
 
 \\: `(seq.tail Seq)` returns `Seq` without the first element. Note that this
-\\: will cause the evaluation of the first element of `Seq`.
+\\: will cause the evaluation of the first element of `Seq`. It raises an error
+\\: when `Seq` is empty.
 (define seq.tail
   { (seq.t A) --> (seq.t A) }
   S -> (node-tail (thaw S)))
@@ -692,7 +699,7 @@
 \\: `(seq.chunks N Seq)` returns a sequence of vectors of size `N`, with
 \\: each vector filled with the elements obtained from taking `N` elements
 \\: from `Seq`. The last vector may have a size smaller than `N` if the
-\\: sequence ends before it can be fully filled.
+\\: sequence ends before it can be fully filled. `N` must be at least `1`.
 (define chunks
   { number --> (seq.t A) --> (seq.t (vector A)) }
   N _ -> (error "cannot produce seq chunks of size < 1") where (< N 1)

@@ -33,7 +33,9 @@
 
 \\: == Creation
 
-\\: `(iter.from-lazy Frozen)`
+\\: `(iter.from-lazy Frozen)` repeatedly thaws `Frozen`. Each `@some X` produces
+\\: `X`; the first `@none` ends the traversal. The frozen computation is responsible
+\\: for maintaining any state needed to produce successive values.
 (define from-lazy
   { (lazy (maybe.t A)) --> (iter.t A) }
   F Yield -> (from-lazy-h (thaw F) F Yield))
@@ -44,23 +46,23 @@
   (@some X) F Yield -> (do (Yield X)
                            (from-lazy-h (thaw F) F Yield)))
 
-\\: `(iter.empty)`
+\\: `(iter.empty)` produces no values.
 (define empty
   { --> (iter.t A) }
   -> (/. X (void)))
 
-\\: `(iter.singleton X)`
+\\: `(iter.singleton X)` produces exactly `X`.
 (define singleton
   { A --> (iter.t A) }
   X F -> (F X))
 
-\\: `(iter.cons X Iter)`
+\\: `(iter.cons X Iter)` produces `X` followed by every value from `Iter`.
 (define iter.cons
   { A --> (iter.t A) --> (iter.t A)}
   X Iter Yield -> (do (Yield X)
                       (Iter Yield)))
 
-\\: `(iter.snoc Iter X)`
+\\: `(iter.snoc Iter X)` produces every value from `Iter` followed by `X`.
 (define snoc
   { (iter.t A) --> A --> (iter.t A)}
   Iter X Yield -> (do (Iter Yield)
@@ -109,7 +111,9 @@
                           (cycle Iter Yield)
                           (void)))))
 
-\\: `(iter.unfoldr F X)`
+\\: `(iter.unfoldr F State)` repeatedly applies `F` to the current state. A result
+\\: `(@some (@p Value Next))` produces `Value` and continues with `Next`; `@none`
+\\: ends the traversal.
 (define unfoldr
   { (B --> (maybe.t (A * B))) --> B --> (iter.t A) }
   F X Yield -> (unfoldr-h F (F X) Yield))
@@ -120,7 +124,9 @@
   F (@some (@p X Rest)) Yield -> (do (Yield X)
                                      (unfoldr-h F (F Rest) Yield)))
 
-\\: `(iter.scan F Init Iter)`
+\\: `(iter.scan F Init Iter)` produces `Init`, then the successive accumulators from
+\\: folding `F` over `Iter` from left to right. It therefore produces one more value
+\\: than `Iter` when `Iter` is finite.
 (define scan
   { (B --> A --> B) --> B --> (iter.t A) --> (iter.t B) }
   F Acc Iter Yield -> (let _ (Yield Acc)
@@ -167,7 +173,10 @@
                                        (box.put Index (+ 1 I)))))
                    (box.unbox Acc)))
 
-\\: `(iter.fold-map F Init Iter)`
+\\: `(iter.fold-map F Init Iter)` threads an accumulator through `Iter`. For each
+\\: input, `F` receives the current accumulator and returns
+\\: `(@p Next-Accumulator Output)`; the accumulator is updated and `Output` is
+\\: produced. `Init` is restored for each traversal of the resulting iterator.
 (define fold-map
   { (Acc --> A --> (Acc * B)) --> Acc --> (iter.t A) --> (iter.t B) }
   F Init Iter Yield -> (let Acc (box.make Init)
@@ -175,7 +184,10 @@
                                           _ (box.put Acc (fst Acc*Y))
                                        (Yield (snd Acc*Y)))))))
 
-\\: `(iter.fold-filter-map F Init Iter)`
+\\: `(iter.fold-filter-map F Init Iter)` is a stateful filter-map. For every input,
+\\: `F` returns `(@p Next-Accumulator Maybe-Output)`. The accumulator is updated even
+\\: when `Maybe-Output` is `@none`; an `@some` value is unwrapped and produced.
+\\: `Init` is restored for each traversal of the resulting iterator.
 (define fold-filter-map
   { (Acc --> A --> (Acc * (maybe.t B))) --> Acc --> (iter.t A) --> (iter.t B) }
   F Init Iter Yield -> (let Acc (box.make Init)
@@ -184,20 +196,22 @@
                                           Y (snd Acc*Y)
                                        (maybe.for-each Yield Y))))))
 
-\\: `(iter.map F Iter)`
+\\: `(iter.map F Iter)` applies `F` to every value from `Iter`, preserving order.
 (define iter.map
   { (A --> B) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (Iter (/. X (Yield (F X)))))
 
-\\: `(iter.mapi F Iter)`
+\\: `(iter.mapi F Iter)` applies `F` to each zero-based index and value, preserving
+\\: order. Indexing restarts at zero for every traversal.
 (define mapi
   { (number --> A --> B) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (let Index (box.make 0)
                     (Iter (/. X (do (Yield (F (box.unbox Index) X))
                                     (box.incr Index))))))
 
-\\: `(iter.for-all? Test Iter)` stops at the first value that fails `Test`. It can
-\\: consume an infinite iterator when such a value is reached.
+\\: `(iter.for-all? Test Iter)` returns whether every value satisfies `Test`, and is
+\\: true for an empty iterator. It stops at the first failure, so it can consume an
+\\: infinite iterator when such a value is reached.
 (define for-all?
   { (A --> boolean) --> (iter.t A) --> boolean }
   Test Iter -> (with-return Return
@@ -206,8 +220,9 @@
                                      (void))))
                      true)))
 
-\\: `(iter.exists? Test Iter)` stops at the first value that satisfies `Test`. It can
-\\: consume an infinite iterator when such a value is reached.
+\\: `(iter.exists? Test Iter)` returns whether any value satisfies `Test`, and is
+\\: false for an empty iterator. It stops at the first match, so it can consume an
+\\: infinite iterator when such a value is reached.
 (define exists?
   { (A --> boolean) --> (iter.t A) --> boolean }
   Test Iter -> (with-return Return
@@ -216,17 +231,20 @@
                                      (void))))
                      false)))
 
-\\: `(iter.element? X Iter)`
+\\: `(iter.element? X Iter)` returns whether `Iter` contains a value equal to `X`
+\\: according to Shen's `=`. It stops at the first match.
 (define iter.element?
   { A --> (iter.t A) --> boolean }
   Elt Iter -> (exists? (= Elt) Iter))
 
-\\: `(iter.element-eq? EqF X Iter)`
+\\: `(iter.element-eq? EqF X Iter)` returns whether any value satisfies
+\\: `(EqF X Value)`. It stops at the first match.
 (define element-eq?
   { (A --> A --> boolean) --> A --> (iter.t A) --> boolean }
   Eq Elt Iter -> (exists? (Eq Elt) Iter))
 
-\\: `(iter.find-map F Iter)` stops at the first value for which `F` returns `@some`.
+\\: `(iter.find-map F Iter)` returns the first `@some` result from applying `F`, or
+\\: `@none` when there is no such result. It stops at the first `@some`.
 (define find-map
   { (A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B) }
   F Iter -> (with-return Return
@@ -236,8 +254,9 @@
                                     (void)))))
                   (@none))))
 
-\\: `(iter.find-mapi F Iter)` stops at the first zero-based index and value for which
-\\: `F` returns `@some`.
+\\: `(iter.find-mapi F Iter)` applies `F` to each zero-based index and value and
+\\: returns the first `@some` result, or `@none` when there is no such result. It
+\\: stops at the first `@some`.
 (define find-mapi { (number --> A --> (maybe.t B)) --> (iter.t A) --> (maybe.t B) }
   F Iter -> (let Index (box.make 0)
               (with-return Return
@@ -253,7 +272,8 @@
   { (A --> boolean) --> (iter.t A) --> (maybe.t A) }
   Test Iter -> (find-map (/. X (if (Test X) (@some X) (@none))) Iter))
 
-\\: `(iter.find-exn Test Iter)`
+\\: `(iter.find-exn Test Iter)` returns the first value that satisfies `Test` and
+\\: stops immediately. It raises an error when no value matches.
 (define find-exn
   { (A --> boolean) --> (iter.t A) --> A }
   Test Iter -> (let R (iter.find Test Iter)
@@ -261,13 +281,15 @@
                      (maybe.unsafe-get R)
                      (error "find-exn: value not found"))))
 
-\\: `(iter.length Iter)` consumes the complete iterator, which must be finite.
+\\: `(iter.length Iter)` returns the number of values produced. It consumes the
+\\: complete iterator, which must be finite.
 (define iter.length { (iter.t A) --> number }
   Iter -> (let R (box.make 0)
                _ (Iter (/. X (box.incr R)))
             (box.unbox R)))
 
-\\: `(iter.empty? Iter)` stops after the first value, if there is one.
+\\: `(iter.empty? Iter)` returns whether `Iter` produces no values. It stops after
+\\: the first value, if there is one.
 (define iter.empty?
   { (iter.t A) --> boolean }
   Iter -> (with-return Return
@@ -276,37 +298,42 @@
 
 \\: == Transformation
 
-\\: `(iter.filter F Iter)`
+\\: `(iter.filter Test Iter)` produces only the values that satisfy `Test`, preserving
+\\: their order.
 (define iter.filter
   { (A --> boolean) --> (iter.t A) --> (iter.t A) }
   F Iter Yield -> (Iter (/. X (if (F X)
                                   (Yield X)
                                   (void)))))
 
-\\: `(iter.append IterL IterR)`
+\\: `(iter.append IterL IterR)` produces every value from `IterL`, then every value
+\\: from `IterR`.
 (define iter.append
   { (iter.t A) --> (iter.t A) --> (iter.t A) }
   IterL IterR Yield -> (do (IterL Yield)
                            (IterR Yield)))
 
-\\: `(iter.concat IterList)`
+\\: `(iter.concat IterList)` concatenates a list of iterators in list order.
 (define iter.concat
   { (list (iter.t A)) --> (iter.t A) }
   [] _ -> (void)
   [Iter | Rest] Yield -> (do (Iter Yield)
                              (iter.concat Rest Yield)))
 
-\\: `(iter.flatten ItersIter)`
+\\: `(iter.flatten ItersIter)` produces every value from each inner iterator in the
+\\: order that `ItersIter` produces those iterators.
 (define flatten
   { (iter.t (iter.t A)) --> (iter.t A) }
   Iters Yield -> (Iters (/. Iter (Iter Yield))))
 
-\\: `(iter.flat-map F Iter)`
+\\: `(iter.flat-map F Iter)` replaces each value with the iterator returned by `F`
+\\: and concatenates those iterators in source order.
 (define flat-map
   { (A --> (iter.t B)) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (Iter (/. X (F X Yield))))
 
-\\: `(iter.flat-map-l F Iter)`
+\\: `(iter.flat-map-l F Iter)` replaces each value with the list returned by `F` and
+\\: produces the lists' values in source order.
 (define flat-map-l
   { (A --> (list B)) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (Iter (/. X (list-for-each Yield (F X)))))
@@ -317,12 +344,15 @@
   F [X | Rest] -> (do (F X)
                       (list-for-each F Rest)))
 
-\\: `(iter.filter-map F Iter)`
+\\: `(iter.filter-map F Iter)` applies `F` to every value, unwraps and produces each
+\\: `@some` result, and skips each `@none`.
 (define filter-map
   { (A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (Iter (/. X (maybe.for-each Yield (F X)))))
 
-\\: `(iter.filter-mapi F Iter)`
+\\: `(iter.filter-mapi F Iter)` applies `F` to each zero-based input index and value,
+\\: unwraps and produces each `@some` result, and skips each `@none`. Indices count
+\\: all input values, including skipped ones, and restart for every traversal.
 (define filter-mapi
   { (number --> A --> (maybe.t B)) --> (iter.t A) --> (iter.t B) }
   F Iter Yield -> (let Index (box.make 0)
@@ -330,7 +360,8 @@
                                      _ (box.incr Index)
                                   (maybe.for-each Yield Res))))))
 
-\\: `(iter.filter-count F Iter)` consumes the complete iterator, which must be finite.
+\\: `(iter.filter-count Test Iter)` returns the number of values that satisfy `Test`.
+\\: It consumes the complete iterator, which must be finite.
 (define filter-count
   { (A --> boolean) --> (iter.t A) --> number }
   F Iter -> (let Count (box.make 0)
@@ -339,7 +370,9 @@
                                    (void))))
               (box.unbox Count)))
 
-\\: `(iter.intersperse Elt Iter)`
+\\: `(iter.intersperse Separator Iter)` inserts `Separator` between adjacent values.
+\\: It adds nothing before the first value or after the last, and an empty iterator
+\\: remains empty.
 (define intersperse
   { A --> (iter.t A) --> (iter.t A) }
   Elt Iter Yield -> (let First (box.make true)
@@ -348,7 +381,8 @@
                                           (Yield Elt))
                                       (Yield X))))))
 
-\\: `(iter.keep-some Iter)`
+\\: `(iter.keep-some Iter)` unwraps and produces every `@some` value and skips every
+\\: `@none`.
 (define keep-some
   { (iter.t (maybe.t A)) --> (iter.t A) }
   Iter Yield -> (Iter (/. X (maybe.for-each Yield X))))
@@ -387,15 +421,16 @@
 
 \\: === List-like
 
-\\: `(iter.head Iter)` consumes at most one value and stops immediately after finding
-\\: it.
+\\: `(iter.head Iter)` returns `(@some X)` for the first value, or `@none` when the
+\\: iterator is empty. It consumes at most one value and stops immediately.
 (define iter.head
   { (iter.t A) --> (maybe.t A) }
   Iter -> (with-return Return
             (do (Iter (/. X (Return (@some X))))
                 (@none))))
 
-\\: `(iter.head-exn Iter)`
+\\: `(iter.head-exn Iter)` returns the first value and stops immediately. It raises
+\\: an error when the iterator is empty.
 (define head-exn
   { (iter.t A) --> A }
   Iter -> (let R (iter.head Iter)
@@ -453,7 +488,9 @@
                                     (Yield X)
                                     (box.incr Count))))))
 
-\\: `(iter.drop-while P Iter)`
+\\: `(iter.drop-while P Iter)` skips the longest prefix whose values satisfy `P`,
+\\: then produces the first failing value and everything after it. Once `P` fails it
+\\: is not applied to later values.
 (define drop-while
   { (A --> boolean) --> (iter.t A) --> (iter.t A) }
   P Iter Yield -> (let Drop (box.make true)
@@ -470,7 +507,8 @@
   Iter -> (let MList (mlist.of-iter Iter)
             (/. Yield (mlist.for-each-reverse Yield MList))))
 
-\\: `(iter.enumerate Iter)`
+\\: `(iter.enumerate Iter)` pairs every value with its zero-based index as
+\\: `(@p Index Value)`. Indexing restarts at zero for every traversal.
 (define enumerate
   { (iter.t A) --> (iter.t (number * A)) }
   Iter Yield -> (let R (box.make 0)
@@ -480,29 +518,34 @@
 
 \\: == Converters
 
-\\: `(iter.to-list Iter)` consumes the complete iterator, which must be finite.
+\\: `(iter.to-list Iter)` returns the values in production order. It consumes the
+\\: complete iterator, which must be finite.
 (define to-list
   { (iter.t A) --> (list A) }
   Iter -> (reverse (to-list-reverse Iter)))
 
-\\: `(iter.to-list-reverse Iter)` consumes the complete iterator, which must be finite.
+\\: `(iter.to-list-reverse Iter)` returns the values in reverse production order. It
+\\: consumes the complete iterator, which must be finite.
 (define to-list-reverse
   { (iter.t A) --> (list A) }
   Iter -> (fold (/. Acc X [X | Acc]) [] Iter))
 
-\\: `(iter.of-list List)`
+\\: `(iter.of-list List)` produces the elements of `List` in list order.
 (define of-list
   { (list A) --> (iter.t A) }
   [] Yield -> (void)
   [X | Rest] Yield -> (do (Yield X)
                           (of-list Rest Yield)))
 
-\\: `(iter.convert-list F List)`
+\\: `(iter.convert-list F List)` converts `List` to an iterator, applies iterator
+\\: transformation `F`, and collects the result back into a list in production
+\\: order. The transformed iterator must be finite.
 (define convert-list
   { ((iter.t A) --> (iter.t B)) --> (list A) --> (list B) }
   F List -> (to-list (F (of-list List))))
 
-\\: `(iter.to-vector Iter)` consumes the complete iterator, which must be finite.
+\\: `(iter.to-vector Iter)` returns a vector containing the values in production
+\\: order. It consumes the complete iterator, which must be finite.
 (define to-vector
   { (iter.t A) --> (vector A) }
   Iter -> (let MList (mlist.of-iter Iter)
@@ -513,13 +556,16 @@
                     MList)
               Vector)))
 
-\\: `(iter.of-vector Vector)`
+\\: `(iter.of-vector Vector)` produces the values at vector positions `1` through
+\\: `(limit Vector)` in ascending order. An empty vector produces no values.
 (define of-vector
   { (vector A) --> (iter.t A) }
   Vector _ -> (void) where (= 0 (limit Vector))
   Vector Yield -> (of-vector-range Vector 1 (limit Vector) Yield))
 
-\\: `(iter.of-vector-enumerated Vector)`
+\\: `(iter.of-vector-enumerated Vector)` produces `(@p Position Value)` for vector
+\\: positions `1` through `(limit Vector)` in ascending order. These positions are
+\\: one-based, unlike the zero-based indices produced by `iter.enumerate`.
 (define of-vector-enumerated
   { (vector A) --> (iter.t (number * A)) }
   Vector Yield -> (mlist.vector-for-each-enumerated Yield Vector 1 (+ 1 (limit Vector))))

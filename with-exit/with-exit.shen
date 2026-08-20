@@ -6,7 +6,7 @@
 \\: `with-return` and `with-break` provide portable, lexically scoped early
 \\: exits. Shen/Scheme uses continuations for the exit operation; other ports
 \\: use a tagged exception without exposing that implementation detail to the
-\\: caller.
+\\: caller. Require the module with `(library.use [with-exit])`.
 \\:
 \\: == API
 \\:
@@ -14,7 +14,8 @@
 \\:
 \\: `(with-return ReturnF Body)` binds `ReturnF` to a one-place exit. Calling
 \\: it interrupts the rest of `Body` and makes the whole `with-return`
-\\: expression produce the supplied value.
+\\: expression produce the supplied value. If `ReturnF` is not called, the
+\\: expression produces the normal result of `Body`.
 \\:
 \\: [source,shen]
 \\: ----

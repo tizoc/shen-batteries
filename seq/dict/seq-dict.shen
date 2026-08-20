@@ -9,6 +9,8 @@
 \\: are captured when a conversion is called, so later mutations do not change
 \\: the returned sequence. Independently captured key and value sequences must
 \\: not be assumed to align; use `seq.of-dict-entries` for associations.
+\\:
+\\: == API
 
 \\: `(seq.of-dict-keys Dict)` returns a sequence over a snapshot of the keys in
 \\: `Dict`. Dictionary traversal order is unspecified and may vary between Shen

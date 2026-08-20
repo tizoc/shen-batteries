@@ -8,6 +8,8 @@
 \\: before their components are extracted.
 \\: Require it with `(library.use [let-match])`.
 \\:
+\\: == Syntax
+\\:
 \\: [source,shen]
 \\: ----
 \\: (let [Head | Tail] [1 2 3]

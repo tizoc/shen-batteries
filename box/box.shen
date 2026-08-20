@@ -3,7 +3,8 @@
 
 \\: = Boxes
 \\:
-\\: Boxes are mutable references to a value.
+\\: Boxes are mutable references to a value. Require the module with
+\\: `(library.use [box])`.
 
 
 (package box [void]
@@ -60,28 +61,34 @@
   Box -> (<-address Box 1))
 
 \\: === Modification
+\\:
+\\: The modification operations update the existing box and return `void`.
 
-\\: `(box.put Box Value)` stores `Value` inside `Box`.
+\\: `(box.put Box Value)` stores `Value` inside `Box` and returns `void`.
 (define box.put
   { (t A) --> A --> void }
   Box X -> (do (address-> Box 1 X) (void)))
 
-\\: `(box.modify F Box)` stores the result of `(F (box.unbox Box))` inside `Box`.
+\\: `(box.modify F Box)` calls `F` with the current contents, stores the result
+\\: inside `Box`, and returns `void`.
 (define modify
   { (A --> A) --> (t A) --> void }
   F Box -> (box.put Box (F (unbox Box))))
 
-\\: `(box.incr Box)` increments the number stored in `Box` by 1.
+\\: `(box.incr Box)` increments the number stored in `Box` by 1 and returns
+\\: `void`.
 (define box.incr
   { (t number) --> void }
   Box -> (box.put Box (+ (unbox Box) 1)))
 
-\\: `(box.decr Box)` decrements the number stored in `Box` by 1.
+\\: `(box.decr Box)` decrements the number stored in `Box` by 1 and returns
+\\: `void`.
 (define box.decr
   { (t number) --> void }
   Box -> (box.put Box (- (unbox Box) 1)))
 
-\\: `(box.toggle Box)` replaces the contents of `Box` with `true` if it contains `false` or with `false` if it contains `true`.
+\\: `(box.toggle Box)` replaces the contents of `Box` with `true` if it contains
+\\: `false` or with `false` if it contains `true`, then returns `void`.
 (define box.toggle
   { (t boolean) --> void }
   Box -> (box.put Box (not (unbox Box))))

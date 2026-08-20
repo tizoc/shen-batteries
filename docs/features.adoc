@@ -4,14 +4,17 @@
 
 Feature names describe facilities supplied by the current Shen port or by
 loaded libraries. This module exposes the current names and a convenient
-conditional-expansion form.
+conditional-expansion form. Require it with `(library.use [features])`.
 
 == API
 
 === `features.cond`
 
-`(features.cond Condition Expression ...)` expands to the expression for
-the first satisfied condition. A condition may be a feature symbol,
+`(features.cond Condition Expression ...)` accepts alternating condition
+and expression forms and expands to the expression for the first satisfied
+condition. Selection happens during macro expansion, so only the selected
+expression remains for later compilation and evaluation. A condition may
+be a feature symbol,
 `(and Feature ...)`, `(or Feature ...)`, `(not Feature)`, or `true` for a
 final fallback. If no condition is satisfied, expansion raises an error.
 
@@ -26,10 +29,12 @@ final fallback. If no condition is satisfied, expansion raises an error.
 ==== `features.add` : `symbol --> (list symbol)`
 
 `(features.add Name)` adds `Name` to the process-wide feature set if it is
-absent. It returns the feature list as it was before the update. Later
-conditional expansions can select the new feature.
+absent. Adding an existing name has no effect. The function returns the
+feature list as it was before the update; later conditional expansions can
+select a newly added feature.
 
 ==== `features.current` : `--> (list symbol)`
 
 `(features.current)` returns the process-wide list of feature names known
-to the running Shen implementation.
+to the running Shen implementation. Treat the result as a set: list order
+is not part of the portable interface.

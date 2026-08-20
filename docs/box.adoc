@@ -2,7 +2,8 @@
 
 = Boxes
 
-Boxes are mutable references to a value.
+Boxes are mutable references to a value. Require the module with
+`(library.use [box])`.
 
 == API
 
@@ -26,22 +27,28 @@ Boxes are mutable references to a value.
 
 === Modification
 
+The modification operations update the existing box and return `void`.
+
 ==== `box.put` : `(box.t A) --> A --> void`
 
-`(box.put Box Value)` stores `Value` inside `Box`.
+`(box.put Box Value)` stores `Value` inside `Box` and returns `void`.
 
 ==== `box.modify` : `(A --> A) --> (box.t A) --> void`
 
-`(box.modify F Box)` stores the result of `(F (box.unbox Box))` inside `Box`.
+`(box.modify F Box)` calls `F` with the current contents, stores the result
+inside `Box`, and returns `void`.
 
 ==== `box.incr` : `(box.t number) --> void`
 
-`(box.incr Box)` increments the number stored in `Box` by 1.
+`(box.incr Box)` increments the number stored in `Box` by 1 and returns
+`void`.
 
 ==== `box.decr` : `(box.t number) --> void`
 
-`(box.decr Box)` decrements the number stored in `Box` by 1.
+`(box.decr Box)` decrements the number stored in `Box` by 1 and returns
+`void`.
 
 ==== `box.toggle` : `(box.t boolean) --> void`
 
-`(box.toggle Box)` replaces the contents of `Box` with `true` if it contains `false` or with `false` if it contains `true`.
+`(box.toggle Box)` replaces the contents of `Box` with `true` if it contains
+`false` or with `false` if it contains `true`, then returns `void`.

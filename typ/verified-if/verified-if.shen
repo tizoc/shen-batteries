@@ -1,15 +1,37 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-\\: == `typ/verified-if.t`
+\\: = `typ/verified-if.t`
 \\:
-\\: This rule extends the typechecker so that when the `True` branch of `(if Test True False)` expressions
-\\: is typechecked, any `verified` rules that result from `Test` are taken into account.
+\\: `typ/verified-if` is an opt-in typechecker extension for `if`. Load it with
+\\: the theories that establish the `verified` facts used by a test. For the
+\\: standard object predicates, use:
 \\:
-\\: Example: `(if (number? X) (+ X 2) 0)` for an `X` of unknown type would not typecheck
-\\: without this rule, but `X -> (+ X 2) where (number? X)` would.
-
-(specialise if 1)
+\\: [source,shen]
+\\: ----
+\\: (library.use
+\\:   [typ/verified-objects
+\\:    typ/verified-if])
+\\: ----
+\\:
+\\: When checking `(if Test True False)`, the rule checks `Test` as a boolean and
+\\: checks `True` with `Test : verified` in the proof context. For example:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (define increment-if-number
+\\:   { A --> number }
+\\:   X -> (if (number? X) (+ X 1) 0))
+\\: ----
+\\:
+\\: Core Shen cannot typecheck the addition while `X` has the unknown type `A`.
+\\: With both modules loaded, the verified-object rule derives `X : number` in
+\\: the true branch.
+\\:
+\\: The false branch is checked without the verified hypothesis: this theory
+\\: does not infer a negated or complementary type from a false test. It changes
+\\: only typechecking, adds no runtime checks or casts, and leaves the ordinary
+\\: curried representation and core signature of `if` unchanged.
 
 (datatype typ/verified-if.t
   !;

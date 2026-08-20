@@ -1,15 +1,27 @@
 = Types
 
-Useful mostly-generic datatypes.
+These opt-in modules extend Shen's System S typechecker. The foundational
+theories add reusable union, S-expression, and discarded-result types.
+The refinement theories teach the checker how verified runtime predicates and
+control-flow conditions constrain otherwise unknown values.
 
-include::void.adoc[]
+The theories change typechecking only unless their reference explicitly
+documents a value-level API such as `(void)`. They do not insert conversions or
+runtime casts. Batteries' type-conformance tests exercise both successful uses
+and definitions that current Shen must reject without the corresponding theory.
 
-include::or.adoc[]
+== Foundational types
 
-include::sexp.adoc[]
+include::void.adoc[leveloffset=+2]
 
-include::verified-objects.adoc[]
+include::or.adoc[leveloffset=+2]
 
-include::verified-and-head.adoc[]
+include::sexp.adoc[leveloffset=+2]
 
-include::verified-if.adoc[]
+== Predicate and control-flow refinement
+
+include::verified-objects.adoc[leveloffset=+2]
+
+include::verified-and-head.adoc[leveloffset=+2]
+
+include::verified-if.adoc[leveloffset=+2]

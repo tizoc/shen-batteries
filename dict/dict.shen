@@ -3,7 +3,7 @@
 
 \\: = Dictionaries
 \\:
-\\: Public API and types for internal Shen dictionary data structure.
+\\: A typed interface to Shen's mutable dictionary data structure.
 
 (package dict []
 
@@ -39,11 +39,13 @@
 
 \\: === Construction
 
-\\: `(dict.make SizeHint)` creates a new dictionary. `SizeHint` must be a positive
-\\: integer and is a size hint for the underlying implementation. The recommended value is
-\\: the expected number of values this dictionary will hold, or `1` if no values are expected.
+\\: `(dict.make SizeHint)` creates a new dictionary. `SizeHint` must be positive
+\\: and is a size hint for the underlying implementation. Use the expected number
+\\: of associations, or `1` when none are expected.
 (define dict.make
   { number --> (dict.t K V) }
+  SizeHint -> (error "dict.make requires a positive size hint")
+    where (< SizeHint 1)
   SizeHint -> (shen.dict SizeHint))
 
 \\: === Predicates
@@ -86,16 +88,20 @@
 \\: `(dict.fold F Dict Accum)` calls `(F Key Value Accum)` for each association in `Dict`.
 \\: The return value of each call to `F` is used as `Accum` in the next call.
 \\: Returns the final accumulator, or the initial accumulator if `Dict` is empty.
+\\: Traversal order is unspecified and may differ between Shen implementations.
 (define dict.fold
   { (K --> V --> A --> A) --> (dict.t K V) --> A --> A }
   F Dict Seed -> (shen.dict-fold F Dict Seed))
 
-\\: `(dict.keys Dict)` returns a list of all keys in `Dict`.
+\\: `(dict.keys Dict)` returns a list of all keys in `Dict`, in unspecified order.
 (define dict.keys
   { (dict.t K V) --> (list K) }
   Dict -> (shen.dict-keys Dict))
 
-\\: `(dict.values Dict)` returns a list of all values in `Dict`.
+\\: `(dict.values Dict)` returns a list of all values in `Dict`, in unspecified
+\\: order. Do not assume that separate calls to `dict.keys` and `dict.values`
+\\: have corresponding positions; use `dict.fold` when key/value association
+\\: matters.
 (define dict.values
   { (dict.t K V) --> (list V) }
   Dict -> (shen.dict-values Dict))

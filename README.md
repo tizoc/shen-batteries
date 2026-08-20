@@ -65,12 +65,12 @@ module-format specification are maintained by hand.
 | `seq/cexpr` | `seq.do` computation-expression frontend | `seq`, `typ/sexp`, `cexpr` | [API](docs/seq/cexpr.adoc) |
 | `seq/dict` | Snapshot conversions between sequences and dictionaries | `seq`, `dict` | [API](docs/seq/dict.adoc) |
 | `shendoc` | AsciiDoc generator for Shen source comments | — | [API](docs/shendoc.adoc) |
-| `typ/or` | Union type rule | — | [API](docs/typ/or.adoc) |
-| `typ/sexp` | S-expression type | — | [API](docs/typ/sexp.adoc) |
-| `typ/verified-and-head` | Type refinement from the head of `and` | — | [API](docs/typ/verified-and-head.adoc) |
-| `typ/verified-if` | Type refinement in the true branch of `if` | — | [API](docs/typ/verified-if.adoc) |
-| `typ/verified-objects` | Predicate-based type-refinement rules | — | [API](docs/typ/verified-objects.adoc) |
-| `typ/void` | Type and value for discarded results | — | [API](docs/typ/void.adoc) |
+| `typ/or` | Untagged union introduction rules | — | [API](docs/typ/or.adoc) |
+| `typ/sexp` | Proper S-expression tree type | — | [API](docs/typ/sexp.adoc) |
+| `typ/verified-and-head` | Ordered refinement from the head to the tail of `and` | — | [API](docs/typ/verified-and-head.adoc) |
+| `typ/verified-if` | Verified-test refinement in the true branch of `if` | — | [API](docs/typ/verified-if.adoc) |
+| `typ/verified-objects` | Refinement rules for primitive object predicates | — | [API](docs/typ/verified-objects.adoc) |
+| `typ/void` | Discarded-result type and conventional value | — | [API](docs/typ/void.adoc) |
 | `with-exit` | Portable early-return and early-break forms | `box`, `features`, `maybe`, `typ/void`, `typ/sexp` | [API](docs/with-exit.adoc) |
 
 No production module currently declares a port feature requirement.
@@ -90,9 +90,9 @@ To run only the port-neutral module-format cases, each in a fresh process:
 make test-module-conformance SHEN=/absolute/path/to/shen
 ```
 
-The current reference runtime is Shen 41.3 from Shen kernel `master` on
-Shen/Scheme `master` after 0.46. The Shen/Scheme 0.46 release predates the
-required programmable-pattern typechecking and dictionary traversal fixes.
+The current reference runtime is Shen 41.3 on Shen/Scheme 0.46.1. The earlier
+Shen/Scheme 0.46 release predates the required programmable-pattern
+typechecking and dictionary traversal fixes.
 
 The same Shen/Scheme development build can also compile and load the native
 module smoke graph:

@@ -73,6 +73,11 @@ An implementation may use a thin adapter to expose the four operations under
 the expected names. Internal parsed-declaration representation is irrelevant;
 only `library.module-requires` is used to observe a declaration.
 
+The reference loader additionally exposes `library.module-required-features`
+and `library.current-features` for application introspection. The conformance
+suite checks feature enforcement through `library.use`, so adapters are not
+required to implement these two convenience operations.
+
 ## Scope
 
 The suite covers the portable parser and runtime loading transitions most

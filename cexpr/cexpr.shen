@@ -78,7 +78,7 @@
 \\: ordinary consecutive `bind` statements are dependent `flat-map`
 \\: operations.
 \\:
-\\: == Implementing new computation expression types
+\\: == Builder protocol
 \\:
 \\: A builder is an ordinary checked Shen function with type
 \\: `(list sexp) --> sexp`. It receives an operation represented as source
@@ -122,6 +122,21 @@
 \\: Delay is also applied to the remainder supplied to Combine. The single
 \\: outer Run/Delay pair is separate: it lets a builder suspend, start, or
 \\: finalize the complete computation without finalizing nested bodies.
+\\:
+\\: == Public API
+\\:
+\\: ==== `defcexpr`
+\\:
+\\: `(defcexpr Frontend Builder)` declares a computation-expression frontend.
+\\: `Frontend` and `Builder` must be literal, non-variable symbols. The
+\\: declaration defines a shallow macro named by `Frontend`; using that macro
+\\: passes its statement body and the ordinary function named by `Builder` to
+\\: `cexpr.expand`.
+\\:
+\\: The new frontend is available to subsequently loaded source files and
+\\: dependent modules. It is not available within the source file containing
+\\: the declaration. Each frontend is fixed to its declared builder; declaring
+\\: one does not create a runtime registry or dispatcher.
 
 (defmacro cexpr.defcexpr-macro
   [defcexpr Frontend Builder]
@@ -135,6 +150,16 @@
     -> (error "invalid defcexpr declaration ~R"
               [defcexpr | Declaration]))
 
+\\: `(cexpr.default-builder Name Operation)` supplies the common default cases
+\\: for a computation-expression builder. It returns the expression unchanged
+\\: for `[delay Expression]` and `[run Expression]`. For
+\\: `[bind-return Computation F]` it signals Shen failure, which asks the
+\\: expander to lower the expression with ordinary `bind` and `return`
+\\: operations instead.
+\\:
+\\: Any other operation raises an unsupported-operation error containing
+\\: `Name` and `Operation`. A custom builder normally handles its supported
+\\: operations first and delegates its final case here.
 (define cexpr.default-builder
   { symbol --> (list sexp) --> sexp }
   _    [bind-return _ _] -> (fail)
@@ -240,8 +265,17 @@
   Mk Expr <- (cexpr.build-applicative Mk Expr)
   Mk Expr -> (cexpr.build-monadic Mk Expr))
 
-\\ Apply the builder's root boundary exactly once. Recursive computation
-\\ expression translation continues to use cexpr.build directly.
+\\: `(cexpr.expand Builder Body)` translates a computation-expression `Body`
+\\: into Shen source using the builder function `Builder`. `Body` is the list
+\\: of statements accepted by a declared frontend, and the result is a source
+\\: tree; `cexpr.expand` does not evaluate that tree.
+\\:
+\\: The complete translated body is passed through `[delay Body]` and then
+\\: `[run DelayedBody]` exactly once. Recursive translation uses the builder
+\\: protocol directly, so nested bodies do not acquire additional root
+\\: boundaries. Declared frontends call this function automatically; it can
+\\: also be used directly by macros that already have a builder function and a
+\\: statement list.
 (define cexpr.expand
   { ((list sexp) --> sexp) --> (list sexp) --> sexp }
   Mk CExpr -> (Mk [run (Mk [delay (cexpr.build Mk CExpr)])]))

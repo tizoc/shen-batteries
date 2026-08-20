@@ -13,6 +13,9 @@ rejected.
 
 == Usage
 
+`shendoc.shen` is the command-line launcher. Its argument dispatcher is an
+implementation detail; library clients should call `shendoc.generate`.
+
 Write documentation to standard output:
 
 [source,shell]
@@ -26,3 +29,12 @@ Or write it directly to a file:
 ----
 shen-scheme script shendoc.shen INPUT OUTPUT
 ----
+
+== Programmatic API
+
+==== `shendoc.generate` : `string --> string`
+
+`(shendoc.generate File)` reads the Shen source file named by `File` and
+returns its complete generated AsciiDoc document as a string. It does not
+evaluate the documented source or write the result to a file. Callers that
+want a file can pass the returned string to `write-to-file`.

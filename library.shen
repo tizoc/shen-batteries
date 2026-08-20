@@ -18,6 +18,14 @@
 \\: ----
 \\:
 \\: == API
+\\:
+\\: `library.read-module` returns an opaque parsed declaration. Pass that
+\\: value to `library.module-requires` or
+\\: `library.module-required-features`; its representation is not public.
+\\: In the signatures below, `A` stands for that opaque value; the accessors
+\\: do not accept arbitrary Shen values.
+\\: The portable descriptor and loading rules are specified in
+\\: link:shen-module-v1.md[`shen.module` version 1].
 
 (package library
  [shen.module version name sources requires requires-features extension tc+ tc-]
@@ -155,12 +163,19 @@
   [module-declaration _ Sources _ _ _] -> Sources)
 
 \\: `(library.module-requires Module)` returns the descriptor's direct module
-\\: requirements in declaration order. Obtain `Module` with
-\\: `library.read-module`; dependencies are not loaded by this operation.
+\\: requirements in declaration order. It does not expand transitive
+\\: requirements or load anything. Obtain the opaque `Module` value with
+\\: `library.read-module`.
 (define module-requires
+  { A --> (list symbol) }
   [module-declaration _ _ Requires _ _] -> Requires)
 
+\\: `(library.module-required-features Module)` returns the descriptor's
+\\: required feature names in declaration order. It only inspects the parsed
+\\: declaration; it does not test availability or load anything. Obtain the
+\\: opaque `Module` value with `library.read-module`.
 (define module-required-features
+  { A --> (list symbol) }
   [module-declaration _ _ _ Features _] -> Features)
 
 (define ends-in-slash?
@@ -205,8 +220,13 @@
 
 \\: `(library.read-module Name)` reads and validates `Name`'s descriptor below
 \\: the configured module home. It checks that the declaration has the
-\\: requested name, but does not load its dependencies or source files.
+\\: requested name, but does not check feature availability or load its
+\\: dependencies or source files. The result is an opaque declaration for the
+\\: two accessor functions above. Reading a descriptor does not lock the module
+\\: home, and the caller's `*home-directory*` is restored after success or an
+\\: error.
 (define read-module
+  { symbol --> A }
   Name -> (let Path (@s (str Name) ".shenmod")
                Root (home-prefix (value *home*))
                Module (with-home Root
@@ -219,7 +239,12 @@
                 (error "Module ~A declares the name ~A"
                        Name (module-name Module)))))
 
+\\: `(library.current-features)` returns the feature names currently advertised
+\\: by the running Shen port. Their order is unspecified. If the port's feature
+\\: query is unavailable or raises an error, this function returns `[]`, so a
+\\: module with feature requirements fails closed.
 (define current-features
+  { --> (list symbol) }
   -> (trap-error (shen.x.features.current) (/. E [])))
 
 (define require-features
@@ -264,27 +289,28 @@
                               (use-h Names Stack)))
 
 \\: `(library.use Names)` loads every named module and its transitive
-\\: dependencies. Each module is loaded once, dependency cycles and missing
-\\: required features are rejected, and each source file uses the typechecking
-\\: mode declared by its descriptor. Every source starts from its descriptor's
-\\: base directory even if an earlier source changed `*home-directory*`. The
-\\: caller's typechecking mode and home directory are restored even if loading
-\\: raises an error.
+\\: dependencies. Each successfully completed module is loaded once;
+\\: dependency cycles and missing required features are rejected, and each
+\\: source file uses the typechecking mode declared by its descriptor. Loading
+\\: is not transactional: completed dependencies and earlier source effects
+\\: remain after a later error, while the failing module may be retried. Every
+\\: source starts from its descriptor's base directory even if an earlier
+\\: source changed `*home-directory*`. The caller's typechecking mode and home
+\\: directory are restored even if loading raises an error.
 (define use
+  { (list symbol) --> unit }
   Names -> (with-typechecking-state
             (freeze (use-h Names []))))
 
 \\: `(library.set-home Path)` selects the directory below which module
-\\: descriptors are resolved. It must be called before any module has been
-\\: loaded; changing the root afterwards raises an error.
+\\: descriptors are resolved. The initial value is Shen's current
+\\: `*home-directory*`. The root may be changed repeatedly until a module has
+\\: completed loading; changing it after that raises an error. This operation
+\\: does not read or validate `Path`.
 (define set-home
+  { string --> unit }
   Path -> (do (set *home* Path) unit)
     where (= [] (value *loaded*))
   _ -> (error "Module home cannot change after loading a module"))
-
-(declare set-home [string --> unit])
-(declare use [[list symbol] --> unit])
-(declare read-module [symbol --> A])
-(declare module-requires [A --> [list symbol]])
 
 )

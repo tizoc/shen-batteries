@@ -1,22 +1,55 @@
 \\ Copyright (c) 2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-\\: == `typ/verified-and-head.t`
+\\: = `typ/verified-and-head.t`
 \\:
-\\: This rule extends the typechecker so that when the `Tail` expression of `(and Head Tail)` expressions
-\\: is typechecked, any `verified` rules that result from `Head` are taken into account.
-\\:
-\\: Example:
+\\: `typ/verified-and-head` is an opt-in typechecker extension for binary `and`.
+\\: Load it before typechecking definitions that rely on head-to-tail refinement:
 \\:
 \\: [source,shen]
 \\: ----
-\\: (define test
+\\: (library.use [typ/verified-and-head])
+\\: ----
+\\:
+\\: The rule first checks the head of `(and Head Tail)` as a boolean. It then
+\\: checks the tail as a boolean with `Head : verified` in the proof context.
+\\: Predicate-specific `verified` rules can therefore refine values used by the
+\\: tail.
+\\:
+\\: This module does not define any predicate-specific refinements. For the
+\\: standard `number?`, `string?`, `symbol?`, and `boolean?` predicates, load it
+\\: together with `typ/verified-objects`:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (library.use
+\\:   [typ/verified-objects
+\\:    typ/verified-and-head])
+\\: ----
+\\:
+\\: For example:
+\\:
+\\: [source,shen]
+\\: ----
+\\: (define positive-number?
 \\:   { A --> boolean }
 \\:   X -> (and (number? X) (> X 0)))
 \\: ----
 \\:
-\\: The above code doesn't typecheck by default, but if `typ/verified-and-head.t` and `typ/verified-objects.t`
-\\: are enabled it does.
+\\: Current Shen does not typecheck this definition with its core rules alone:
+\\: `>` requires numbers, while `X` initially has the type variable `A`. With
+\\: both modules loaded, the verified-object rule derives `X : number` from the
+\\: verified head while the tail `(> X 0)` is checked.
+\\:
+\\: Refinement is directional: the head can inform the tail, but the tail cannot
+\\: inform the head. This theory also does not make facts from the conjunction
+\\: available outside it; when a whole `and` guard is later assumed `verified`,
+\\: the compound rule in `typ/verified-objects` performs that decomposition.
+\\:
+\\: The extension changes only typechecking. It does not add runtime tests,
+\\: conversions, or casts, and it does not change `and` evaluation. It applies
+\\: only to binary `and`; `or`, negation, other control forms, and predicates
+\\: without a matching `verified` rule receive no refinement from it.
 
 (datatype typ/verified-and-head.t
   Q : boolean;

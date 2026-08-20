@@ -149,6 +149,12 @@
     [Empty Insert Replace Delete]))
 
 (test.assert-equal
+  "dict rejects nonpositive size hints"
+  [true true]
+  [(trap-error (do (dict.make 0) false) (/. Error true))
+   (trap-error (do (dict.make -1) false) (/. Error true))])
+
+(test.assert-equal
   "maybe bind transforms present values"
   (@some 42)
   (maybe.bind (@some 41) (/. X (@some (+ X 1)))))
@@ -285,6 +291,10 @@
           "with-return typechecks"
           7
           (test-with-exit.return))
+        (test.assert-equal
+          "with-return completes with its body result"
+          42
+          (with-return Return (+ 20 22)))
         (test.assert-equal
           "with-break typechecks"
           ok
@@ -493,6 +503,65 @@
           (trap-error
             (iter.to-list (iter.drop -1 (iter.of-list [1 2 3])))
             (/. X rejected)))
+        (test.assert-equal
+          "iter.from-lazy thaws until @none"
+          [1 2 3]
+          (let State (box.make [1 2 3])
+            (iter.to-list
+              (iter.from-lazy
+                (freeze
+                  (let Values (box.unbox State)
+                    (if (= Values [])
+                        (@none)
+                        (do (box.put State (tl Values))
+                            (@some (hd Values))))))))))
+        (test.assert-equal
+          "iter.scan includes its initial accumulator"
+          [0 1 3 6]
+          (iter.to-list
+            (iter.scan (/. Acc X (+ Acc X))
+                       0
+                       (iter.of-list [1 2 3]))))
+        (test.assert-equal
+          "iter stateful maps reset and advance through skipped outputs"
+          [[1 3] [1 3] [3]]
+          (let FoldMapped
+                (iter.fold-map
+                  (/. Acc X (let Next (+ Acc X) (@p Next Next)))
+                  0
+                  (iter.of-list [1 2]))
+               First (iter.to-list FoldMapped)
+               Second (iter.to-list FoldMapped)
+               FilterMapped
+                (iter.to-list
+                  (iter.fold-filter-map
+                    (/. Acc X
+                      (let Next (+ Acc X)
+                        (@p Next
+                            (if (= X 2) (@some Next) (@none)))))
+                    0
+                    (iter.of-list [1 2 3])))
+            [First Second FilterMapped]))
+        (test.assert-equal
+          "iter input indices and vector positions use their documented bases"
+          [[(@p 0 a) (@p 1 b)] [(@p 1 a) (@p 2 b)] [2]]
+          (let Vector (iter.to-vector (iter.of-list [a b]))
+            [(iter.to-list (iter.enumerate (iter.of-list [a b])))
+             (iter.to-list (iter.of-vector-enumerated Vector))
+             (iter.to-list
+               (iter.filter-mapi
+                 (/. Index X (if (= X c) (@some Index) (@none)))
+                 (iter.of-list [a b c])))]))
+        (test.assert-equal
+          "iter.drop-while stops testing after the prefix"
+          [3 [3 1]]
+          (let Tests (box.make 0)
+               Values
+                (iter.to-list
+                  (iter.drop-while
+                    (/. X (do (box.incr Tests) (< X 3)))
+                    (iter.of-list [1 2 3 1])))
+            [(box.unbox Tests) Values]))
         (test.assert-equal
           "iter.of-vector accepts an empty vector"
           []
@@ -1302,6 +1371,32 @@ A final note.
     [Head (box.unbox Count)]))
 
 (test.assert-equal
+  "seq head and tail reject an empty sequence"
+  [true true]
+  [(trap-error (do (seq.head (seq.empty)) false) (/. Error true))
+   (trap-error (do (seq.tail (seq.empty)) false) (/. Error true))])
+
+(test.assert-equal
+  "seq.into-vector returns the unconsumed remainder"
+  [a b [c] 0]
+  (let Vector (vector 2)
+       Result (seq.into-vector 1 2 Vector (seq.of-list [a b c]))
+    [(<-vector Vector 1)
+     (<-vector Vector 2)
+     (seq.to-list (fst Result))
+     (snd Result)]))
+
+(test.assert-equal
+  "seq.into-vector rejects an invalid span before consuming its source"
+  [rejected 0]
+  (let Count (box.make 0)
+       Source (test.counted-seq [a b] Count)
+       Result (trap-error
+                (seq.into-vector 2 2 (vector 2) Source)
+                (/. Error rejected))
+    [Result (box.unbox Count)]))
+
+(test.assert-equal
   "seq.find stops at its first match"
   [(@some 3) 3]
   (let Count (box.make 0)
@@ -1386,3 +1481,8 @@ A final note.
   "seq.drop rejects negative counts"
   rejected
   (trap-error (seq.drop -1 (seq.empty)) (/. X rejected)))
+
+(test.assert-equal
+  "seq.chunks rejects sizes below one"
+  rejected
+  (trap-error (seq.chunks 0 (seq.empty)) (/. Error rejected)))

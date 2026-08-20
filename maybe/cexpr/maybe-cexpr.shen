@@ -8,6 +8,8 @@
 \\: `(@none)` immediately, while a successful step makes its value available
 \\: to the rest of the computation.
 \\:
+\\: == `maybe.do`
+\\:
 \\: [source,shen]
 \\: ----
 \\: (define positive
@@ -22,6 +24,8 @@
 \\: \\ Result: (@some 14)
 \\: ----
 \\:
+\\: == Supported forms
+\\:
 \\: `bind` and `then` short-circuit on `@none`. `return` and `yield` wrap a
 \\: value in `@some`; `return-from` and `yield-from` use an existing Maybe, so
 \\: `(return (@some X))` nests a Maybe while `(return-from (@some X))` does not.
@@ -33,9 +37,10 @@
 \\: `effect` discards the result of an ordinary Shen expression; even an
 \\: `@none` result from that expression does not short-circuit the computation.
 \\: An omitted else arm is `@none`, so a false one-armed conditional does
-\\: short-circuit any following statements. `maybe.do` does not support `for`
-\\: or applicative `and` bindings. See the `cexpr` guide for the shared
-\\: structured syntax.
+\\: short-circuit any following statements.
+\\:
+\\: `maybe.do` does not support `for` or applicative `and` bindings. See the
+\\: `cexpr` guide for the shared structured syntax.
 
 (define maybe.cexpr-builder
   { (list sexp) --> sexp }

@@ -186,6 +186,12 @@ but does not check features or load dependencies or sources.
 internal representation of a parsed declaration is an implementation detail
 and is not part of version 1.
 
+The reference loader also supports two public introspection operations:
+`library.module-required-features` returns a parsed declaration's direct
+feature requirements, and `library.current-features` returns the features
+advertised by the running port. These conveniences are not required of another
+version 1 loader or its conformance adapter.
+
 ## Conformance fixtures
 
 The repository includes a reusable, port-neutral fixture suite for these

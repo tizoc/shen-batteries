@@ -2,9 +2,11 @@
 
 = Lazy patterns
 
-Loading this module adds `(freeze Pattern)` to Shen's function patterns.
-Matching forces the lazy value with `thaw`, then matches `Pattern` against
-the result.
+Requiring `(library.use [lazy/pattern])` adds `(freeze Pattern)` to Shen's
+function patterns. Matching forces the lazy value with `thaw`, then matches
+`Pattern` against the result.
+
+== Syntax
 
 [source,shen]
 ----

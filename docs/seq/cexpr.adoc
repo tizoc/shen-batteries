@@ -5,14 +5,20 @@
 Require `(library.use [seq/cexpr])` to define the `seq.do` frontend.
 It provides structured sequence comprehensions and generators.
 
+== `seq.do`
+
 [source,shen]
 ----
-(seq.do
-  (for X [1 2 3])
-  (if (> X 1)
-      (do (yield X)
-          (yield (* X 10)))))
+(seq.to-list
+  (seq.do
+    (for X [1 2 3])
+    (if (> X 1)
+        (do (yield X)
+            (yield (* X 10))))))
+\\ Result: [2 20 3 30]
 ----
+
+== Supported forms
 
 `bind` flat-maps an existing sequence. `for` first converts a list or
 vector with `seq.of`, then flat-maps it. `return` and `yield` produce a

@@ -60,6 +60,7 @@ GENERATED_DOCS = \
 .PHONY: test test-modules test-authoring-modules test-module-conformance test-native docs check-docs
 test: test-modules test-authoring-modules test-module-conformance
 	"$(SHEN)" script tests/run.shen
+	"$(SHEN)" script tests/run-typ-conformance.shen
 	"$(SHEN)" script tests/run-verified-if.shen
 	"$(SHEN)" script tests/run-portable-fallback.shen
 

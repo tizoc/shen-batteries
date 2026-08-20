@@ -5,7 +5,7 @@
 \\:
 \\: Shen's `freeze` creates a delayed computation and `thaw` runs it.
 \\: `lazy.memo` adds successful-result caching when the same computation may
-\\: be thawed more than once.
+\\: be thawed more than once. Require it with `(library.use [lazy])`.
 \\:
 \\: == API
 
