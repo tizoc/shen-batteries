@@ -18,6 +18,8 @@
    defpattern
    let-match
    pipe-macro
+   queue
+   result
    cexpr
    maybe/cexpr
    seq/dict
@@ -54,4 +56,18 @@
       (load "tests/fixtures/pipe-macro-input.shen")
       (tc Typechecking)))
 
+\\ Exercise checked clients of persistent queues and Result patterns.
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "tests/fixtures/queue-result-input.shen")
+      (tc Typechecking)))
+
 (library.use [iter])
+(library.use [iter/cexpr])
+
+\\ Exercise the checked iterator computation-expression frontend in a later
+\\ source, after its declaration has become active.
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "tests/fixtures/iter-cexpr-input.shen")
+      (tc Typechecking)))

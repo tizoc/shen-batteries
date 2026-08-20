@@ -9,6 +9,7 @@ PRODUCTION_MODULES = \
 	dict \
 	features \
 	iter \
+	iter/cexpr \
 	lazy \
 	lazy/pattern \
 	let-match \
@@ -16,6 +17,8 @@ PRODUCTION_MODULES = \
 	maybe/cexpr \
 	nullable \
 	pipe-macro \
+	queue \
+	result \
 	seq \
 	seq/dict \
 	seq/cexpr \
@@ -37,6 +40,7 @@ GENERATED_DOCS = \
 	docs/dict.adoc \
 	docs/features.adoc \
 	docs/iter.adoc \
+	docs/iter/cexpr.adoc \
 	docs/lazy.adoc \
 	docs/lazy/pattern.adoc \
 	docs/let-match.adoc \
@@ -45,6 +49,8 @@ GENERATED_DOCS = \
 	docs/maybe/cexpr.adoc \
 	docs/nullable.adoc \
 	docs/pipe-macro.adoc \
+	docs/queue.adoc \
+	docs/result.adoc \
 	docs/seq.adoc \
 	docs/seq/cexpr.adoc \
 	docs/seq/dict.adoc \
@@ -86,17 +92,21 @@ test-native:
 		-e '(shen-scheme.load-compiled "_build/native-test.so")' \
 		-e '(if (= (batteries-native-test.answer) 42) ok (error "native pattern smoke test failed"))' \
 		-e '(if (= (batteries-native-test.iter-answer) [1 2]) ok (error "native iter smoke test failed"))' \
+		-e '(if (= (batteries-native-test.iter-do-answer) [10 20]) ok (error "native iter.do smoke test failed"))' \
 		-e '(if (= (batteries-native-test.maybe-do-answer) 42) ok (error "native maybe.do smoke test failed"))' \
+		-e '(if (= (batteries-native-test.queue-answer) [1 2]) ok (error "native queue smoke test failed"))' \
+		-e '(if (= (batteries-native-test.result-answer) 42) ok (error "native result smoke test failed"))' \
 		-e '(if (= (batteries-native-test.seq-do-answer) [11 21 12 22]) ok (error "native seq.do smoke test failed"))'
 
 docs:
-	mkdir -p docs/lazy docs/maybe docs/seq
+	mkdir -p docs/iter docs/lazy docs/maybe docs/seq
 	"$(SHEN)" script shendoc.shen box/box.shen docs/box.adoc
 	"$(SHEN)" script shendoc.shen cexpr/cexpr.shen docs/cexpr.adoc
 	"$(SHEN)" script shendoc.shen defpattern/defpattern.shen docs/defpattern.adoc
 	"$(SHEN)" script shendoc.shen dict/dict.shen docs/dict.adoc
 	"$(SHEN)" script shendoc.shen features/features.shen docs/features.adoc
 	"$(SHEN)" script shendoc.shen iter/iter.shen docs/iter.adoc
+	"$(SHEN)" script shendoc.shen iter/cexpr/iter-cexpr.shen docs/iter/cexpr.adoc
 	"$(SHEN)" script shendoc.shen lazy/lazy.shen docs/lazy.adoc
 	"$(SHEN)" script shendoc.shen lazy/pattern/lazy-pattern.shen docs/lazy/pattern.adoc
 	"$(SHEN)" script shendoc.shen let-match/let-match.shen docs/let-match.adoc
@@ -105,6 +115,8 @@ docs:
 	"$(SHEN)" script shendoc.shen maybe/cexpr/maybe-cexpr.shen docs/maybe/cexpr.adoc
 	"$(SHEN)" script shendoc.shen nullable/nullable.shen docs/nullable.adoc
 	"$(SHEN)" script shendoc.shen pipe-macro/pipe-macro.shen docs/pipe-macro.adoc
+	"$(SHEN)" script shendoc.shen queue/queue.shen docs/queue.adoc
+	"$(SHEN)" script shendoc.shen result/result.shen docs/result.adoc
 	"$(SHEN)" script shendoc.shen seq/seq.shen docs/seq.adoc
 	"$(SHEN)" script shendoc.shen seq/cexpr/seq-cexpr.shen docs/seq/cexpr.adoc
 	"$(SHEN)" script shendoc.shen seq/dict/seq-dict.shen docs/seq/dict.adoc

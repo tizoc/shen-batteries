@@ -1,0 +1,5 @@
+(shen.module
+  (version 1)
+  (name queue)
+  (requires maybe)
+  (sources tc+ "queue/queue.shen"))

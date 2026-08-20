@@ -35,6 +35,11 @@
                               (simple-error "later sequence was forced")))
                    (seq.singleton ignored)))
 
+(define test.result-pattern
+  (@ok Value) -> [ok Value]
+  (@err Error) -> [err Error]
+  _ -> unrelated)
+
 (test.assert-true
   "feature list is nonempty"
   (cons? (features.current)))
@@ -283,6 +288,98 @@
    (= (@just value) value)
    (null? (@just (@null)))
    (null? (@just value))])
+
+(test.assert-equal
+  "persistent queues preserve FIFO order and earlier versions"
+  [[1 2] [1 2 3] 1 [2 3] 2 [1 2 3 4]]
+  (let Original (queue.of-list [1 2])
+       Extended (queue.snoc Original 3)
+       Removed (maybe.get (queue.uncons Extended))
+       Rest (snd Removed)
+    [(queue.to-list Original)
+     (queue.to-list Extended)
+     (fst Removed)
+     (queue.to-list Rest)
+     (maybe.get (queue.peek Rest))
+     (test.queue-append-one [1 2 3])]))
+
+(test.assert-equal
+  "persistent queue observations report an empty queue"
+  [true true true]
+  [(queue.empty? (queue.empty))
+   (maybe.none? (queue.peek (queue.empty)))
+   (maybe.none? (queue.uncons (queue.empty)))])
+
+(test.assert-equal
+  "persistent queues normalize a reversed rear without changing prior versions"
+  [[1] [1 2] [1 2 3] 1 2 3 true true false [only]]
+  (let One (queue.snoc (queue.empty) 1)
+       Two (queue.snoc One 2)
+       Three (queue.snoc Two 3)
+       First (maybe.get (test.queue-pop Three))
+       Second (maybe.get (queue.uncons (snd First)))
+       Third (maybe.get (queue.uncons (snd Second)))
+       Empty (snd Third)
+    [(queue.to-list One)
+     (queue.to-list Two)
+     (queue.to-list Three)
+     (fst First)
+     (fst Second)
+     (fst Third)
+     (queue.empty? Empty)
+     (maybe.none? (queue.uncons Empty))
+     (queue.empty? Three)
+     (queue.to-list (queue.singleton only))]))
+
+(test.assert-equal
+  "Result predicates and patterns distinguish success, error, and other values"
+  [true false false true [ok 42] [err problem]
+   unrelated unrelated unrelated 42 -7]
+  [(result.ok? (@ok value))
+   (result.err? (@ok value))
+   (result.ok? (@err problem))
+   (result.err? (@err problem))
+   (test.result-pattern (@ok 42))
+   (test.result-pattern (@err problem))
+   (test.result-pattern unrelated)
+   (test.result-pattern (absvector 0))
+   (test.result-pattern (@some other))
+   (test.result-number (@ok 41))
+   (test.result-number (@err 7))])
+
+(test.assert-equal
+  "result.fold dispatches exactly one branch"
+  [[ok 4] [err problem] [ok err]]
+  (let Seen (box.make [])
+       OnErr (/. Error (do (box.put Seen [err | (box.unbox Seen)])
+                            [err Error]))
+       OnOk (/. Value (do (box.put Seen [ok | (box.unbox Seen)])
+                           [ok Value]))
+       Success (result.fold OnErr OnOk (@ok 4))
+       Failure (result.fold OnErr OnOk (@err problem))
+    [Success Failure (reverse (box.unbox Seen))]))
+
+(test.assert-equal
+  "Result transformations touch only their matching branch"
+  [(@ok 2) (@err problem) (@ok 1) (@err "problem!") (@ok 2) (@err problem) 3]
+  (let Calls (box.make 0)
+       MapOk (result.map (/. X (do (box.incr Calls) (+ X 1))) (@ok 1))
+       MapErr (result.map (/. X (do (box.incr Calls) (+ X 1))) (@err problem))
+       MapErrorOk
+        (result.map-error
+          (/. Error (do (box.incr Calls) (@s Error "!")))
+          (@ok 1))
+       MapErrorErr
+        (result.map-error
+          (/. Error (do (box.incr Calls) (@s Error "!")))
+          (@err "problem"))
+       BindOk
+        (result.bind (@ok 1)
+                     (/. X (do (box.incr Calls) (@ok (+ X 1)))))
+       BindErr
+        (result.bind (@err problem)
+                     (/. X (do (box.incr Calls) (@ok (+ X 1)))))
+    [MapOk MapErr MapErrorOk MapErrorErr BindOk BindErr (box.unbox Calls)]))
 
 (test.assert-equal
   "pipe-first macro"
@@ -1024,6 +1121,73 @@ A final note.
   (let Dict (seq.to-dict
               (seq.of-list [(@p key 10) (@p other 30) (@p key 20)]))
     [(dict.count Dict) (dict.get Dict key) (dict.get Dict other)]))
+
+(test.assert-equal
+  "iter cexpr supports empty, dependent, list-for, and explicit vector binds"
+  [[] [11 21 12 22] [11 21 12 22] [30 40]]
+  [(iter.to-list (iter.do))
+   (iter.to-list
+     (iter.do
+       (bind X (iter.of-list [1 2]))
+       (bind Y (iter.of-list [10 20]))
+       (return (+ X Y))))
+   (test.iter-do-checked [1 2])
+   (test.iter-do-vector-checked
+     (iter.to-vector (iter.of-list [3 4])))])
+
+(test.assert-equal
+  "iter cexpr distinguishes returned values from returned iterators"
+  [[[one two]] [one two] [one two] [one two]]
+  [(iter.to-list (iter.do (return [one two])))
+   (iter.to-list (iter.do (return-from (iter.of-list [one two]))))
+   (iter.to-list (iter.do (yield one) (yield two)))
+   (iter.to-list (iter.do (yield-from (iter.of-list [one two]))))])
+
+(test.assert-equal
+  "iter cexpr discarded binds preserve producer multiplicity"
+  [[kept kept] []]
+  [(iter.to-list
+     (iter.do
+       (then (iter.of-list [first second]))
+       (yield kept)))
+   (iter.to-list
+     (iter.do
+       (then (iter.empty))
+       (yield kept)))])
+
+(test.assert-equal
+  "iter cexpr delays construction effects and repeats them per traversal"
+  [0 [1] 1 [2] 2]
+  (let Calls (box.make 0)
+       Iter (iter.do
+              (effect (box.incr Calls))
+              (yield (box.unbox Calls)))
+       Before (box.unbox Calls)
+       First (iter.to-list Iter)
+       AfterFirst (box.unbox Calls)
+       Second (iter.to-list Iter)
+    [Before First AfterFirst Second (box.unbox Calls)]))
+
+(test.assert-equal
+  "iter cexpr short-circuiting leaves a combined tail unstarted"
+  [(@some first) 0 [first second] 1]
+  (let Calls (box.make 0)
+       Iter (iter.do
+              (yield first)
+              (effect (box.incr Calls))
+              (yield second))
+       Head (iter.head Iter)
+       AfterHead (box.unbox Calls)
+       Full (iter.to-list Iter)
+    [Head AfterHead Full (box.unbox Calls)]))
+
+(test.assert-error-contains
+  "iter cexpr rejects applicative bindings"
+  "iter computation expressions do not support (merge-sources"
+  (freeze
+    (cexpr.build
+      (fn iter.cexpr-builder)
+      [[and [bind X first] [bind Y second]] [return result]])))
 
 (test.assert-equal
   "seq cexpr loads its runtime dependency"

@@ -54,6 +54,7 @@ module-format specification are maintained by hand.
 | `dict` | Typed public API for Shen dictionaries | — | [API](docs/dict.adoc) |
 | `features` | Feature registration, discovery, and conditional expansion | — | [API](docs/features.adoc) |
 | `iter` | Push-based iterators | `typ/void`, `maybe`, `box`, `let-match`, `with-exit` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/iter.adoc) |
+| `iter/cexpr` | `iter.do` computation-expression frontend | `iter`, `typ/sexp`, `cexpr` | [API](docs/iter/cexpr.adoc) |
 | `lazy` | Memoization for frozen computations | `box` | [API](docs/lazy.adoc) |
 | `lazy/pattern` | Programmable matching of frozen computations | `defpattern`, `lazy` | [API](docs/lazy/pattern.adoc) |
 | `let-match` | List and tuple destructuring in `let` bindings | — | [API](docs/let-match.adoc) |
@@ -61,6 +62,8 @@ module-format specification are maintained by hand.
 | `maybe/cexpr` | `maybe.do` computation-expression frontend | `maybe`, `typ/sexp`, `cexpr` | [Guide](docs/working-with-optional-values.adoc), [API](docs/maybe/cexpr.adoc) |
 | `nullable` | Identity-represented nullable values and programmable patterns | `defpattern` | [Guide](docs/working-with-optional-values.adoc), [API](docs/nullable.adoc) |
 | `pipe-macro` | Thread-first, thread-last, and `doto` macros | — | [Guide](docs/using-pipe-macros.adoc), [API](docs/pipe-macro.adoc) |
+| `queue` | Immutable first-in, first-out queues | `maybe` | [API](docs/queue.adoc) |
+| `result` | Tagged success or error values and programmable patterns | `defpattern` | [API](docs/result.adoc) |
 | `seq` | Pull-based lazy sequences | `typ/void`, `typ/or`, `maybe`, `lazy` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/seq.adoc) |
 | `seq/cexpr` | `seq.do` computation-expression frontend | `seq`, `typ/sexp`, `cexpr` | [API](docs/seq/cexpr.adoc) |
 | `seq/dict` | Snapshot conversions between sequences and dictionaries | `seq`, `dict` | [API](docs/seq/dict.adoc) |
