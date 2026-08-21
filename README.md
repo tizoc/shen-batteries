@@ -63,6 +63,7 @@ module-format specification are maintained by hand.
 | `nullable` | Identity-represented nullable values and programmable patterns | `defpattern` | [Guide](docs/working-with-optional-values.adoc), [API](docs/nullable.adoc) |
 | `pipe-macro` | Thread-first, thread-last, and `doto` macros | — | [Guide](docs/using-pipe-macros.adoc), [API](docs/pipe-macro.adoc) |
 | `queue` | Immutable first-in, first-out queues | `maybe` | [API](docs/queue.adoc) |
+| `record` | Closed, nominal records with named construction, matching, and persistent updates | `typ/sexp`, `defpattern`, `features` | [API](docs/record.adoc) |
 | `result` | Tagged success or error values and programmable patterns | `defpattern` | [API](docs/result.adoc) |
 | `seq` | Pull-based lazy sequences | `typ/void`, `typ/or`, `maybe`, `lazy` | [Guide](docs/choosing-seq-or-iter.adoc), [API](docs/seq.adoc) |
 | `seq/cexpr` | `seq.do` computation-expression frontend | `seq`, `typ/sexp`, `cexpr` | [API](docs/seq/cexpr.adoc) |
@@ -97,8 +98,9 @@ The current reference runtime is Shen 41.3 on Shen/Scheme 0.46.1. The earlier
 Shen/Scheme 0.46 release predates the required programmable-pattern
 typechecking and dictionary traversal fixes.
 
-The same Shen/Scheme development build can also compile and load the native
-module smoke graph:
+A Shen/Scheme build after 0.46.1 that advertises
+`shen/scheme.records` can also compile and load the native module smoke
+graph, including the native Chez-record backend:
 
 ```sh
 make test-native SHEN=/absolute/path/to/shen-scheme

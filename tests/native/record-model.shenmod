@@ -1,0 +1,15 @@
+(shen.module
+  (version 1)
+  (name tests/native/record-model)
+  (requires record)
+  (requires-features shen/scheme shen/scheme.records)
+  (sources tc+ "record-declarations.shen")
+  (extension shen/scheme
+    (mode sealed)
+    (exports batteries-native-test.native-marker.make
+             batteries-native-test.native-marker?
+             batteries-native-test.native-person.make
+             batteries-native-test.native-person?
+             batteries-native-test.native-person.name
+             batteries-native-test.native-person.age)
+    (metadata runtime compiletime)))

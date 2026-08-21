@@ -40,6 +40,32 @@
   (@err Error) -> [err Error]
   _ -> unrelated)
 
+(define test.record-observe
+  Log Label Value
+    -> (do (box.put Log (append (box.unbox Log) [Label]))
+           Value))
+
+(define test.record-kind
+  (test-record-person.match Person name _) -> person
+  _ -> other)
+
+(define test.record-marker-kind
+  (test-record-marker.match Marker) -> marker
+  _ -> other)
+
+(define test.record-expansion-error?
+  Form -> (trap-error (do (macroexpand Form) false)
+                       (/. Error true)))
+
+(define test.record-checked-load-fails?
+  Path -> (let Typechecking (if (tc?) + -)
+            (trap-error
+              (do (tc +)
+                  (load Path)
+                  (tc Typechecking)
+                  false)
+              (/. Error (do (tc Typechecking) true)))))
+
 (test.assert-true
   "feature list is nonempty"
   (cons? (features.current)))
@@ -330,6 +356,156 @@
      (maybe.none? (queue.uncons Empty))
      (queue.empty? Three)
      (queue.to-list (queue.singleton only))]))
+
+(test.assert-equal
+  "records construct and access named fields in arbitrary order"
+  ["Ada" 36 "Montevideo" 11000 (@p "Montevideo" 36) true false]
+  (let Address (test-record-address.make
+                 postal <- 11000;
+                 city <- "Montevideo";)
+       Person (test-record-person.make
+                age <- 36;
+                address <- Address;
+                name <- "Ada";)
+    [(test-record-person.name Person)
+     (test-record-person.age Person)
+     (test-record-address.city (test-record-person.address Person))
+     (test-record-address.postal (test-record-person.address Person))
+     (test.record-location Person)
+     (test.record-named-adult? Person)
+     (test.record-named-adult?
+       (test-record-person.with Person age <- 12;))]))
+
+(test.assert-equal
+  "record construction evaluates field expressions once in source order"
+  [[age address name] "Ada" 36 "Colonia"]
+  (let Log (box.make [])
+       Address (test-record-address.make
+                 city <- "Colonia";
+                 postal <- 70000;)
+       Person (test-record-person.make
+                age <- (test.record-observe Log age 36);
+                address <- (test.record-observe Log address Address);
+                name <- (test.record-observe Log name "Ada");)
+    [(box.unbox Log)
+     (test-record-person.name Person)
+     (test-record-person.age Person)
+     (test-record-address.city (test-record-person.address Person))]))
+
+(test.assert-equal
+  "record updates are persistent and evaluate source and changes once in order"
+  [[source age name] "Ada" 36 "Grace" 37 "Salto" "Salto" false]
+  (let Address (test-record-address.make postal <- 50000; city <- "Salto";)
+       Original (test-record-person.make
+                  name <- "Ada";
+                  age <- 36;
+                  address <- Address;)
+       Log (box.make [])
+       Updated (test-record-person.with
+                 (test.record-observe Log source Original)
+                 age <- (test.record-observe Log age 37);
+                 name <- (test.record-observe Log name "Grace");)
+    [(box.unbox Log)
+     (test-record-person.name Original)
+     (test-record-person.age Original)
+     (test-record-person.name Updated)
+     (test-record-person.age Updated)
+     (test-record-address.city (test-record-person.address Original))
+     (test-record-address.city (test-record-person.address Updated))
+     (= Original Updated)]))
+
+(test.assert-equal
+  "parameterized record updates preserve their checked type and prior value"
+  [(@p 1 item) (@p 2 item) 1 2 true]
+  (let Original (test-record-box.make label <- item; value <- 1;)
+       Updated (test.record-box-with-value Original 2)
+    [(test.record-box-pair Original)
+     (test.record-box-pair Updated)
+     (test-record-box.value Original)
+     (test-record-box.value Updated)
+     (test.record-checked-load-fails?
+       "tests/fixtures/record-type-change-invalid.shen")]))
+
+(test.assert-equal
+  "record APIs cross package boundaries with bare call-site field labels"
+  [(@p "Ada" 36) (@p "Ada" 37) true false]
+  (let Person (test-record-client.make-person "Ada" 36)
+       Older (test-record-client.birthday Person)
+    [(test-record-client.name-and-age Person)
+     (test-record-client.name-and-age Older)
+     (test-record-client.person? Person)
+     (test-record-client.person? unrelated)]))
+
+(test.assert-equal
+  "zero-field records construct, discriminate, and match by type"
+  [true false marker marker other]
+  (let Marker (test-record-marker.make)
+    [(test-record-marker? Marker)
+     (test-record-marker? unrelated)
+     (test.record-marker-value Marker)
+     (test.record-marker-kind Marker)
+     (test.record-marker-kind unrelated)]))
+
+(test.assert-equal
+  "phantom record parameters remain available to checked consumers"
+  [phantom true false]
+  (let Phantom (test.record-make-phantom-number phantom)
+    [(test.record-phantom-label Phantom)
+     (test-record-phantom? Phantom)
+     (test-record-phantom? unrelated)]))
+
+(test.assert-equal
+  "record predicates and patterns preserve nominal shape boundaries"
+  [true false false false false person other other]
+  (let Address (test-record-address.make city <- "Melo"; postal <- 37000;)
+       Person (test-record-person.make
+                name <- "Ada"; age <- 36; address <- Address;)
+       Shadow (test-record-person-shadow.make
+                address <- Address; age <- 36; name <- "Ada";)
+    [(test-record-person? Person)
+     (test-record-person? Shadow)
+     (test-record-person? (absvector 0))
+     (test-record-person? (absvector 8))
+     (test-record-person? [name "Ada" age 36])
+     (test.record-kind Person)
+     (test.record-kind Shadow)
+     (test.record-kind unrelated)]))
+
+(test.assert-equal
+  "record syntax rejects missing, duplicate, unknown, and malformed fields"
+  [true true true true true true true true true true true true true true]
+  [(test.record-expansion-error?
+     [test-record-person.make name <- "Ada" ; age <- 36 ;])
+   (test.record-expansion-error?
+     [test-record-person.make
+      name <- "Ada" ; name <- "Grace" ; age <- 36 ;
+      address <- some-address ;])
+   (test.record-expansion-error?
+     [test-record-person.make
+      name <- "Ada" ; age <- 36 ; address <- some-address ;
+      unknown <- value ;])
+   (test.record-expansion-error?
+     [test-record-person.make name <- "Ada" ; age <- 36 ; address <-])
+   (test.record-expansion-error?
+     [test-record-person.match])
+   (test.record-expansion-error?
+     [test-record-person.match not-a-variable age value])
+   (test.record-expansion-error?
+     [test-record-person.match (protect P) unknown value])
+   (test.record-expansion-error?
+     [test-record-person.match (protect P) name first name second])
+   (test.record-expansion-error?
+     [test-record-person.match (protect P) name])
+   (test.record-expansion-error?
+     [test-record-person.with source unknown <- value ;])
+   (test.record-expansion-error?
+     [test-record-person.with source age <- 1 ; age <- 2 ;])
+   (test.record-expansion-error?
+     [test-record-person.with source age <-])
+   (test.record-expansion-error?
+     [test-record-person.with source])
+   (test.record-checked-load-fails?
+     "tests/fixtures/record-name-collision-invalid.shen")])
 
 (test.assert-equal
   "Result predicates and patterns distinguish success, error, and other values"

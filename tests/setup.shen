@@ -19,6 +19,7 @@
    let-match
    pipe-macro
    queue
+   record
    result
    cexpr
    maybe/cexpr
@@ -60,6 +61,14 @@
 (let Typechecking (if (tc?) + -)
   (do (tc +)
       (load "tests/fixtures/queue-result-input.shen")
+      (tc Typechecking)))
+
+\\ Exercise generated record syntax, nominal types, and programmable patterns
+\\ only after their declaration source has finished loading.
+(let Typechecking (if (tc?) + -)
+  (do (tc +)
+      (load "tests/fixtures/record-declarations.shen")
+      (load "tests/fixtures/record-use.shen")
       (tc Typechecking)))
 
 (library.use [iter])

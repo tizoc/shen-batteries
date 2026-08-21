@@ -18,6 +18,7 @@ PRODUCTION_MODULES = \
 	nullable \
 	pipe-macro \
 	queue \
+	record \
 	result \
 	seq \
 	seq/dict \
@@ -50,6 +51,7 @@ GENERATED_DOCS = \
 	docs/nullable.adoc \
 	docs/pipe-macro.adoc \
 	docs/queue.adoc \
+	docs/record.adoc \
 	docs/result.adoc \
 	docs/seq.adoc \
 	docs/seq/cexpr.adoc \
@@ -95,6 +97,11 @@ test-native:
 		-e '(if (= (batteries-native-test.iter-do-answer) [10 20]) ok (error "native iter.do smoke test failed"))' \
 		-e '(if (= (batteries-native-test.maybe-do-answer) 42) ok (error "native maybe.do smoke test failed"))' \
 		-e '(if (= (batteries-native-test.queue-answer) [1 2]) ok (error "native queue smoke test failed"))' \
+		-e '(if (= (batteries-native-test.record-answer) (@p "Ada" 37)) ok (error "native record smoke test failed"))' \
+		-e '(if (batteries-native-test.record-predicate-answer) ok (error "native record predicate smoke test failed"))' \
+		-e '(if (batteries-native-test.record-native-representation-answer) ok (error "native record representation smoke test failed"))' \
+		-e '(if (batteries-native-test.record-equality-answer) ok (error "native record equality smoke test failed"))' \
+		-e '(if (= (batteries-native-test.record-print-answer) "(batteries-native-test.native-person.make name <- c#34;Adac#34;; age <- 36;)") ok (error "native record printer smoke test failed"))' \
 		-e '(if (= (batteries-native-test.result-answer) 42) ok (error "native result smoke test failed"))' \
 		-e '(if (= (batteries-native-test.seq-do-answer) [11 21 12 22]) ok (error "native seq.do smoke test failed"))'
 
@@ -116,6 +123,7 @@ docs:
 	"$(SHEN)" script shendoc.shen nullable/nullable.shen docs/nullable.adoc
 	"$(SHEN)" script shendoc.shen pipe-macro/pipe-macro.shen docs/pipe-macro.adoc
 	"$(SHEN)" script shendoc.shen queue/queue.shen docs/queue.adoc
+	"$(SHEN)" script shendoc.shen record/record.shen docs/record.adoc
 	"$(SHEN)" script shendoc.shen result/result.shen docs/result.adoc
 	"$(SHEN)" script shendoc.shen seq/seq.shen docs/seq.adoc
 	"$(SHEN)" script shendoc.shen seq/cexpr/seq-cexpr.shen docs/seq/cexpr.adoc

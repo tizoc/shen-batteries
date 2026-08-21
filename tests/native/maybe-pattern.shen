@@ -37,6 +37,40 @@
   -> (queue.to-list
        (queue.snoc (queue.of-list [1]) 2)))
 
+(define record-pair
+  { native-person --> (string * number) }
+  (native-person.match Person age Age)
+    -> (@p (native-person.name Person) Age))
+
+(define record-answer
+  { --> (string * number) }
+  -> (let Person (native-person.make age <- 36; name <- "Ada";)
+          Older (native-person.with
+                  Person
+                  age <- (+ (native-person.age Person) 1);)
+       (record-pair Older)))
+
+(define record-predicate-answer
+  { --> boolean }
+  -> (let Person (native-person.make name <- "Ada"; age <- 36;)
+          Marker (native-marker.make)
+       (and (native-person? Person)
+            (and (not (native-person? unrelated))
+                 (native-marker? Marker)))))
+
+(define record-native-representation-answer
+  { --> boolean }
+  -> (not (absvector? (native-person.make name <- "Ada"; age <- 36;))))
+
+(define record-equality-answer
+  { --> boolean }
+  -> (= (native-person.make name <- "Ada"; age <- 36;)
+        (native-person.make age <- 36; name <- "Ada";)))
+
+(define record-print-answer
+  { --> string }
+  -> (make-string "~S" (native-person.make name <- "Ada"; age <- 36;)))
+
 (define result-value
   { (result.t string number) --> number }
   (@ok X) -> X

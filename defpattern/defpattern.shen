@@ -30,7 +30,7 @@
 \\:            handled))
 \\: ----
 \\:
-\\: `Self` is the generated reference to the value being matched. `Is?`
+\\: `Self` is the generated symbol reference to the value being matched. `Is?`
 \\: registers a run-time test S-expression. `Assign` associates a variable or
 \\: nested pattern with a selector S-expression; Shen compiles that pattern
 \\: recursively against the selected value. The fourth argument is the pattern
@@ -97,7 +97,7 @@
   [defpattern Name | Body] ->
     (let Definition
       (append [define Name
-                { sexp --> [sexp --> (protect A)]
+                { symbol --> [sexp --> (protect A)]
                        --> [sexp --> sexp --> (protect B)]
                        --> sexp
                        --> symbol }]

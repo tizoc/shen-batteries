@@ -1,4 +1,27 @@
 (test.assert-equal
+  "portable record predicates require the exact tagged-vector shape"
+  [true false false]
+  (let Address (test-record-address.make city <- "Melo"; postal <- 37000;)
+       Person (test-record-person.make
+                name <- "Ada"; age <- 36; address <- Address;)
+       Printer (<-address Person 0)
+       Schema (<-address Person 1)
+       Too-short (address->
+                   (address-> (absvector 2) 0 Printer) 1 Schema)
+       Too-long (address->
+                  (address-> (absvector 6) 0 Printer) 1 Schema)
+    [(test-record-person? Person)
+     (test-record-person? Too-short)
+     (test-record-person? Too-long)]))
+
+(test.assert-equal
+  "portable records preserve structural equality and named printing"
+  [true "(test-record-address.make city <- c#34;Meloc#34;; postal <- 37000;)"]
+  (let First (test-record-address.make city <- "Melo"; postal <- 37000;)
+       Second (test-record-address.make postal <- 37000; city <- "Melo";)
+    [(= First Second) (make-string "~S" First)]))
+
+(test.assert-equal
   "portable with-return completes normally"
   9
   (with-return Return (+ 4 5)))

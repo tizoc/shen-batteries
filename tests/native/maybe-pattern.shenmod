@@ -1,8 +1,9 @@
 (shen.module
   (version 1)
   (name batteries.native-test)
-  (requires iter iter/cexpr maybe maybe/cexpr queue result seq seq/cexpr)
-  (requires-features shen/scheme)
+  (requires iter iter/cexpr maybe maybe/cexpr queue result seq seq/cexpr
+            tests/native/record-model)
+  (requires-features shen/scheme shen/scheme.records)
   (sources tc+ "maybe-pattern.shen")
   (extension shen/scheme
     (mode sealed)
@@ -11,6 +12,11 @@
              batteries-native-test.iter-do-answer
              batteries-native-test.maybe-do-answer
              batteries-native-test.queue-answer
+             batteries-native-test.record-answer
+             batteries-native-test.record-equality-answer
+             batteries-native-test.record-native-representation-answer
+             batteries-native-test.record-predicate-answer
+             batteries-native-test.record-print-answer
              batteries-native-test.result-answer
              batteries-native-test.seq-do-answer)
     (metadata runtime compiletime)))

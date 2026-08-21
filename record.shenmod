@@ -1,0 +1,6 @@
+(shen.module
+  (version 1)
+  (name record)
+  (requires typ/sexp defpattern)
+  (sources tc- "record/runtime.shen"
+           tc- "record/record.shen"))
